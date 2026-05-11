@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training Log">
+<meta name="theme-color" content="#0C0C0C">
+<title>Training Log · Thomas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0C0C0C;
+    --surface: #161616;
+    --elevated: #202020;
+    --border: #2A2A2A;
+    --text: #F0F0F0;
+    --muted: #555;
+    --dim: #333;
+    --push: #E8FF47;
+    --pull: #47C8FF;
+    --legs: #FF6B47;
+    --accent: #E8FF47;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Figtree', sans-serif;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: calc(72px + var(--safe-bottom));
+    position: relative;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 52px 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .header-title {
+    font-family: var(--font-display);
+    font-size: 36px;
+    letter-spacing: 3px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .header-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .header-icon { font-size: 28px; }
+
+  /* TAB BAR (bottom) */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: #111;
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 20px calc(8px + var(--safe-bottom));
+    gap: 8px;
+    z-index: 100;
+  }
+  .nav-btn {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 13px;
+    transition: all .15s;
+    background: transparent;
+    color: var(--muted);
+  }
+  .nav-btn.active {
+    background: var(--accent);
+    color: #0C0C0C;
+  }
+
+  /* SECTIONS */
+  .section { padding: 20px 20px 0; }
+  .section-gap { height: 16px; }
+
+  label.field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* EINHEIT BUTTONS */
+  .einheit-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .einheit-btn {
+    flex: 1;
+    padding: 14px 0;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 20px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .einheit-btn[data-e="Push"].active { border-color: var(--push); color: var(--push); background: #E8FF4712; }
+  .einheit-btn[data-e="Pull"].active { border-color: var(--pull); color: var(--pull); background: #47C8FF12; }
+  .einheit-btn[data-e="Legs"].active { border-color: var(--legs); color: var(--legs); background: #FF6B4712; }
+
+  /* INPUTS */
+  input[type="date"],
+  input[type="number"],
+  input[type="text"],
+  select {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    margin-bottom: 16px;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: #444; }
+  input::placeholder { color: var(--dim); }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.4);
+    cursor: pointer;
+  }
+
+  .sets-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .set-col { flex: 1; }
+  .set-col label {
+    display: block;
+    font-size: 10px;
+    color: var(--dim);
+    text-align: center;
+    margin-bottom: 4px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .set-col input {
+    text-align: center;
+    margin-bottom: 0;
+    padding: 14px 4px;
+  }
+
+  /* TOGGLE */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .15s;
+  }
+  .toggle-row.on { border-color: var(--accent); }
+  .toggle-label { font-size: 14px; font-weight: 500; color: #AAA; }
+  .toggle-switch {
+    width: 46px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--dim);
+    position: relative;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .toggle-row.on .toggle-switch { background: var(--accent); }
+  .toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #666;
+    transition: left .2s, background .2s;
+  }
+  .toggle-row.on .toggle-knob { left: 23px; background: #0C0C0C; }
+
+  /* SAVE BUTTON */
+  .save-btn {
+    width: 100%;
+    padding: 18px;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: #0C0C0C;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    margin-bottom: 8px;
+  }
+  .save-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+  /* FLASH */
+  .flash {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #0C0C0C;
+    padding: 10px 28px;
+    border-radius: 24px;
+    font-weight: 700;
+    font-size: 14px;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .flash.show { opacity: 1; }
+
+  /* FILTER ROW */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .filter-btn.active { background: var(--accent); color: #0C0C0C; }
+
+  /* LOG ENTRIES */
+  .date-group { padding: 20px 20px 0; }
+  .date-label {
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #3A3A3A;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1A1A1A;
+  }
+
+  .entry-card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .entry-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .badge-Push { background: #E8FF4715; color: var(--push); }
+  .badge-Pull { background: #47C8FF15; color: var(--pull); }
+  .badge-Legs { background: #FF6B4715; color: var(--legs); }
+
+  .entry-info { flex: 1; min-width: 0; }
+  .entry-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .up-badge {
+    background: #E8FF4715;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--dim);
+    cursor: pointer;
+    font-size: 20px;
+    padding: 0 2px;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color .15s;
+  }
+  .del-btn.confirm { color: #FF4747; }
+
+  /* EXPORT */
+  .export-btn {
+    margin: 20px;
+    width: calc(100% - 40px);
+    padding: 14px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .export-btn:hover { border-color: #444; color: var(--text); }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 60px 20px; color: var(--dim); }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-text { font-size: 14px; }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px 0;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-num { font-family: var(--font-display); font-size: 28px; color: var(--accent); letter-spacing: 1px; }
+  .stat-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+
+  /* VIEW TOGGLE */
+  .view-hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="header-title">TRAINING LOG</div>
+      <div class="header-sub" id="header-date"></div>
+    </div>
+    <div class="header-icon">💪</div>
+  </div>
+
+  <!-- ═══ ADD VIEW ═══ -->
+  <div id="view-add">
+    <div class="section" style="padding-top:24px">
+
+      <!-- Date -->
+      <label class="field-label">Datum</label>
+      <input type="date" id="f-date">
+
+      <!-- Einheit -->
+      <label class="field-label">Einheit</label>
+      <div class="einheit-row">
+        <button class="einheit-btn active" data-e="Push" onclick="selectEinheit('Push')">PUSH</button>
+        <button class="einheit-btn" data-e="Pull" onclick="selectEinheit('Pull')">PULL</button>
+        <button class="einheit-btn" data-e="Legs" onclick="selectEinheit('Legs')">LEGS</button>
+      </div>
+
+      <!-- Übung -->
+      <label class="field-label">Übung</label>
+      <select id="f-uebung"></select>
+
+      <!-- Gewicht -->
+      <label class="field-label">Gewicht (kg)</label>
+      <input type="number" id="f-gewicht" placeholder="z.B. 40" inputmode="decimal" step="0.5">
+
+      <!-- Sätze -->
+      <label class="field-label">Wiederholungen pro Satz</label>
+      <div class="sets-row">
+        <div class="set-col"><label>S1</label><input type="number" id="f-s1" placeholder="–" inputmode="numeric"></div>
+        <div class="set-col"><label>S2</label><input type="number" id="f-s2" placeholder="–" inputmode="numeric"></div>
+        <div class="set-col"><label>S3</label><input type="number" id="f-s3" placeholder="–" inputmode="numeric"></div>
+        <div class="set-col"><label>S4</label><input type="number" id="f-s4" placeholder="–" inputmode="numeric"></div>
+      </div>
+
+      <!-- Notiz -->
+      <label class="field-label">Notiz (optional)</label>
+      <input type="text" id="f-notiz" placeholder="z.B. etwas schwer am Ende">
+
+      <!-- Toggle -->
+      <div class="toggle-row" id="toggle-row" onclick="toggleErhoehen()">
+        <span class="toggle-label">↑ Gewicht nächstes Mal erhöhen?</span>
+        <div class="toggle-switch"><div class="toggle-knob"></div></div>
+      </div>
+
+      <!-- Save -->
+      <button class="save-btn" onclick="saveEntry()">SPEICHERN</button>
+    </div>
+  </div>
+
+  <!-- ═══ LOG VIEW ═══ -->
+  <div id="view-log" class="view-hidden">
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">Einträge</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-up">0</div>
+        <div class="stat-label">↑ Erhöhen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-days">0</div>
+        <div class="stat-label">Einheiten</div>
+      </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('Alle')">Alle</button>
+      <button class="filter-btn" onclick="setFilter('Push')">Push</button>
+      <button class="filter-btn" onclick="setFilter('Pull')">Pull</button>
+      <button class="filter-btn" onclick="setFilter('Legs')">Legs</button>
+    </div>
+
+    <!-- Entries -->
+    <div id="entries-container"></div>
+
+    <!-- Export -->
+    <button class="export-btn" onclick="exportCSV()">↓ CSV exportieren (für monatlichen Review)</button>
+  </div>
+
+  <!-- Flash -->
+  <div class="flash" id="flash"></div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-add" onclick="showView('add')">＋ Eintrag</button>
+    <button class="nav-btn" id="nav-log" onclick="showView('log')">Log</button>
+  </div>
+</div>
+
+<script>
+const EXERCISES = {
+  Push: ["Chest Press","Pectoral Fly","Shoulder Press","Trizeps (Stufe 12)","Rear Delt Fly","Lateral Raise"],
+  Pull: ["Latzug","Ruderzug","Bizepscurl","Face Pulls"],
+  Legs: ["Beinpresse","Beinstrecker","Beinbeuger","Hip Abduction","Wadenheben","Bauch gerade","Bauch seitlich"]
+};
+
+let currentEinheit = "Push";
+let erhoehen = false;
+let currentFilter = "Alle";
+let pendingDelete = null;
+
+// --- INIT ---
+document.addEventListener("DOMContentLoaded", () => {
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("f-date").value = today;
+  document.getElementById("header-date").textContent =
+    new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
+  populateUebung("Push");
+  if (getEntries().length > 0) showView("log");
+});
+
+// --- STORAGE ---
+function getEntries() {
+  try { return JSON.parse(localStorage.getItem("tl-entries") || "[]"); } catch { return []; }
+}
+function setEntries(arr) {
+  localStorage.setItem("tl-entries", JSON.stringify(arr));
+}
+
+// --- FORM ---
+function selectEinheit(e) {
+  currentEinheit = e;
+  document.querySelectorAll(".einheit-btn").forEach(b => b.classList.toggle("active", b.dataset.e === e));
+  populateUebung(e);
+}
+
+function populateUebung(e) {
+  const sel = document.getElementById("f-uebung");
+  sel.innerHTML = EXERCISES[e].map(u => `<option value="${u}">${u}</option>`).join("");
+}
+
+function toggleErhoehen() {
+  erhoehen = !erhoehen;
+  document.getElementById("toggle-row").classList.toggle("on", erhoehen);
+}
+
+function saveEntry() {
+  const date = document.getElementById("f-date").value;
+  const uebung = document.getElementById("f-uebung").value;
+  const gewicht = document.getElementById("f-gewicht").value;
+  const s1 = document.getElementById("f-s1").value;
+  const s2 = document.getElementById("f-s2").value;
+  const s3 = document.getElementById("f-s3").value;
+  const s4 = document.getElementById("f-s4").value;
+  const notiz = document.getElementById("f-notiz").value;
+
+  if (!uebung) return;
+
+  const entry = { id: Date.now(), date, einheit: currentEinheit, uebung,
+    gewicht, s1, s2, s3, s4, notiz, erhoehen };
+
+  const entries = getEntries();
+  entries.push(entry);
+  setEntries(entries);
+
+  // Reset
+  document.getElementById("f-gewicht").value = "";
+  document.getElementById("f-s1").value = "";
+  document.getElementById("f-s2").value = "";
+  document.getElementById("f-s3").value = "";
+  document.getElementById("f-s4").value = "";
+  document.getElementById("f-notiz").value = "";
+  erhoehen = false;
+  document.getElementById("toggle-row").classList.remove("on");
+
+  showFlash("Gespeichert ✓");
+}
+
+// --- LOG VIEW ---
+function showView(v) {
+  document.getElementById("view-add").classList.toggle("view-hidden", v !== "add");
+  document.getElementById("view-log").classList.toggle("view-hidden", v !== "log");
+  document.getElementById("nav-add").classList.toggle("active", v === "add");
+  document.getElementById("nav-log").classList.toggle("active", v === "log");
+  if (v === "log") renderLog();
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll(".filter-btn").forEach(b =>
+    b.classList.toggle("active", b.textContent === f));
+  renderLog();
+}
+
+function renderLog() {
+  const all = getEntries();
+  const filtered = currentFilter === "Alle" ? all : all.filter(e => e.einheit === currentFilter);
+  const reversed = [...filtered].reverse();
+
+  // Stats
+  document.getElementById("stat-total").textContent = all.length;
+  document.getElementById("stat-up").textContent = all.filter(e => e.erhoehen).length;
+  const uniqueDays = new Set(all.map(e => e.date + e.einheit)).size;
+  document.getElementById("stat-days").textContent = uniqueDays;
+
+  const container = document.getElementById("entries-container");
+
+  if (reversed.length === 0) {
+    container.innerHTML = `<div class="empty">
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">Noch keine Einträge</div>
+    </div>`;
+    return;
+  }
+
+  // Group by date
+  const groups = {};
+  reversed.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
+
+  container.innerHTML = Object.entries(groups).map(([date, entries]) => {
+    const fmtDate = (() => {
+      const [y,m,d] = date.split("-");
+      const wd = new Date(date).toLocaleDateString("de-DE", { weekday: "short" });
+      return `${wd.toUpperCase()}, ${d}.${m}.${y}`;
+    })();
+
+    const cards = entries.map(e => {
+      const sets = [e.s1,e.s2,e.s3,e.s4].filter(Boolean).join(" / ");
+      const meta = [e.gewicht ? `${e.gewicht} kg` : null, sets ? `${sets} Wdh` : null, e.notiz || null]
+        .filter(Boolean).join("  ·  ");
+      const isPending = pendingDelete === e.id;
+      return `<div class="entry-card">
+        <span class="entry-badge badge-${e.einheit}">${e.einheit.toUpperCase()}</span>
+        <div class="entry-info">
+          <div class="entry-name">${e.uebung}</div>
+          ${meta ? `<div class="entry-meta">${meta}</div>` : ""}
+        </div>
+        ${e.erhoehen ? '<span class="up-badge">↑</span>' : ""}
+        <button class="del-btn ${isPending ? "confirm" : ""}"
+          onclick="handleDelete(${e.id})">${isPending ? "✓" : "×"}</button>
+      </div>`;
+    }).join("");
+
+    return `<div class="date-group">
+      <div class="date-label">${fmtDate}</div>
+      ${cards}
+    </div>`;
+  }).join("");
+}
+
+function handleDelete(id) {
+  if (pendingDelete === id) {
+    const entries = getEntries().filter(e => e.id !== id);
+    setEntries(entries);
+    pendingDelete = null;
+    renderLog();
+  } else {
+    pendingDelete = id;
+    renderLog();
+    setTimeout(() => { if (pendingDelete === id) { pendingDelete = null; renderLog(); } }, 3000);
+  }
+}
+
+// --- EXPORT ---
+function exportCSV() {
+  const entries = getEntries();
+  const header = "Datum,Einheit,Übung,Gewicht (kg),S1,S2,S3,S4,Notiz,↑ Erhöhen?";
+  const rows = entries.map(e =>
+    [fmtDate(e.date), e.einheit, e.uebung, e.gewicht,
+     e.s1, e.s2, e.s3, e.s4 || "", e.notiz || "",
+     e.erhoehen ? "Ja" : "Nein"].join(",")
+  );
+  const csv = [header, ...rows].join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `training-log-${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+}
+
+function fmtDate(d) {
+  if (!d) return "";
+  const [y,m,day] = d.split("-");
+  return `${day}.${m}.${y}`;
+}
+
+// --- FLASH ---
+function showFlash(msg) {
+  const el = document.getElementById("flash");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2000);
+}
+</script>
+</body>
+</html>
