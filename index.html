@@ -8,677 +8,536 @@
 <meta name="apple-mobile-web-app-title" content="Training Log">
 <meta name="theme-color" content="#0C0C0C">
 <title>Training Log · Thomas</title>
+<link rel="apple-touch-icon" id="apple-icon" href="">
+<link rel="icon" id="favicon" href="">
+<script>
+  (function(){
+    const c = document.createElement("canvas");
+    c.width = 180; c.height = 180;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#0C0C0C";
+    ctx.fillRect(0,0,180,180);
+    ctx.font = "120px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("💪", 90, 95);
+    const url = c.toDataURL("image/png");
+    document.getElementById("apple-icon").href = url;
+    document.getElementById("favicon").href = url;
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #0C0C0C; --surface: #161616; --border: #2A2A2A;
+  --text: #F0F0F0; --muted: #555; --dim: #333;
+  --push: #E8FF47; --pull: #47C8FF; --legs: #FF6B47; --accent: #E8FF47;
+  --fd: 'Bebas Neue', sans-serif; --fb: 'Figtree', sans-serif;
+  --sb: env(safe-area-inset-bottom, 0px);
+}
+html, body { background: var(--bg); color: var(--text); font-family: var(--fb); min-height: 100vh; overscroll-behavior: none; }
+#app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(72px + var(--sb)); }
 
-  :root {
-    --bg: #0C0C0C;
-    --surface: #161616;
-    --elevated: #202020;
-    --border: #2A2A2A;
-    --text: #F0F0F0;
-    --muted: #555;
-    --dim: #333;
-    --push: #E8FF47;
-    --pull: #47C8FF;
-    --legs: #FF6B47;
-    --accent: #E8FF47;
-    --font-display: 'Bebas Neue', sans-serif;
-    --font-body: 'Figtree', sans-serif;
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
+/* HEADER */
+.hdr { padding: 52px 20px 0; display: flex; justify-content: space-between; align-items: flex-end; }
+.hdr-title { font-family: var(--fd); font-size: 36px; letter-spacing: 3px; line-height: 1; }
+.hdr-sub { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
 
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    min-height: 100vh;
-    overscroll-behavior: none;
-  }
+/* BOTTOM NAV */
+.bnav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; background: #111;
+  border-top: 1px solid var(--border);
+  display: flex; padding: 8px 12px calc(8px + var(--sb)); gap: 6px; z-index: 100;
+}
+.nbtn {
+  flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer;
+  font-family: var(--fb); font-weight: 700; font-size: 12px;
+  transition: all .15s; background: transparent; color: var(--muted);
+}
+.nbtn.active { background: var(--accent); color: #0C0C0C; }
 
-  #app {
-    max-width: 480px;
-    margin: 0 auto;
-    min-height: 100vh;
-    padding-bottom: calc(72px + var(--safe-bottom));
-    position: relative;
-  }
+/* VIEWS */
+.view { display: none; } .view.active { display: block; }
 
-  /* HEADER */
-  .header {
-    padding: 52px 20px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
-  .header-title {
-    font-family: var(--font-display);
-    font-size: 36px;
-    letter-spacing: 3px;
-    line-height: 1;
-    color: var(--text);
-  }
-  .header-sub {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 4px;
-    font-weight: 500;
-  }
-  .header-icon { font-size: 28px; }
+/* FORM */
+.sec { padding: 20px 20px 0; }
+.fl { display: block; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+.er { display: flex; gap: 8px; margin-bottom: 16px; }
+.eb {
+  flex: 1; padding: 14px 0; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--surface); color: var(--muted); font-family: var(--fd);
+  font-size: 20px; letter-spacing: 1px; cursor: pointer; transition: all .15s;
+}
+.eb[data-e="Push"].active { border-color: var(--push); color: var(--push); background: #E8FF4712; }
+.eb[data-e="Pull"].active { border-color: var(--pull); color: var(--pull); background: #47C8FF12; }
+.eb[data-e="Legs"].active { border-color: var(--legs); color: var(--legs); background: #FF6B4712; }
+input[type="date"], input[type="number"], input[type="text"], select {
+  width: 100%; padding: 14px 16px; background: var(--surface); border: 2px solid var(--border);
+  border-radius: 10px; color: var(--text); font-family: var(--fb); font-size: 15px;
+  margin-bottom: 16px; appearance: none; -webkit-appearance: none; outline: none; transition: border-color .15s;
+}
+input:focus, select:focus { border-color: #444; }
+input::placeholder { color: var(--dim); }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.4); cursor: pointer; }
+.sr { display: flex; gap: 8px; margin-bottom: 16px; }
+.sc { flex: 1; }
+.sc label { display: block; font-size: 10px; color: var(--dim); text-align: center; margin-bottom: 4px; font-weight: 600; letter-spacing: 1px; }
+.sc input { text-align: center; margin-bottom: 0; padding: 14px 4px; }
 
-  /* TAB BAR (bottom) */
-  .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 480px;
-    background: #111;
-    border-top: 1px solid var(--border);
-    display: flex;
-    padding: 8px 20px calc(8px + var(--safe-bottom));
-    gap: 8px;
-    z-index: 100;
-  }
-  .nav-btn {
-    flex: 1;
-    padding: 12px 0;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 13px;
-    transition: all .15s;
-    background: transparent;
-    color: var(--muted);
-  }
-  .nav-btn.active {
-    background: var(--accent);
-    color: #0C0C0C;
-  }
+/* HINT BOX */
+.hint {
+  background: #1A1A0A; border: 1px solid #3A3A10; border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 16px; display: none;
+}
+.hint.show { display: block; }
+.hint-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.hint-ziel { font-size: 13px; font-weight: 700; color: var(--accent); }
+.hint-muskel { font-size: 11px; color: var(--muted); text-align: right; max-width: 120px; }
+.hint-reps { display: inline-block; background: #E8FF4720; color: var(--accent); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+.hint-tipp { font-size: 12px; color: #AAA; line-height: 1.4; }
 
-  /* SECTIONS */
-  .section { padding: 20px 20px 0; }
-  .section-gap { height: 16px; }
+/* TOGGLE */
+.trow {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 2px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 16px; cursor: pointer; user-select: none;
+}
+.trow.on { border-color: var(--accent); }
+.tlbl { font-size: 14px; font-weight: 500; color: #AAA; }
+.tsw { width: 46px; height: 26px; border-radius: 13px; background: var(--dim); position: relative; transition: background .2s; flex-shrink: 0; }
+.trow.on .tsw { background: var(--accent); }
+.tkn { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #666; transition: left .2s, background .2s; }
+.trow.on .tkn { left: 23px; background: #0C0C0C; }
 
-  label.field-label {
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--muted);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
+/* SAVE */
+.sbtn {
+  width: 100%; padding: 18px; background: var(--accent); border: none; border-radius: 12px;
+  font-family: var(--fd); font-size: 22px; letter-spacing: 3px; color: #0C0C0C; cursor: pointer;
+  transition: opacity .15s, transform .1s; margin-bottom: 8px;
+}
+.sbtn:active { opacity: 0.85; transform: scale(0.98); }
 
-  /* EINHEIT BUTTONS */
-  .einheit-row { display: flex; gap: 8px; margin-bottom: 16px; }
-  .einheit-btn {
-    flex: 1;
-    padding: 14px 0;
-    border-radius: 10px;
-    border: 2px solid var(--border);
-    background: var(--surface);
-    color: var(--muted);
-    font-family: var(--font-display);
-    font-size: 20px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .einheit-btn[data-e="Push"].active { border-color: var(--push); color: var(--push); background: #E8FF4712; }
-  .einheit-btn[data-e="Pull"].active { border-color: var(--pull); color: var(--pull); background: #47C8FF12; }
-  .einheit-btn[data-e="Legs"].active { border-color: var(--legs); color: var(--legs); background: #FF6B4712; }
+/* FLASH */
+.flash {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: #0C0C0C; padding: 10px 28px; border-radius: 24px;
+  font-weight: 700; font-size: 14px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap;
+}
+.flash.show { opacity: 1; }
 
-  /* INPUTS */
-  input[type="date"],
-  input[type="number"],
-  input[type="text"],
-  select {
-    width: 100%;
-    padding: 14px 16px;
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: var(--font-body);
-    font-size: 15px;
-    margin-bottom: 16px;
-    appearance: none;
-    -webkit-appearance: none;
-    outline: none;
-    transition: border-color .15s;
-  }
-  input:focus, select:focus { border-color: #444; }
-  input::placeholder { color: var(--dim); }
+/* STATS */
+.sbar { display: flex; gap: 8px; padding: 16px 20px 0; }
+.sc2 { flex: 1; background: var(--surface); border-radius: 10px; padding: 12px; text-align: center; }
+.snum { font-family: var(--fd); font-size: 28px; color: var(--accent); letter-spacing: 1px; }
+.slbl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
 
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.4);
-    cursor: pointer;
-  }
+/* FILTER */
+.frow { display: flex; gap: 8px; padding: 16px 20px 0; overflow-x: auto; scrollbar-width: none; }
+.frow::-webkit-scrollbar { display: none; }
+.fbtn { padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 600; font-size: 13px; background: var(--surface); color: var(--muted); white-space: nowrap; flex-shrink: 0; transition: all .15s; }
+.fbtn.active { background: var(--accent); color: #0C0C0C; }
 
-  .sets-row { display: flex; gap: 8px; margin-bottom: 16px; }
-  .set-col { flex: 1; }
-  .set-col label {
-    display: block;
-    font-size: 10px;
-    color: var(--dim);
-    text-align: center;
-    margin-bottom: 4px;
-    font-weight: 600;
-    letter-spacing: 1px;
-  }
-  .set-col input {
-    text-align: center;
-    margin-bottom: 0;
-    padding: 14px 4px;
-  }
+/* ENTRIES */
+.dg { padding: 16px 20px 0; }
+.dl2 { font-family: var(--fd); font-size: 13px; letter-spacing: 2px; color: #3A3A3A; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #1A1A1A; }
+.ec { background: var(--surface); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; animation: fi .2s ease; }
+@keyframes fi { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+.ebdg { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1px; flex-shrink: 0; }
+.badge-Push { background: #E8FF4715; color: var(--push); }
+.badge-Pull { background: #47C8FF15; color: var(--pull); }
+.badge-Legs { background: #FF6B4715; color: var(--legs); }
+.ei { flex: 1; min-width: 0; }
+.en { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.em { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ubdg { background: #E8FF4715; color: var(--accent); font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 5px; flex-shrink: 0; }
+.dbtn { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 20px; padding: 0 2px; flex-shrink: 0; line-height: 1; transition: color .15s; }
+.dbtn.confirm { color: #FF4747; }
 
-  /* TOGGLE */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 16px;
-    cursor: pointer;
-    user-select: none;
-    transition: border-color .15s;
-  }
-  .toggle-row.on { border-color: var(--accent); }
-  .toggle-label { font-size: 14px; font-weight: 500; color: #AAA; }
-  .toggle-switch {
-    width: 46px;
-    height: 26px;
-    border-radius: 13px;
-    background: var(--dim);
-    position: relative;
-    transition: background .2s;
-    flex-shrink: 0;
-  }
-  .toggle-row.on .toggle-switch { background: var(--accent); }
-  .toggle-knob {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #666;
-    transition: left .2s, background .2s;
-  }
-  .toggle-row.on .toggle-knob { left: 23px; background: #0C0C0C; }
+/* EXPORT BTN */
+.xbtn { margin: 16px 20px; width: calc(100% - 40px); padding: 14px; background: var(--surface); border: 2px solid var(--border); border-radius: 12px; font-family: var(--fb); font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; display: block; }
+.xbtn:hover { border-color: #444; color: var(--text); }
 
-  /* SAVE BUTTON */
-  .save-btn {
-    width: 100%;
-    padding: 18px;
-    background: var(--accent);
-    border: none;
-    border-radius: 12px;
-    font-family: var(--font-display);
-    font-size: 22px;
-    letter-spacing: 3px;
-    color: #0C0C0C;
-    cursor: pointer;
-    transition: opacity .15s, transform .1s;
-    margin-bottom: 8px;
-  }
-  .save-btn:active { opacity: 0.85; transform: scale(0.98); }
+/* EMPTY */
+.empty { text-align: center; padding: 60px 20px; color: var(--dim); }
+.ei2 { font-size: 48px; margin-bottom: 16px; }
 
-  /* FLASH */
-  .flash {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--accent);
-    color: #0C0C0C;
-    padding: 10px 28px;
-    border-radius: 24px;
-    font-weight: 700;
-    font-size: 14px;
-    z-index: 200;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity .2s;
-  }
-  .flash.show { opacity: 1; }
-
-  /* FILTER ROW */
-  .filter-row {
-    display: flex;
-    gap: 8px;
-    padding: 16px 20px 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .filter-row::-webkit-scrollbar { display: none; }
-  .filter-btn {
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: none;
-    cursor: pointer;
-    font-family: var(--font-body);
-    font-weight: 600;
-    font-size: 13px;
-    background: var(--surface);
-    color: var(--muted);
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: all .15s;
-  }
-  .filter-btn.active { background: var(--accent); color: #0C0C0C; }
-
-  /* LOG ENTRIES */
-  .date-group { padding: 20px 20px 0; }
-  .date-label {
-    font-family: var(--font-display);
-    font-size: 13px;
-    letter-spacing: 2px;
-    color: #3A3A3A;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #1A1A1A;
-  }
-
-  .entry-card {
-    background: var(--surface);
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    animation: fadeIn .2s ease;
-  }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-
-  .entry-badge {
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    flex-shrink: 0;
-  }
-  .badge-Push { background: #E8FF4715; color: var(--push); }
-  .badge-Pull { background: #47C8FF15; color: var(--pull); }
-  .badge-Legs { background: #FF6B4715; color: var(--legs); }
-
-  .entry-info { flex: 1; min-width: 0; }
-  .entry-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .entry-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-  .up-badge {
-    background: #E8FF4715;
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 5px;
-    flex-shrink: 0;
-  }
-
-  .del-btn {
-    background: none;
-    border: none;
-    color: var(--dim);
-    cursor: pointer;
-    font-size: 20px;
-    padding: 0 2px;
-    flex-shrink: 0;
-    line-height: 1;
-    transition: color .15s;
-  }
-  .del-btn.confirm { color: #FF4747; }
-
-  /* EXPORT */
-  .export-btn {
-    margin: 20px;
-    width: calc(100% - 40px);
-    padding: 14px;
-    background: var(--surface);
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    font-family: var(--font-body);
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--muted);
-    cursor: pointer;
-    transition: border-color .15s, color .15s;
-  }
-  .export-btn:hover { border-color: #444; color: var(--text); }
-
-  /* EMPTY STATE */
-  .empty { text-align: center; padding: 60px 20px; color: var(--dim); }
-  .empty-icon { font-size: 48px; margin-bottom: 16px; }
-  .empty-text { font-size: 14px; }
-
-  /* STATS BAR */
-  .stats-bar {
-    display: flex;
-    gap: 8px;
-    padding: 16px 20px 0;
-  }
-  .stat-card {
-    flex: 1;
-    background: var(--surface);
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-  }
-  .stat-num { font-family: var(--font-display); font-size: 28px; color: var(--accent); letter-spacing: 1px; }
-  .stat-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
-
-  /* VIEW TOGGLE */
-  .view-hidden { display: none !important; }
+/* ── PLAN ── */
+.peinheit { padding: 20px 20px 0; }
+.peh { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.pel { font-family: var(--fd); font-size: 22px; letter-spacing: 2px; }
+.pel.Push { color: var(--push); } .pel.Pull { color: var(--pull); } .pel.Legs { color: var(--legs); }
+.pline { flex: 1; height: 1px; background: var(--border); }
+.pcard { background: var(--surface); border-radius: 10px; margin-bottom: 8px; overflow: hidden; cursor: pointer; }
+.pch { display: flex; align-items: center; padding: 13px 14px; gap: 12px; }
+.pcn { font-weight: 700; font-size: 14px; flex: 1; }
+.pcm { font-size: 12px; color: var(--muted); }
+.pcc { color: var(--dim); font-size: 12px; transition: transform .2s; flex-shrink: 0; }
+.pcard.open .pcc { transform: rotate(180deg); }
+.pcb { display: none; padding: 0 14px 14px; border-top: 1px solid #1E1E1E; }
+.pcard.open .pcb { display: block; }
+.pmuscle { font-size: 11px; color: var(--muted); margin-top: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.prow { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.ppill { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.pill-a { background: #FFFFFF10; color: #888; }
+.pill-z { background: #E8FF4720; color: var(--accent); }
+.psteps { margin-top: 10px; padding-left: 0; list-style: none; }
+.psteps li { font-size: 13px; color: #AAA; line-height: 1.5; padding: 3px 0 3px 16px; position: relative; }
+.psteps li::before { content: "→"; position: absolute; left: 0; color: var(--dim); font-size: 11px; top: 5px; }
+.ptipp { margin-top: 10px; padding: 8px 10px; background: #E8FF4708; border-left: 2px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 12px; color: #AAA; line-height: 1.4; }
+.ptipp strong { color: var(--accent); }
+.pnote { margin: 16px 20px; padding: 12px 14px; background: var(--surface); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.pver { text-align: center; font-size: 11px; color: #222; padding: 8px 20px 4px; }
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- HEADER -->
-  <div class="header">
+  <div class="hdr">
     <div>
-      <div class="header-title">TRAINING LOG</div>
-      <div class="header-sub" id="header-date"></div>
+      <div class="hdr-title">TRAINING LOG</div>
+      <div class="hdr-sub" id="hdr-date"></div>
     </div>
-    <div class="header-icon">💪</div>
+    <div style="font-size:28px">💪</div>
   </div>
 
-  <!-- ═══ ADD VIEW ═══ -->
-  <div id="view-add">
-    <div class="section" style="padding-top:24px">
-
-      <!-- Date -->
-      <label class="field-label">Datum</label>
+  <!-- ── EINTRAG ── -->
+  <div id="view-add" class="view active">
+    <div class="sec" style="padding-top:24px">
+      <label class="fl">Datum</label>
       <input type="date" id="f-date">
 
-      <!-- Einheit -->
-      <label class="field-label">Einheit</label>
-      <div class="einheit-row">
-        <button class="einheit-btn active" data-e="Push" onclick="selectEinheit('Push')">PUSH</button>
-        <button class="einheit-btn" data-e="Pull" onclick="selectEinheit('Pull')">PULL</button>
-        <button class="einheit-btn" data-e="Legs" onclick="selectEinheit('Legs')">LEGS</button>
+      <label class="fl">Einheit</label>
+      <div class="er">
+        <button class="eb active" data-e="Push" onclick="selE('Push')">PUSH</button>
+        <button class="eb" data-e="Pull" onclick="selE('Pull')">PULL</button>
+        <button class="eb" data-e="Legs" onclick="selE('Legs')">LEGS</button>
       </div>
 
-      <!-- Übung -->
-      <label class="field-label">Übung</label>
-      <select id="f-uebung"></select>
+      <label class="fl">Übung</label>
+      <select id="f-uebung" onchange="updHint()"></select>
 
-      <!-- Gewicht -->
-      <label class="field-label">Gewicht (kg)</label>
-      <input type="number" id="f-gewicht" placeholder="z.B. 40" inputmode="decimal" step="0.5">
-
-      <!-- Sätze -->
-      <label class="field-label">Wiederholungen pro Satz</label>
-      <div class="sets-row">
-        <div class="set-col"><label>S1</label><input type="number" id="f-s1" placeholder="–" inputmode="numeric"></div>
-        <div class="set-col"><label>S2</label><input type="number" id="f-s2" placeholder="–" inputmode="numeric"></div>
-        <div class="set-col"><label>S3</label><input type="number" id="f-s3" placeholder="–" inputmode="numeric"></div>
-        <div class="set-col"><label>S4</label><input type="number" id="f-s4" placeholder="–" inputmode="numeric"></div>
+      <div class="hint" id="hint">
+        <div class="hint-top">
+          <div>
+            <div class="hint-ziel" id="h-ziel"></div>
+            <span class="hint-reps" id="h-reps"></span>
+          </div>
+          <div class="hint-muskel" id="h-muskel"></div>
+        </div>
+        <div class="hint-tipp" id="h-tipp"></div>
       </div>
 
-      <!-- Notiz -->
-      <label class="field-label">Notiz (optional)</label>
-      <input type="text" id="f-notiz" placeholder="z.B. etwas schwer am Ende">
+      <label class="fl">Gewicht (kg)</label>
+      <input type="number" id="f-gew" placeholder="z.B. 40" inputmode="decimal" step="0.5">
 
-      <!-- Toggle -->
-      <div class="toggle-row" id="toggle-row" onclick="toggleErhoehen()">
-        <span class="toggle-label">↑ Gewicht nächstes Mal erhöhen?</span>
-        <div class="toggle-switch"><div class="toggle-knob"></div></div>
+      <label class="fl">Wiederholungen pro Satz</label>
+      <div class="sr">
+        <div class="sc"><label>S1</label><input type="number" id="f-s1" placeholder="–" inputmode="numeric"></div>
+        <div class="sc"><label>S2</label><input type="number" id="f-s2" placeholder="–" inputmode="numeric"></div>
+        <div class="sc"><label>S3</label><input type="number" id="f-s3" placeholder="–" inputmode="numeric"></div>
+        <div class="sc"><label>S4</label><input type="number" id="f-s4" placeholder="–" inputmode="numeric"></div>
       </div>
 
-      <!-- Save -->
-      <button class="save-btn" onclick="saveEntry()">SPEICHERN</button>
+      <label class="fl">Notiz (optional)</label>
+      <input type="text" id="f-not" placeholder="z.B. etwas schwer am Ende">
+
+      <div class="trow" id="trow" onclick="togE()">
+        <span class="tlbl">↑ Gewicht nächstes Mal erhöhen?</span>
+        <div class="tsw"><div class="tkn"></div></div>
+      </div>
+
+      <button class="sbtn" onclick="saveEntry()">SPEICHERN</button>
     </div>
   </div>
 
-  <!-- ═══ LOG VIEW ═══ -->
-  <div id="view-log" class="view-hidden">
-
-    <!-- Stats -->
-    <div class="stats-bar">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total">0</div>
-        <div class="stat-label">Einträge</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-up">0</div>
-        <div class="stat-label">↑ Erhöhen</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-days">0</div>
-        <div class="stat-label">Einheiten</div>
-      </div>
+  <!-- ── LOG ── -->
+  <div id="view-log" class="view">
+    <div class="sbar">
+      <div class="sc2"><div class="snum" id="s-tot">0</div><div class="slbl">Einträge</div></div>
+      <div class="sc2"><div class="snum" id="s-up">0</div><div class="slbl">↑ Erhöhen</div></div>
+      <div class="sc2"><div class="snum" id="s-days">0</div><div class="slbl">Einheiten</div></div>
     </div>
-
-    <!-- Filter -->
-    <div class="filter-row">
-      <button class="filter-btn active" onclick="setFilter('Alle')">Alle</button>
-      <button class="filter-btn" onclick="setFilter('Push')">Push</button>
-      <button class="filter-btn" onclick="setFilter('Pull')">Pull</button>
-      <button class="filter-btn" onclick="setFilter('Legs')">Legs</button>
+    <div class="frow">
+      <button class="fbtn active" onclick="setF('Alle')">Alle</button>
+      <button class="fbtn" onclick="setF('Push')">Push</button>
+      <button class="fbtn" onclick="setF('Pull')">Pull</button>
+      <button class="fbtn" onclick="setF('Legs')">Legs</button>
     </div>
-
-    <!-- Entries -->
-    <div id="entries-container"></div>
-
-    <!-- Export -->
-    <button class="export-btn" onclick="exportCSV()">↓ CSV exportieren (für monatlichen Review)</button>
+    <div id="entries"></div>
+    <button class="xbtn" onclick="exportCSV()">↓ CSV exportieren (für monatlichen Review)</button>
   </div>
 
-  <!-- Flash -->
-  <div class="flash" id="flash"></div>
-
-  <!-- Bottom Nav -->
-  <div class="bottom-nav">
-    <button class="nav-btn active" id="nav-add" onclick="showView('add')">＋ Eintrag</button>
-    <button class="nav-btn" id="nav-log" onclick="showView('log')">Log</button>
+  <!-- ── PLAN ── -->
+  <div id="view-plan" class="view">
+    <div id="plan-cont"></div>
+    <div class="pnote">
+      📋 Plan-Version: <strong id="p-ver"></strong><br>
+      Beim monatlichen Review aktualisiert Claude die Zielwerte basierend auf deinem Fortschritt.
+    </div>
+    <div class="pver" id="p-verline"></div>
   </div>
+
+</div>
+
+<div class="flash" id="flash"></div>
+
+<div class="bnav">
+  <button class="nbtn active" id="nav-add" onclick="showV('add')">＋ Eintrag</button>
+  <button class="nbtn" id="nav-log" onclick="showV('log')">Log</button>
+  <button class="nbtn" id="nav-plan" onclick="showV('plan')">Plan</button>
 </div>
 
 <script>
-const EXERCISES = {
-  Push: ["Chest Press","Pectoral Fly","Shoulder Press","Trizeps (Stufe 12)","Rear Delt Fly","Lateral Raise"],
-  Pull: ["Latzug","Ruderzug","Bizepscurl","Face Pulls"],
-  Legs: ["Beinpresse","Beinstrecker","Beinbeuger","Hip Abduction","Wadenheben","Bauch gerade","Bauch seitlich"]
+// ═══════════════════════════════════════════════════════════════
+// PLAN DATA
+// Letzte Aktualisierung: Mai 2026
+// Beim Review werden aktuell/ziel/zielgewicht von Claude angepasst.
+// ═══════════════════════════════════════════════════════════════
+const PLAN = {
+  version: "Mai 2026",
+  Push: [
+    { name:"Chest Press", muskel:"Brust · Schulter · Trizeps",
+      saetze:4, repzone:"8–12", aktuell:"3×16 @ 35 kg", zielgewicht:40, ziel:"4×8–12 @ 40 kg",
+      schritte:["Rücken fest ans Polster – nicht abheben","3 Sek runter, explosiv hoch","Ellenbogen nicht ganz durchstrecken","Brust am engsten Punkt 1 Sek zusammendrücken"],
+      tipp:"16 Wdh @ 35 kg = Ausdauer. Sofort auf 4×10 @ 40 kg wechseln." },
+    { name:"Pectoral Fly", muskel:"Brust (Isolation)",
+      saetze:3, repzone:"12–15", aktuell:"3×12 @ 50/55 kg", zielgewicht:55, ziel:"3×12–15 @ 55 kg",
+      schritte:["Arme immer leicht gebeugt – Ellenbogenschutz!","Langsam zur Mitte, 1–2 Sek halten","Brust aktiv zusammenquetschen","Kontrolliert öffnen bis zur vollen Dehnung"],
+      tipp:"Technik vor Gewicht. Dehnung am weitesten Punkt spüren." },
+    { name:"Shoulder Press", muskel:"Schulter vorne/mitte · Trizeps",
+      saetze:3, repzone:"10–12", aktuell:"3×8 @ 27,5 kg", zielgewicht:30, ziel:"3×10–12 @ 27,5–30 kg",
+      schritte:["Core anspannen, kein Hohlkreuz","Griffe auf Ohrhöhe – drücken bis kurz vor Streckung","Langsam runter, Schultern nicht hochziehen"],
+      tipp:"3×8 = Kraftbereich. Für Muskelaufbau auf 10–12 Wdh erhöhen." },
+    { name:"Trizeps (Stufe 12)", muskel:"Trizeps (Isolation)",
+      saetze:3, repzone:"10–15", aktuell:"Stufe 12 (Maximum)", zielgewicht:null, ziel:"Tempo 4 Sek negativ",
+      schritte:["Oberarme fixiert – nur Unterarme bewegen","Volle Streckung, 1 Sek oben halten","4 Sek zurück (langsam = mehr Reiz)"],
+      tipp:"Am Maschinenmaximum: Tempo als Progression. Alternativ: Kabelzug-Trizeps." },
+    { name:"Rear Delt Fly", muskel:"Hintere Schulter · Rhomboiden",
+      saetze:3, repzone:"12–15", aktuell:"@ 40–55 kg", zielgewicht:50, ziel:"3×12–15 @ 50 kg",
+      schritte:["Sitz umdrehen oder Reverse-Modus","Arme leicht gebeugt, Schulterblätter zusammenziehen","Langsam und kontrolliert – kein Schwung"],
+      tipp:"Wichtig für Schulterbalance und Haltung – nicht weglassen." },
+    { name:"Lateral Raise", muskel:"Mittlere Schulter",
+      saetze:3, repzone:"12–15", aktuell:"Optional", zielgewicht:10, ziel:"3×12–15 @ 8–12 kg",
+      schritte:["Arme seitlich bis Schulterhöhe heben","Leicht gebeugte Ellenbogen, Daumen leicht nach unten"],
+      tipp:"Mittlerer Deltamuskel = Schulterbreite. Hanteln oder Kabelzug." }
+  ],
+  Pull: [
+    { name:"Latzug", muskel:"Latissimus · Bizeps",
+      saetze:4, repzone:"8–12", aktuell:"3×19 @ 52 kg (Max: 105 kg)", zielgewicht:65, ziel:"3–4×8–12 @ 65 kg",
+      schritte:["Griff breiter als Schultern (Obergriff)","Stange zur oberen Brust – Ellenbogen nach unten/hinten","Brust nach vorne öffnen – nicht zurückschaukeln!","Latissimus am Ende 1 Sek zusammenziehen","Kontrolliert hoch – volle Streckung"],
+      tipp:"19 Wdh @ 52 kg = zu leicht. Sofort 3×10 @ 65 kg. Enger Untergriff als Variante." },
+    { name:"Ruderzug", muskel:"Mittlerer Rücken · Trapezius · Bizeps",
+      saetze:3, repzone:"10–12", aktuell:"3×16 @ 40 kg", zielgewicht:50, ziel:"3–4×10–12 @ 50 kg",
+      schritte:["Aufrecht sitzen – nicht nach hinten lehnen!","Griff zur Brust-/Bauchmitte – Ellenbogen nah am Körper","Schulterblätter am Ende 1–2 Sek zusammendrücken","Kontrolliert zurück"],
+      tipp:"Gewicht erhöhen, Wdh auf 10–12 reduzieren." },
+    { name:"Bizepscurl", muskel:"Bizeps (Isolation)",
+      saetze:3, repzone:"10–12", aktuell:"3×16 @ 17 kg", zielgewicht:22, ziel:"3×10–12 @ 22–25 kg",
+      schritte:["Oberarme fixiert – nur Unterarme bewegen","Ganz unten strecken, oben 1 Sek halten","3–4 Sek absenken = mehr Muskelreiz","Kein Rückenschwung!"],
+      tipp:"16 Wdh @ 17 kg = zu leicht. 3×10 @ 22 kg sofort testen." },
+    { name:"Face Pulls", muskel:"Hintere Schulter · Rotatorenmanschette",
+      saetze:3, repzone:"15", aktuell:"Optional", zielgewicht:null, ziel:"3×15 @ moderat",
+      schritte:["Kabelzug mit Seilaufsatz auf Augenhöhe","Seil zur Stirn – Ellenbogen nach außen/oben"],
+      tipp:"Schützt das Schultergelenk langfristig. Regelmäßig einbauen." }
+  ],
+  Legs: [
+    { name:"Beinpresse", muskel:"Quadrizeps · Gesäß · Hamstrings",
+      saetze:4, repzone:"8–12", aktuell:"@ 80 kg", zielgewicht:90, ziel:"4×8–12 @ 85–100 kg",
+      schritte:["Füße schulterbreit, Zehen leicht nach außen (15–30°)","Knie immer in Richtung Zehen – nie einknicken!","Bis ca. 90° Kniewinkel – Rücken bleibt am Sitz","Explosiv drücken, kurz vor voller Streckung stoppen"],
+      tipp:"Knie links: Füße etwas höher auf die Platte stellen." },
+    { name:"Beinstrecker", muskel:"Quadrizeps (Isolation)",
+      saetze:3, repzone:"10–12", aktuell:"3×16 @ 47 kg (Max: 113 kg)", zielgewicht:52, ziel:"3×10–12 @ 52–55 kg",
+      schritte:["Langsam strecken, oben 1–2 Sek halten und Quad anspannen","3–4 Sek zurück – nie fallen lassen"],
+      tipp:"Max 113 kg = viel Potenzial. Bei Kniebeschwerden → Beinpresse statt." },
+    { name:"Beinbeuger", muskel:"Hamstrings (Isolation)",
+      saetze:3, repzone:"12", aktuell:"3×15 @ 40 kg (Max: 74 kg)", zielgewicht:45, ziel:"3×12 @ 45 kg",
+      schritte:["Oberschenkel fest auf Polsterung – nicht abheben!","Ferse zur Gesäßfalte, oben 1–2 Sek halten","3–4 Sek langsam strecken – Absenkphase ist entscheidend"],
+      tipp:"Langsame Absenkphase bringt mehr Reiz als die Aufwärtsbewegung." },
+    { name:"Hip Abduction", muskel:"Gluteus medius/minimus",
+      saetze:3, repzone:"15–20", aktuell:"3×16 @ 72,5 kg", zielgewicht:75, ziel:"3×15–20 @ 75–80 kg",
+      schritte:["Aufrecht sitzen, Core angespannt","Beine langsam nach außen – Endpunkt 1–2 Sek halten","Kontrolliert zurück – nicht einfedern"],
+      tipp:"Am weitesten Punkt kurz halten für maximale Gesäßaktivierung." },
+    { name:"Wadenheben", muskel:"Gastrocnemius · Soleus",
+      saetze:3, repzone:"15–20", aktuell:"Addon @ 80 kg", zielgewicht:110, ziel:"3×15–20 @ 100–120 kg",
+      schritte:["Nur Vorderfuß auf der Platte – Ferse hängt frei","Volle Streckung auf Zehenspitzen – 1–2 Sek halten","Ferse tief runter – volle Dehnung, langsam"],
+      tipp:"Waden reagieren gut auf hohes Gewicht und langsames Tempo." },
+    { name:"Bauch gerade", muskel:"Rectus abdominis",
+      saetze:3, repzone:"15–20", aktuell:"3×16 @ 46 kg (Max: 70 kg)", zielgewicht:50, ziel:"3×15–20 @ 50 kg",
+      schritte:["Bauchmuskeln aktiv zusammenziehen – nicht mit dem Rücken drücken","Langsam, kontrolliert, oben 1 Sek halten"],
+      tipp:"Auf 50 kg erhöhen, Max ist 70 kg – noch Luft nach oben." },
+    { name:"Bauch seitlich", muskel:"Obliques",
+      saetze:3, repzone:"20–24", aktuell:"3×24 @ Stufe 12 (Maximum)", zielgewicht:null, ziel:"3×20–24, Tempo 4 Sek/Seite",
+      schritte:["Abwechselnd links/rechts – 4 Sek pro Seite","Bewegung aus dem Rumpf, nicht aus den Schultern"],
+      tipp:"Am Maschinenmaximum: Tempo als Progression. 4 Sek pro Seite." }
+  ]
 };
 
-let currentEinheit = "Push";
-let erhoehen = false;
-let currentFilter = "Alle";
-let pendingDelete = null;
+// ── STATE ──
+let curE = "Push", erh = false, curF = "Alle", pendDel = null;
 
-// --- INIT ---
+// ── INIT ──
 document.addEventListener("DOMContentLoaded", () => {
-  const today = new Date().toISOString().split("T")[0];
-  document.getElementById("f-date").value = today;
-  document.getElementById("header-date").textContent =
-    new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
-  populateUebung("Push");
-  if (getEntries().length > 0) showView("log");
+  document.getElementById("f-date").value = today();
+  document.getElementById("hdr-date").textContent =
+    new Date().toLocaleDateString("de-DE", { weekday:"long", day:"numeric", month:"long" });
+  document.getElementById("p-ver").textContent = PLAN.version;
+  document.getElementById("p-verline").textContent = "Plan-Version: " + PLAN.version;
+  popUebung("Push");
+  updHint();
+  buildPlan();
+  if (getE().length > 0) showV("log");
 });
 
-// --- STORAGE ---
-function getEntries() {
-  try { return JSON.parse(localStorage.getItem("tl-entries") || "[]"); } catch { return []; }
-}
-function setEntries(arr) {
-  localStorage.setItem("tl-entries", JSON.stringify(arr));
+// ── STORAGE ──
+function getE() { try { return JSON.parse(localStorage.getItem("tl-e")||"[]"); } catch { return []; } }
+function setE(a) { localStorage.setItem("tl-e", JSON.stringify(a)); }
+
+// ── FORM ──
+function selE(e) {
+  curE = e;
+  document.querySelectorAll(".eb").forEach(b => b.classList.toggle("active", b.dataset.e === e));
+  popUebung(e);
+  updHint();
 }
 
-// --- FORM ---
-function selectEinheit(e) {
-  currentEinheit = e;
-  document.querySelectorAll(".einheit-btn").forEach(b => b.classList.toggle("active", b.dataset.e === e));
-  populateUebung(e);
+function popUebung(e) {
+  document.getElementById("f-uebung").innerHTML =
+    PLAN[e].map(x => `<option value="${x.name}">${x.name}</option>`).join("");
 }
 
-function populateUebung(e) {
-  const sel = document.getElementById("f-uebung");
-  sel.innerHTML = EXERCISES[e].map(u => `<option value="${u}">${u}</option>`).join("");
+function updHint() {
+  const name = document.getElementById("f-uebung").value;
+  const ex = PLAN[curE].find(x => x.name === name);
+  const h = document.getElementById("hint");
+  if (!ex) { h.classList.remove("show"); return; }
+  h.classList.add("show");
+  document.getElementById("h-ziel").textContent = "Ziel: " + ex.ziel;
+  document.getElementById("h-reps").textContent = ex.saetze + " Sätze · " + ex.repzone + " Wdh";
+  document.getElementById("h-muskel").textContent = ex.muskel;
+  document.getElementById("h-tipp").textContent = ex.tipp;
 }
 
-function toggleErhoehen() {
-  erhoehen = !erhoehen;
-  document.getElementById("toggle-row").classList.toggle("on", erhoehen);
+function togE() {
+  erh = !erh;
+  document.getElementById("trow").classList.toggle("on", erh);
 }
 
 function saveEntry() {
-  const date = document.getElementById("f-date").value;
-  const uebung = document.getElementById("f-uebung").value;
-  const gewicht = document.getElementById("f-gewicht").value;
-  const s1 = document.getElementById("f-s1").value;
-  const s2 = document.getElementById("f-s2").value;
-  const s3 = document.getElementById("f-s3").value;
-  const s4 = document.getElementById("f-s4").value;
-  const notiz = document.getElementById("f-notiz").value;
-
-  if (!uebung) return;
-
-  const entry = { id: Date.now(), date, einheit: currentEinheit, uebung,
-    gewicht, s1, s2, s3, s4, notiz, erhoehen };
-
-  const entries = getEntries();
-  entries.push(entry);
-  setEntries(entries);
-
-  // Reset
-  document.getElementById("f-gewicht").value = "";
-  document.getElementById("f-s1").value = "";
-  document.getElementById("f-s2").value = "";
-  document.getElementById("f-s3").value = "";
-  document.getElementById("f-s4").value = "";
-  document.getElementById("f-notiz").value = "";
-  erhoehen = false;
-  document.getElementById("toggle-row").classList.remove("on");
-
+  const entry = {
+    id: Date.now(), date: document.getElementById("f-date").value,
+    einheit: curE, uebung: document.getElementById("f-uebung").value,
+    gewicht: document.getElementById("f-gew").value,
+    s1: document.getElementById("f-s1").value, s2: document.getElementById("f-s2").value,
+    s3: document.getElementById("f-s3").value, s4: document.getElementById("f-s4").value,
+    notiz: document.getElementById("f-not").value, erhoehen: erh
+  };
+  const arr = getE(); arr.push(entry); setE(arr);
+  ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id => document.getElementById(id).value="");
+  erh = false; document.getElementById("trow").classList.remove("on");
   showFlash("Gespeichert ✓");
 }
 
-// --- LOG VIEW ---
-function showView(v) {
-  document.getElementById("view-add").classList.toggle("view-hidden", v !== "add");
-  document.getElementById("view-log").classList.toggle("view-hidden", v !== "log");
-  document.getElementById("nav-add").classList.toggle("active", v === "add");
-  document.getElementById("nav-log").classList.toggle("active", v === "log");
-  if (v === "log") renderLog();
-}
-
-function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll(".filter-btn").forEach(b =>
-    b.classList.toggle("active", b.textContent === f));
+// ── LOG ──
+function setF(f) {
+  curF = f;
+  document.querySelectorAll(".fbtn").forEach(b => b.classList.toggle("active", b.textContent === f));
   renderLog();
 }
 
 function renderLog() {
-  const all = getEntries();
-  const filtered = currentFilter === "Alle" ? all : all.filter(e => e.einheit === currentFilter);
-  const reversed = [...filtered].reverse();
-
-  // Stats
-  document.getElementById("stat-total").textContent = all.length;
-  document.getElementById("stat-up").textContent = all.filter(e => e.erhoehen).length;
-  const uniqueDays = new Set(all.map(e => e.date + e.einheit)).size;
-  document.getElementById("stat-days").textContent = uniqueDays;
-
-  const container = document.getElementById("entries-container");
-
-  if (reversed.length === 0) {
-    container.innerHTML = `<div class="empty">
-      <div class="empty-icon">📋</div>
-      <div class="empty-text">Noch keine Einträge</div>
-    </div>`;
-    return;
-  }
-
-  // Group by date
-  const groups = {};
-  reversed.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
-
-  container.innerHTML = Object.entries(groups).map(([date, entries]) => {
-    const fmtDate = (() => {
-      const [y,m,d] = date.split("-");
-      const wd = new Date(date).toLocaleDateString("de-DE", { weekday: "short" });
-      return `${wd.toUpperCase()}, ${d}.${m}.${y}`;
-    })();
-
-    const cards = entries.map(e => {
+  const all = getE();
+  const fil = curF === "Alle" ? all : all.filter(e => e.einheit === curF);
+  const rev = [...fil].reverse();
+  document.getElementById("s-tot").textContent = all.length;
+  document.getElementById("s-up").textContent = all.filter(e => e.erhoehen).length;
+  document.getElementById("s-days").textContent = new Set(all.map(e => e.date+e.einheit)).size;
+  const cont = document.getElementById("entries");
+  if (!rev.length) { cont.innerHTML = `<div class="empty"><div class="ei2">📋</div><div>Noch keine Einträge</div></div>`; return; }
+  const grps = {};
+  rev.forEach(e => (grps[e.date]=grps[e.date]||[]).push(e));
+  cont.innerHTML = Object.entries(grps).map(([date,es]) => {
+    const [y,m,d] = date.split("-");
+    const wd = new Date(date).toLocaleDateString("de-DE",{weekday:"short"});
+    const lbl = `${wd.toUpperCase()}, ${d}.${m}.${y}`;
+    const cards = es.map(e => {
       const sets = [e.s1,e.s2,e.s3,e.s4].filter(Boolean).join(" / ");
-      const meta = [e.gewicht ? `${e.gewicht} kg` : null, sets ? `${sets} Wdh` : null, e.notiz || null]
-        .filter(Boolean).join("  ·  ");
-      const isPending = pendingDelete === e.id;
-      return `<div class="entry-card">
-        <span class="entry-badge badge-${e.einheit}">${e.einheit.toUpperCase()}</span>
-        <div class="entry-info">
-          <div class="entry-name">${e.uebung}</div>
-          ${meta ? `<div class="entry-meta">${meta}</div>` : ""}
-        </div>
-        ${e.erhoehen ? '<span class="up-badge">↑</span>' : ""}
-        <button class="del-btn ${isPending ? "confirm" : ""}"
-          onclick="handleDelete(${e.id})">${isPending ? "✓" : "×"}</button>
+      const meta = [e.gewicht?`${e.gewicht} kg`:null, sets?`${sets} Wdh`:null, e.notiz||null].filter(Boolean).join("  ·  ");
+      const ip = pendDel === e.id;
+      return `<div class="ec">
+        <span class="ebdg badge-${e.einheit}">${e.einheit.toUpperCase()}</span>
+        <div class="ei"><div class="en">${e.uebung}</div>${meta?`<div class="em">${meta}</div>`:""}</div>
+        ${e.erhoehen?'<span class="ubdg">↑</span>':""}
+        <button class="dbtn ${ip?"confirm":""}" onclick="hDel(${e.id})">${ip?"✓":"×"}</button>
       </div>`;
     }).join("");
+    return `<div class="dg"><div class="dl2">${lbl}</div>${cards}</div>`;
+  }).join("");
+}
 
-    return `<div class="date-group">
-      <div class="date-label">${fmtDate}</div>
-      ${cards}
+function hDel(id) {
+  if (pendDel === id) { setE(getE().filter(e=>e.id!==id)); pendDel=null; renderLog(); }
+  else { pendDel=id; renderLog(); setTimeout(()=>{ if(pendDel===id){pendDel=null;renderLog();} },3000); }
+}
+
+// ── PLAN ──
+function buildPlan() {
+  const cont = document.getElementById("plan-cont");
+  cont.innerHTML = ["Push","Pull","Legs"].map(ein => {
+    const exs = PLAN[ein].map((ex,i) => {
+      const id = `pc-${ein}-${i}`;
+      const steps = ex.schritte.map(s=>`<li>${s}</li>`).join("");
+      const zPill = `<span class="ppill pill-z">→ ${ex.ziel}</span>`;
+      return `<div class="pcard" id="${id}" onclick="togCard('${id}')">
+        <div class="pch">
+          <div class="pcn">${ex.name}</div>
+          <div class="pcm">${ex.saetze}×${ex.repzone}</div>
+          <span class="pcc">▼</span>
+        </div>
+        <div class="pcb">
+          <div class="pmuscle">${ex.muskel}</div>
+          <div class="prow">
+            <span class="ppill pill-a">${ex.aktuell}</span>
+            ${zPill}
+          </div>
+          <ul class="psteps">${steps}</ul>
+          <div class="ptipp"><strong>Tipp:</strong> ${ex.tipp}</div>
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="peinheit">
+      <div class="peh"><div class="pel ${ein}">${ein.toUpperCase()}</div><div class="pline"></div></div>
+      ${exs}
     </div>`;
   }).join("");
 }
 
-function handleDelete(id) {
-  if (pendingDelete === id) {
-    const entries = getEntries().filter(e => e.id !== id);
-    setEntries(entries);
-    pendingDelete = null;
-    renderLog();
-  } else {
-    pendingDelete = id;
-    renderLog();
-    setTimeout(() => { if (pendingDelete === id) { pendingDelete = null; renderLog(); } }, 3000);
-  }
-}
+function togCard(id) { document.getElementById(id).classList.toggle("open"); }
 
-// --- EXPORT ---
+// ── EXPORT ──
 function exportCSV() {
-  const entries = getEntries();
-  const header = "Datum,Einheit,Übung,Gewicht (kg),S1,S2,S3,S4,Notiz,↑ Erhöhen?";
-  const rows = entries.map(e =>
-    [fmtDate(e.date), e.einheit, e.uebung, e.gewicht,
-     e.s1, e.s2, e.s3, e.s4 || "", e.notiz || "",
-     e.erhoehen ? "Ja" : "Nein"].join(",")
-  );
-  const csv = [header, ...rows].join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
-  a.download = `training-log-${new Date().toISOString().split("T")[0]}.csv`;
-  a.click();
+  const rows = [
+    ["Datum","Einheit","Übung","Gewicht","S1","S2","S3","S4","Notiz","↑ Erhöhen?"],
+    ...getE().map(e=>[fmtD(e.date),e.einheit,e.uebung,e.gewicht,e.s1,e.s2,e.s3,e.s4||"",e.notiz||"",e.erhoehen?"Ja":"Nein"])
+  ].map(r=>r.join(",")).join("\n");
+  dl("\uFEFF"+rows, `training-log-${today()}.csv`, "text/csv;charset=utf-8");
 }
 
-function fmtDate(d) {
-  if (!d) return "";
-  const [y,m,day] = d.split("-");
-  return `${day}.${m}.${y}`;
+// ── VIEWS ──
+function showV(v) {
+  ["add","log","plan"].forEach(id => {
+    document.getElementById("view-"+id).classList.toggle("active", id===v);
+    document.getElementById("nav-"+id).classList.toggle("active", id===v);
+  });
+  if (v==="log") renderLog();
 }
 
-// --- FLASH ---
-function showFlash(msg) {
-  const el = document.getElementById("flash");
-  el.textContent = msg;
-  el.classList.add("show");
-  setTimeout(() => el.classList.remove("show"), 2000);
-}
+// ── UTILS ──
+function today() { return new Date().toISOString().split("T")[0]; }
+function fmtD(d) { if(!d) return ""; const [y,m,day]=d.split("-"); return `${day}.${m}.${y}`; }
+function dl(content,name,type) { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); }
+function showFlash(msg) { const el=document.getElementById("flash"); el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2000); }
 </script>
 </body>
 </html>
