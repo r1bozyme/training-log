@@ -89,14 +89,23 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.4); cur
 
 /* HINT BOX */
 .hint {
-  background: #1A1A0A; border: 1px solid #3A3A10; border-radius: 10px;
-  padding: 12px 14px; margin-bottom: 16px; display: none;
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: none;
+  border: 1px solid; transition: background .2s, border-color .2s;
 }
 .hint.show { display: block; }
+.hint.Push { background: #1A1A0A; border-color: #3A3A10; }
+.hint.Pull { background: #0A1520; border-color: #103050; }
+.hint.Legs { background: #1A0D0A; border-color: #3A2010; }
 .hint-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-.hint-ziel { font-size: 13px; font-weight: 700; color: var(--accent); }
+.hint-ziel { font-size: 13px; font-weight: 700; }
+.hint.Push .hint-ziel { color: var(--push); }
+.hint.Pull .hint-ziel { color: var(--pull); }
+.hint.Legs .hint-ziel { color: var(--legs); }
 .hint-muskel { font-size: 11px; color: var(--muted); text-align: right; max-width: 120px; }
-.hint-reps { display: inline-block; background: #E8FF4720; color: var(--accent); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+.hint-reps { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+.hint.Push .hint-reps { background: #E8FF4720; color: var(--push); }
+.hint.Pull .hint-reps { background: #47C8FF20; color: var(--pull); }
+.hint.Legs .hint-reps { background: #FF6B4720; color: var(--legs); }
 .hint-tipp { font-size: 12px; color: #AAA; line-height: 1.4; }
 
 /* TOGGLE */
@@ -412,7 +421,7 @@ function updHint() {
   const ex = PLAN[curE].find(x => x.name === name);
   const h = document.getElementById("hint");
   if (!ex) { h.classList.remove("show"); return; }
-  h.classList.add("show");
+  h.className = "hint show " + curE;
   document.getElementById("h-ziel").textContent = "Ziel: " + ex.ziel;
   document.getElementById("h-reps").textContent = ex.saetze + " Sätze · " + ex.repzone + " Wdh";
   document.getElementById("h-muskel").textContent = ex.muskel;
