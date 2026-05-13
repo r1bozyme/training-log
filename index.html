@@ -36,44 +36,32 @@
   --push: #6B7A00; --push-bg: #F4F8CC; --push-bd: #BFCC00;
   --pull: #0077AA; --pull-bg: #E0F2FF; --pull-bd: #80C8EE;
   --legs: #C04015; --legs-bg: #FFE8E0; --legs-bd: #FF9977;
-  --neutral: #1A1A1A;
+  --neutral: #1A1A1A; --go: #2A7A2A; --go-bg: #E8F4E8;
   --fd: 'Bebas Neue', sans-serif; --fb: 'Figtree', sans-serif;
   --sb: env(safe-area-inset-bottom, 0px);
 }
 html, body { background: var(--bg); color: var(--text); font-family: var(--fb); min-height: 100vh; overscroll-behavior: none; }
 #app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(72px + var(--sb)); }
 
-/* HEADER */
 .hdr { padding: 52px 20px 0; display: flex; justify-content: space-between; align-items: flex-end; }
 .hdr-title { font-family: var(--fd); font-size: 36px; letter-spacing: 3px; line-height: 1; color: var(--text); }
 .hdr-sub { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
 
-/* BOTTOM NAV */
 .bnav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px; background: var(--surface);
   border-top: 1px solid var(--border);
   display: flex; padding: 8px 12px calc(8px + var(--sb)); gap: 6px; z-index: 100;
 }
-.nbtn {
-  flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer;
-  font-family: var(--fb); font-weight: 700; font-size: 12px;
-  transition: all .15s; background: transparent; color: var(--muted);
-}
+.nbtn { flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 12px; transition: all .15s; background: transparent; color: var(--muted); }
 .nbtn.active { background: var(--neutral); color: #FFFFFF; }
 
-/* VIEWS */
 .view { display: none; } .view.active { display: block; }
 
-/* FORM */
 .sec { padding: 20px 20px 0; }
 .fl { display: block; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
 .er { display: flex; gap: 8px; margin-bottom: 16px; }
-.eb {
-  flex: 1; padding: 14px 0; border-radius: 10px; border: 2px solid var(--border);
-  background: var(--surface); color: var(--muted); font-family: var(--fd);
-  font-size: 20px; letter-spacing: 1px; cursor: pointer; transition: all .15s;
-}
+.eb { flex: 1; padding: 14px 0; border-radius: 10px; border: 2px solid var(--border); background: var(--surface); color: var(--muted); font-family: var(--fd); font-size: 20px; letter-spacing: 1px; cursor: pointer; transition: all .15s; }
 .eb[data-e="Push"].active { border-color: var(--push-bd); color: var(--push); background: var(--push-bg); }
 .eb[data-e="Pull"].active { border-color: var(--pull-bd); color: var(--pull); background: var(--pull-bg); }
 .eb[data-e="Legs"].active { border-color: var(--legs-bd); color: var(--legs); background: var(--legs-bg); }
@@ -84,17 +72,14 @@ input[type="date"], input[type="number"], input[type="text"], select {
 }
 input:focus, select:focus { border-color: #AAAAAA; }
 input::placeholder { color: var(--dim); }
-input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: pointer; opacity: 0.5; }
+input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
 .sr { display: flex; gap: 8px; margin-bottom: 16px; }
 .sc { flex: 1; }
 .sc label { display: block; font-size: 10px; color: var(--dim); text-align: center; margin-bottom: 4px; font-weight: 600; letter-spacing: 1px; }
 .sc input { text-align: center; margin-bottom: 0; padding: 14px 4px; }
 
-/* HINT BOX */
-.hint {
-  border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: none;
-  border: 1px solid; transition: background .2s, border-color .2s;
-}
+/* HINT */
+.hint { border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; display: none; border: 1px solid; transition: background .2s, border-color .2s; }
 .hint.show { display: block; }
 .hint.Push { background: var(--push-bg); border-color: var(--push-bd); }
 .hint.Pull { background: var(--pull-bg); border-color: var(--pull-bd); }
@@ -111,12 +96,28 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
 .hint.Legs .hint-reps { background: #C0401520; color: var(--legs); }
 .hint-tipp { font-size: 12px; color: #777; line-height: 1.4; }
 
+/* LAST ENTRY */
+.last-entry { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
+.last-entry.show { display: flex; align-items: center; gap: 10px; }
+.last-icon { font-size: 16px; flex-shrink: 0; }
+.last-lbl { font-size: 10px; font-weight: 700; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
+.last-data { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
+
+/* TIMER */
+.timer-wrap { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; transition: border-color .3s; }
+.timer-wrap.running { border-color: var(--neutral); }
+.timer-wrap.done { border-color: var(--go); background: var(--go-bg); }
+.timer-lbl { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+.timer-disp { font-family: var(--fd); font-size: 36px; letter-spacing: 2px; color: var(--text); line-height: 1; transition: color .3s; }
+.timer-wrap.running .timer-disp { color: var(--neutral); }
+.timer-wrap.done .timer-disp { color: var(--go); font-size: 22px; }
+.timer-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.timer-btn { padding: 12px 18px; border-radius: 10px; border: none; font-family: var(--fd); font-size: 17px; letter-spacing: 1px; cursor: pointer; transition: all .15s; background: var(--neutral); color: #FFFFFF; flex-shrink: 0; }
+.timer-btn.running { background: #CC2200; }
+.timer-btn.done { background: var(--go); }
+
 /* TOGGLE */
-.trow {
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--surface); border: 2px solid var(--border); border-radius: 10px;
-  padding: 14px 16px; margin-bottom: 16px; cursor: pointer; user-select: none;
-}
+.trow { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 2px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; cursor: pointer; user-select: none; }
 .trow.on { border-color: var(--neutral); }
 .tlbl { font-size: 14px; font-weight: 500; color: var(--muted); }
 .tsw { width: 46px; height: 26px; border-radius: 13px; background: var(--dim); position: relative; transition: background .2s; flex-shrink: 0; }
@@ -124,35 +125,22 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
 .tkn { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #FFF; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .trow.on .tkn { left: 23px; }
 
-/* SAVE */
-.sbtn {
-  width: 100%; padding: 18px; background: var(--neutral); border: none; border-radius: 12px;
-  font-family: var(--fd); font-size: 22px; letter-spacing: 3px; color: #FFFFFF; cursor: pointer;
-  transition: opacity .15s, transform .1s; margin-bottom: 8px;
-}
+.sbtn { width: 100%; padding: 18px; background: var(--neutral); border: none; border-radius: 12px; font-family: var(--fd); font-size: 22px; letter-spacing: 3px; color: #FFFFFF; cursor: pointer; transition: opacity .15s, transform .1s; margin-bottom: 8px; }
 .sbtn:active { opacity: 0.85; transform: scale(0.98); }
 
-/* FLASH */
-.flash {
-  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-  background: var(--neutral); color: #FFFFFF; padding: 10px 28px; border-radius: 24px;
-  font-weight: 700; font-size: 14px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap;
-}
+.flash { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--neutral); color: #FFFFFF; padding: 10px 28px; border-radius: 24px; font-weight: 700; font-size: 14px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; }
 .flash.show { opacity: 1; }
 
-/* STATS */
 .sbar { display: flex; gap: 8px; padding: 16px 20px 0; }
 .sc2 { flex: 1; background: var(--surface); border-radius: 10px; padding: 12px; text-align: center; border: 1px solid var(--border); }
 .snum { font-family: var(--fd); font-size: 28px; color: var(--neutral); letter-spacing: 1px; }
 .slbl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
 
-/* FILTER */
 .frow { display: flex; gap: 8px; padding: 16px 20px 0; overflow-x: auto; scrollbar-width: none; }
 .frow::-webkit-scrollbar { display: none; }
 .fbtn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer; font-family: var(--fb); font-weight: 600; font-size: 13px; background: var(--surface); color: var(--muted); white-space: nowrap; flex-shrink: 0; transition: all .15s; }
 .fbtn.active { background: var(--neutral); color: #FFFFFF; border-color: var(--neutral); }
 
-/* ENTRIES */
 .dg { padding: 16px 20px 0; }
 .dl2 { font-family: var(--fd); font-size: 13px; letter-spacing: 2px; color: var(--dim); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 .ec { background: var(--surface); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; animation: fi .2s ease; border: 1px solid var(--border); }
@@ -168,15 +156,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
 .dbtn { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 20px; padding: 0 2px; flex-shrink: 0; line-height: 1; transition: color .15s; }
 .dbtn.confirm { color: #CC0000; }
 
-/* EXPORT BTN */
 .xbtn { margin: 16px 20px; width: calc(100% - 40px); padding: 14px; background: var(--surface); border: 2px solid var(--border); border-radius: 12px; font-family: var(--fb); font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; display: block; }
 .xbtn:hover { border-color: #AAAAAA; color: var(--text); }
 
-/* EMPTY */
 .empty { text-align: center; padding: 60px 20px; color: var(--dim); }
 .ei2 { font-size: 48px; margin-bottom: 16px; }
 
-/* ── PLAN ── */
+/* PLAN */
 .peinheit { padding: 20px 20px 0; }
 .peh { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .pel { font-family: var(--fd); font-size: 22px; letter-spacing: 2px; }
@@ -195,6 +181,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
 .ppill { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 .pill-a { background: #F0F0F0; color: #888; }
 .pill-z { background: #EAEAEA; color: var(--neutral); }
+.ppause { background: #F0F0F0; color: #666; }
 .psteps { margin-top: 10px; padding-left: 0; list-style: none; }
 .psteps li { font-size: 13px; color: #666; line-height: 1.5; padding: 3px 0 3px 16px; position: relative; }
 .psteps li::before { content: "→"; position: absolute; left: 0; color: var(--dim); font-size: 11px; top: 5px; }
@@ -215,7 +202,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
     <div style="font-size:28px">💪</div>
   </div>
 
-  <!-- ── EINTRAG ── -->
+  <!-- EINTRAG -->
   <div id="view-add" class="view active">
     <div class="sec" style="padding-top:24px">
       <label class="fl">Datum</label>
@@ -223,13 +210,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
 
       <label class="fl">Einheit</label>
       <div class="er">
-        <button class="eb active" data-e="Push" onclick="selE('Push')">PUSH</button>
-        <button class="eb" data-e="Pull" onclick="selE('Pull')">PULL</button>
-        <button class="eb" data-e="Legs" onclick="selE('Legs')">LEGS</button>
+        <button class="eb active" data-e="Push" onclick="selEinheit('Push')">PUSH</button>
+        <button class="eb" data-e="Pull" onclick="selEinheit('Pull')">PULL</button>
+        <button class="eb" data-e="Legs" onclick="selEinheit('Legs')">LEGS</button>
       </div>
 
       <label class="fl">Übung</label>
-      <select id="f-uebung" onchange="updHint()"></select>
+      <select id="f-uebung" onchange="onUebungChange()"></select>
 
       <div class="hint" id="hint">
         <div class="hint-top">
@@ -240,6 +227,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
           <div class="hint-muskel" id="h-muskel"></div>
         </div>
         <div class="hint-tipp" id="h-tipp"></div>
+      </div>
+
+      <div class="last-entry" id="last-entry">
+        <div class="last-icon">🕐</div>
+        <div>
+          <div class="last-lbl">Letztes Training · <span id="last-date"></span></div>
+          <div class="last-data" id="last-data"></div>
+        </div>
       </div>
 
       <label class="fl">Gewicht (kg)</label>
@@ -253,10 +248,19 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
         <div class="sc"><label>S4</label><input type="number" id="f-s4" placeholder="–" inputmode="numeric"></div>
       </div>
 
+      <div class="timer-wrap" id="timer-wrap">
+        <div>
+          <div class="timer-lbl">Pause</div>
+          <div class="timer-disp" id="timer-disp">–</div>
+          <div class="timer-hint" id="timer-hint"></div>
+        </div>
+        <button class="timer-btn" id="timer-btn" onclick="toggleTimer()">▶ START</button>
+      </div>
+
       <label class="fl">Notiz (optional)</label>
       <input type="text" id="f-not" placeholder="z.B. etwas schwer am Ende">
 
-      <div class="trow" id="trow" onclick="togE()">
+      <div class="trow" id="trow" onclick="toggleErhoehen()">
         <span class="tlbl">↑ Gewicht nächstes Mal erhöhen?</span>
         <div class="tsw"><div class="tkn"></div></div>
       </div>
@@ -265,7 +269,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
     </div>
   </div>
 
-  <!-- ── LOG ── -->
+  <!-- LOG -->
   <div id="view-log" class="view">
     <div class="sbar">
       <div class="sc2"><div class="snum" id="s-tot">0</div><div class="slbl">Einträge</div></div>
@@ -273,22 +277,19 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
       <div class="sc2"><div class="snum" id="s-days">0</div><div class="slbl">Einheiten</div></div>
     </div>
     <div class="frow">
-      <button class="fbtn active" onclick="setF('Alle')">Alle</button>
-      <button class="fbtn" onclick="setF('Push')">Push</button>
-      <button class="fbtn" onclick="setF('Pull')">Pull</button>
-      <button class="fbtn" onclick="setF('Legs')">Legs</button>
+      <button class="fbtn active" onclick="setFilter('Alle')">Alle</button>
+      <button class="fbtn" onclick="setFilter('Push')">Push</button>
+      <button class="fbtn" onclick="setFilter('Pull')">Pull</button>
+      <button class="fbtn" onclick="setFilter('Legs')">Legs</button>
     </div>
     <div id="entries"></div>
     <button class="xbtn" onclick="exportCSV()">↓ CSV exportieren (für monatlichen Review)</button>
   </div>
 
-  <!-- ── PLAN ── -->
+  <!-- PLAN -->
   <div id="view-plan" class="view">
     <div id="plan-cont"></div>
-    <div class="pnote">
-      📋 Plan-Version: <strong id="p-ver"></strong><br>
-      Beim monatlichen Review aktualisiert Claude die Zielwerte basierend auf deinem Fortschritt.
-    </div>
+    <div class="pnote">📋 Plan-Version: <strong id="p-ver"></strong><br>Beim monatlichen Review aktualisiert Claude die Zielwerte.</div>
     <div class="pver" id="p-verline"></div>
   </div>
 
@@ -297,210 +298,357 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: none; cursor: po
 <div class="flash" id="flash"></div>
 
 <div class="bnav">
-  <button class="nbtn active" id="nav-add" onclick="showV('add')">＋ Eintrag</button>
-  <button class="nbtn" id="nav-log" onclick="showV('log')">Log</button>
-  <button class="nbtn" id="nav-plan" onclick="showV('plan')">Plan</button>
+  <button class="nbtn active" id="nav-add" onclick="showView('add')">＋ Eintrag</button>
+  <button class="nbtn" id="nav-log" onclick="showView('log')">Log</button>
+  <button class="nbtn" id="nav-plan" onclick="showView('plan')">Plan</button>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-// PLAN DATA
-// Letzte Aktualisierung: Mai 2026
-// Beim Review werden aktuell/ziel/zielgewicht von Claude angepasst.
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// PLAN DATA – Letzte Aktualisierung: Mai 2026
+// typ: compound | isolation | core  → bestimmt Pausenzeit
+// Beim Review: aktuell/ziel/zielgewicht von Claude angepasst
+// ═══════════════════════════════════════════════════
 const PLAN = {
   version: "Mai 2026",
   Push: [
-    { name:"Chest Press", muskel:"Brust · Schulter · Trizeps",
+    { name:"Chest Press", muskel:"Brust · Schulter · Trizeps", typ:"compound",
       saetze:4, repzone:"8–12", aktuell:"3×16 @ 35 kg", zielgewicht:40, ziel:"4×8–12 @ 40 kg",
       schritte:["Rücken fest ans Polster – nicht abheben","3 Sek runter, explosiv hoch","Ellenbogen nicht ganz durchstrecken","Brust am engsten Punkt 1 Sek zusammendrücken"],
       tipp:"16 Wdh @ 35 kg = Ausdauer. Sofort auf 4×10 @ 40 kg wechseln." },
-    { name:"Pectoral Fly", muskel:"Brust (Isolation)",
+    { name:"Pectoral Fly", muskel:"Brust (Isolation)", typ:"isolation",
       saetze:3, repzone:"12–15", aktuell:"3×12 @ 50/55 kg", zielgewicht:55, ziel:"3×12–15 @ 55 kg",
       schritte:["Arme immer leicht gebeugt – Ellenbogenschutz!","Langsam zur Mitte, 1–2 Sek halten","Brust aktiv zusammenquetschen","Kontrolliert öffnen bis zur vollen Dehnung"],
       tipp:"Technik vor Gewicht. Dehnung am weitesten Punkt spüren." },
-    { name:"Shoulder Press", muskel:"Schulter vorne/mitte · Trizeps",
+    { name:"Shoulder Press", muskel:"Schulter vorne/mitte · Trizeps", typ:"compound",
       saetze:3, repzone:"10–12", aktuell:"3×8 @ 27,5 kg", zielgewicht:30, ziel:"3×10–12 @ 27,5–30 kg",
       schritte:["Core anspannen, kein Hohlkreuz","Griffe auf Ohrhöhe – drücken bis kurz vor Streckung","Langsam runter, Schultern nicht hochziehen"],
       tipp:"3×8 = Kraftbereich. Für Muskelaufbau auf 10–12 Wdh erhöhen." },
-    { name:"Trizeps (Stufe 12)", muskel:"Trizeps (Isolation)",
-      saetze:3, repzone:"10–15", aktuell:"Stufe 12 (Maximum)", zielgewicht:null, ziel:"Tempo 4 Sek negativ",
-      schritte:["Oberarme fixiert – nur Unterarme bewegen","Volle Streckung, 1 Sek oben halten","4 Sek zurück (langsam = mehr Reiz)"],
-      tipp:"Am Maschinenmaximum: Tempo als Progression. Alternativ: Kabelzug-Trizeps." },
-    { name:"Rear Delt Fly", muskel:"Hintere Schulter · Rhomboiden",
+    { name:"Triceps Press", muskel:"Trizeps (Isolation)", typ:"isolation",
+      saetze:3, repzone:"10–12", aktuell:"3×11 @ 65 kg", zielgewicht:70, ziel:"3×12 @ 65 kg → dann 70 kg",
+      schritte:["Aufrecht sitzen, Rücken fest ans Polster","Griffe auf Schulterhöhe, Ellenbogen nah am Körper","Explosiv drücken bis zur vollen Streckung – Trizeps anspannen","3 Sek zurück – kontrolliert, nicht fallen lassen"],
+      tipp:"Life Fitness Station 7. Bei 3×12 @ 65 kg → auf 70 kg erhöhen." },
+    { name:"Rear Delt Fly", muskel:"Hintere Schulter · Rhomboiden", typ:"isolation",
       saetze:3, repzone:"12–15", aktuell:"@ 40–55 kg", zielgewicht:50, ziel:"3×12–15 @ 50 kg",
       schritte:["Sitz umdrehen oder Reverse-Modus","Arme leicht gebeugt, Schulterblätter zusammenziehen","Langsam und kontrolliert – kein Schwung"],
-      tipp:"Wichtig für Schulterbalance und Haltung – nicht weglassen." },
-    { name:"Lateral Raise", muskel:"Mittlere Schulter",
+      tipp:"Wichtig für Schulterbalance und Haltung." },
+    { name:"Lateral Raise", muskel:"Mittlere Schulter", typ:"isolation",
       saetze:3, repzone:"12–15", aktuell:"Optional", zielgewicht:10, ziel:"3×12–15 @ 8–12 kg",
       schritte:["Arme seitlich bis Schulterhöhe heben","Leicht gebeugte Ellenbogen, Daumen leicht nach unten"],
       tipp:"Mittlerer Deltamuskel = Schulterbreite. Hanteln oder Kabelzug." }
   ],
   Pull: [
-    { name:"Latzug", muskel:"Latissimus · Bizeps",
+    { name:"Latzug", muskel:"Latissimus · Bizeps", typ:"compound",
       saetze:4, repzone:"8–12", aktuell:"3×19 @ 52 kg (Max: 105 kg)", zielgewicht:65, ziel:"3–4×8–12 @ 65 kg",
       schritte:["Griff breiter als Schultern (Obergriff)","Stange zur oberen Brust – Ellenbogen nach unten/hinten","Brust nach vorne öffnen – nicht zurückschaukeln!","Latissimus am Ende 1 Sek zusammenziehen","Kontrolliert hoch – volle Streckung"],
-      tipp:"19 Wdh @ 52 kg = zu leicht. Sofort 3×10 @ 65 kg. Enger Untergriff als Variante." },
-    { name:"Ruderzug", muskel:"Mittlerer Rücken · Trapezius · Bizeps",
+      tipp:"19 Wdh @ 52 kg = zu leicht. Sofort 3×10 @ 65 kg." },
+    { name:"Ruderzug", muskel:"Mittlerer Rücken · Trapezius · Bizeps", typ:"compound",
       saetze:3, repzone:"10–12", aktuell:"3×16 @ 40 kg", zielgewicht:50, ziel:"3–4×10–12 @ 50 kg",
       schritte:["Aufrecht sitzen – nicht nach hinten lehnen!","Griff zur Brust-/Bauchmitte – Ellenbogen nah am Körper","Schulterblätter am Ende 1–2 Sek zusammendrücken","Kontrolliert zurück"],
       tipp:"Gewicht erhöhen, Wdh auf 10–12 reduzieren." },
-    { name:"Bizepscurl", muskel:"Bizeps (Isolation)",
+    { name:"Bizepscurl", muskel:"Bizeps (Isolation)", typ:"isolation",
       saetze:3, repzone:"10–12", aktuell:"3×16 @ 17 kg", zielgewicht:22, ziel:"3×10–12 @ 22–25 kg",
       schritte:["Oberarme fixiert – nur Unterarme bewegen","Ganz unten strecken, oben 1 Sek halten","3–4 Sek absenken = mehr Muskelreiz","Kein Rückenschwung!"],
       tipp:"16 Wdh @ 17 kg = zu leicht. 3×10 @ 22 kg sofort testen." },
-    { name:"Face Pulls", muskel:"Hintere Schulter · Rotatorenmanschette",
+    { name:"Face Pulls", muskel:"Hintere Schulter · Rotatorenmanschette", typ:"isolation",
       saetze:3, repzone:"15", aktuell:"Optional", zielgewicht:null, ziel:"3×15 @ moderat",
       schritte:["Kabelzug mit Seilaufsatz auf Augenhöhe","Seil zur Stirn – Ellenbogen nach außen/oben"],
-      tipp:"Schützt das Schultergelenk langfristig. Regelmäßig einbauen." }
+      tipp:"Schützt das Schultergelenk langfristig." }
   ],
   Legs: [
-    { name:"Beinpresse", muskel:"Quadrizeps · Gesäß · Hamstrings",
+    { name:"Beinpresse", muskel:"Quadrizeps · Gesäß · Hamstrings", typ:"compound",
       saetze:4, repzone:"8–12", aktuell:"@ 80 kg", zielgewicht:90, ziel:"4×8–12 @ 85–100 kg",
       schritte:["Füße schulterbreit, Zehen leicht nach außen (15–30°)","Knie immer in Richtung Zehen – nie einknicken!","Bis ca. 90° Kniewinkel – Rücken bleibt am Sitz","Explosiv drücken, kurz vor voller Streckung stoppen"],
       tipp:"Knie links: Füße etwas höher auf die Platte stellen." },
-    { name:"Beinstrecker", muskel:"Quadrizeps (Isolation)",
+    { name:"Beinstrecker", muskel:"Quadrizeps (Isolation)", typ:"isolation",
       saetze:3, repzone:"10–12", aktuell:"3×16 @ 47 kg (Max: 113 kg)", zielgewicht:52, ziel:"3×10–12 @ 52–55 kg",
       schritte:["Langsam strecken, oben 1–2 Sek halten und Quad anspannen","3–4 Sek zurück – nie fallen lassen"],
       tipp:"Max 113 kg = viel Potenzial. Bei Kniebeschwerden → Beinpresse statt." },
-    { name:"Beinbeuger", muskel:"Hamstrings (Isolation)",
+    { name:"Beinbeuger", muskel:"Hamstrings (Isolation)", typ:"isolation",
       saetze:3, repzone:"12", aktuell:"3×15 @ 40 kg (Max: 74 kg)", zielgewicht:45, ziel:"3×12 @ 45 kg",
       schritte:["Oberschenkel fest auf Polsterung – nicht abheben!","Ferse zur Gesäßfalte, oben 1–2 Sek halten","3–4 Sek langsam strecken – Absenkphase ist entscheidend"],
       tipp:"Langsame Absenkphase bringt mehr Reiz als die Aufwärtsbewegung." },
-    { name:"Hip Abduction", muskel:"Gluteus medius/minimus",
+    { name:"Hip Abduction", muskel:"Gluteus medius/minimus", typ:"isolation",
       saetze:3, repzone:"15–20", aktuell:"3×16 @ 72,5 kg", zielgewicht:75, ziel:"3×15–20 @ 75–80 kg",
       schritte:["Aufrecht sitzen, Core angespannt","Beine langsam nach außen – Endpunkt 1–2 Sek halten","Kontrolliert zurück – nicht einfedern"],
       tipp:"Am weitesten Punkt kurz halten für maximale Gesäßaktivierung." },
-    { name:"Wadenheben", muskel:"Gastrocnemius · Soleus",
+    { name:"Wadenheben", muskel:"Gastrocnemius · Soleus", typ:"isolation",
       saetze:3, repzone:"15–20", aktuell:"Addon @ 80 kg", zielgewicht:110, ziel:"3×15–20 @ 100–120 kg",
       schritte:["Nur Vorderfuß auf der Platte – Ferse hängt frei","Volle Streckung auf Zehenspitzen – 1–2 Sek halten","Ferse tief runter – volle Dehnung, langsam"],
       tipp:"Waden reagieren gut auf hohes Gewicht und langsames Tempo." },
-    { name:"Bauch gerade", muskel:"Rectus abdominis",
+    { name:"Bauch gerade", muskel:"Rectus abdominis", typ:"core",
       saetze:3, repzone:"15–20", aktuell:"3×16 @ 46 kg (Max: 70 kg)", zielgewicht:50, ziel:"3×15–20 @ 50 kg",
       schritte:["Bauchmuskeln aktiv zusammenziehen – nicht mit dem Rücken drücken","Langsam, kontrolliert, oben 1 Sek halten"],
       tipp:"Auf 50 kg erhöhen, Max ist 70 kg – noch Luft nach oben." },
-    { name:"Bauch seitlich", muskel:"Obliques",
+    { name:"Bauch seitlich", muskel:"Obliques", typ:"core",
       saetze:3, repzone:"20–24", aktuell:"3×24 @ Stufe 12 (Maximum)", zielgewicht:null, ziel:"3×20–24, Tempo 4 Sek/Seite",
       schritte:["Abwechselnd links/rechts – 4 Sek pro Seite","Bewegung aus dem Rumpf, nicht aus den Schultern"],
       tipp:"Am Maschinenmaximum: Tempo als Progression. 4 Sek pro Seite." }
   ]
 };
 
-// ── STATE ──
-let curE = "Push", erh = false, curF = "Alle", pendDel = null;
+// Pausenzeiten pro Übungstyp
+const PAUSE = {
+  compound: { secs: 105, label: "90–120 Sek" },
+  isolation: { secs: 75,  label: "60–90 Sek"  },
+  core:      { secs: 52,  label: "45–60 Sek"  }
+};
 
-// ── INIT ──
+// ─── STATE ───────────────────────────────────────────
+let curEinheit = "Push";
+let erhoehen   = false;
+let curFilter  = "Alle";
+let pendingDel = null;
+let timerIv    = null;
+let timerLeft  = 0;
+let timerTotal = 0;
+let timerState = "idle"; // idle | running | done
+
+// ─── INIT ────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("f-date").value = today();
+  document.getElementById("f-date").value = todayStr();
   document.getElementById("hdr-date").textContent =
     new Date().toLocaleDateString("de-DE", { weekday:"long", day:"numeric", month:"long" });
   document.getElementById("p-ver").textContent = PLAN.version;
   document.getElementById("p-verline").textContent = "Plan-Version: " + PLAN.version;
-  popUebung("Push");
-  updHint();
+  fillUebung("Push");
+  refreshHint();
   buildPlan();
-  if (getE().length > 0) showV("log");
+  if (loadEntries().length > 0) showView("log");
 });
 
-// ── STORAGE ──
-function getE() { try { return JSON.parse(localStorage.getItem("tl-e")||"[]"); } catch { return []; } }
-function setE(a) { localStorage.setItem("tl-e", JSON.stringify(a)); }
+// ─── STORAGE ─────────────────────────────────────────
+function loadEntries() {
+  try { return JSON.parse(localStorage.getItem("tl-e") || "[]"); } catch { return []; }
+}
+function saveEntries(arr) { localStorage.setItem("tl-e", JSON.stringify(arr)); }
 
-// ── FORM ──
-function selE(e) {
-  curE = e;
+// ─── FORM ────────────────────────────────────────────
+function selEinheit(e) {
+  curEinheit = e;
   document.querySelectorAll(".eb").forEach(b => b.classList.toggle("active", b.dataset.e === e));
-  popUebung(e);
-  updHint();
+  fillUebung(e);
+  refreshHint();
 }
 
-function popUebung(e) {
+function fillUebung(e) {
   document.getElementById("f-uebung").innerHTML =
     PLAN[e].map(x => `<option value="${x.name}">${x.name}</option>`).join("");
 }
 
-function updHint() {
+function onUebungChange() { refreshHint(); }
+
+function refreshHint() {
   const name = document.getElementById("f-uebung").value;
-  const ex = PLAN[curE].find(x => x.name === name);
-  const h = document.getElementById("hint");
-  if (!ex) { h.classList.remove("show"); return; }
-  h.className = "hint show " + curE;
-  document.getElementById("h-ziel").textContent = "Ziel: " + ex.ziel;
-  document.getElementById("h-reps").textContent = ex.saetze + " Sätze · " + ex.repzone + " Wdh";
+  const ex   = PLAN[curEinheit].find(x => x.name === name);
+  const hint = document.getElementById("hint");
+
+  if (!ex) { hint.classList.remove("show"); return; }
+
+  hint.className = "hint show " + curEinheit;
+  document.getElementById("h-ziel").textContent   = "Ziel: " + ex.ziel;
+  document.getElementById("h-reps").textContent   = ex.saetze + " Sätze · " + ex.repzone + " Wdh";
   document.getElementById("h-muskel").textContent = ex.muskel;
-  document.getElementById("h-tipp").textContent = ex.tipp;
+  document.getElementById("h-tipp").textContent   = ex.tipp;
+
+  showLastEntry(name);
+  setTimerDefaults(ex.typ || "isolation");
 }
 
-function togE() {
-  erh = !erh;
-  document.getElementById("trow").classList.toggle("on", erh);
+function showLastEntry(uebung) {
+  const all = loadEntries();
+  let last = null;
+  for (let i = all.length - 1; i >= 0; i--) {
+    if (all[i].uebung === uebung) { last = all[i]; break; }
+  }
+  const el = document.getElementById("last-entry");
+  if (!last) { el.classList.remove("show"); return; }
+  el.classList.add("show");
+  const sets = [last.s1, last.s2, last.s3, last.s4].filter(Boolean).join(" / ");
+  document.getElementById("last-date").textContent = fmtDate(last.date);
+  document.getElementById("last-data").textContent =
+    (last.gewicht ? last.gewicht + " kg" : "") +
+    (sets ? "  ·  " + sets + " Wdh" : "");
+}
+
+function setTimerDefaults(typ) {
+  if (timerState !== "idle") return;
+  const p = PAUSE[typ] || PAUSE.isolation;
+  timerTotal = p.secs;
+  timerLeft  = p.secs;
+  document.getElementById("timer-disp").textContent = fmtTime(p.secs);
+  document.getElementById("timer-hint").textContent = p.label;
+}
+
+function toggleErhoehen() {
+  erhoehen = !erhoehen;
+  document.getElementById("trow").classList.toggle("on", erhoehen);
 }
 
 function saveEntry() {
   const entry = {
-    id: Date.now(), date: document.getElementById("f-date").value,
-    einheit: curE, uebung: document.getElementById("f-uebung").value,
-    gewicht: document.getElementById("f-gew").value,
-    s1: document.getElementById("f-s1").value, s2: document.getElementById("f-s2").value,
-    s3: document.getElementById("f-s3").value, s4: document.getElementById("f-s4").value,
-    notiz: document.getElementById("f-not").value, erhoehen: erh
+    id:       Date.now(),
+    date:     document.getElementById("f-date").value,
+    einheit:  curEinheit,
+    uebung:   document.getElementById("f-uebung").value,
+    gewicht:  document.getElementById("f-gew").value,
+    s1:       document.getElementById("f-s1").value,
+    s2:       document.getElementById("f-s2").value,
+    s3:       document.getElementById("f-s3").value,
+    s4:       document.getElementById("f-s4").value,
+    notiz:    document.getElementById("f-not").value,
+    erhoehen: erhoehen
   };
-  const arr = getE(); arr.push(entry); setE(arr);
-  ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id => document.getElementById(id).value="");
-  erh = false; document.getElementById("trow").classList.remove("on");
+  const arr = loadEntries();
+  arr.push(entry);
+  saveEntries(arr);
+
+  ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id =>
+    document.getElementById(id).value = "");
+  erhoehen = false;
+  document.getElementById("trow").classList.remove("on");
+
+  showLastEntry(entry.uebung);
   showFlash("Gespeichert ✓");
+  if (timerState !== "running") startTimer();
 }
 
-// ── LOG ──
-function setF(f) {
-  curF = f;
-  document.querySelectorAll(".fbtn").forEach(b => b.classList.toggle("active", b.textContent === f));
+// ─── TIMER ───────────────────────────────────────────
+function startTimer() {
+  const name = document.getElementById("f-uebung").value;
+  const ex   = PLAN[curEinheit].find(x => x.name === name);
+  const p    = PAUSE[(ex && ex.typ) || "isolation"] || PAUSE.isolation;
+  timerTotal = p.secs;
+  timerLeft  = p.secs;
+  timerState = "running";
+  renderTimer();
+  clearInterval(timerIv);
+  timerIv = setInterval(() => {
+    timerLeft--;
+    document.getElementById("timer-disp").textContent = fmtTime(timerLeft);
+    if (timerLeft <= 0) {
+      clearInterval(timerIv);
+      timerState = "done";
+      renderTimer();
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+      showFlash("Pause vorbei – nächster Satz! 💪");
+    }
+  }, 1000);
+}
+
+function toggleTimer() {
+  if (timerState === "idle") {
+    startTimer();
+  } else if (timerState === "running") {
+    clearInterval(timerIv);
+    timerState = "idle";
+    renderTimer();
+    refreshHint();
+  } else {
+    timerState = "idle";
+    renderTimer();
+    refreshHint();
+  }
+}
+
+function renderTimer() {
+  const wrap = document.getElementById("timer-wrap");
+  const btn  = document.getElementById("timer-btn");
+  const disp = document.getElementById("timer-disp");
+  const hint = document.getElementById("timer-hint");
+  wrap.className = "timer-wrap " + timerState;
+  if (timerState === "idle") {
+    btn.textContent  = "▶ START";
+    btn.className    = "timer-btn";
+  } else if (timerState === "running") {
+    disp.textContent = fmtTime(timerLeft);
+    btn.textContent  = "■ STOP";
+    btn.className    = "timer-btn running";
+  } else {
+    disp.textContent = "FERTIG ✓";
+    hint.textContent = "Nächster Satz!";
+    btn.textContent  = "↺ NEU";
+    btn.className    = "timer-btn done";
+  }
+}
+
+function fmtTime(s) {
+  const m = Math.floor(s / 60), r = s % 60;
+  return m > 0 ? m + ":" + r.toString().padStart(2, "0") : String(s);
+}
+
+// ─── LOG ─────────────────────────────────────────────
+function setFilter(f) {
+  curFilter = f;
+  document.querySelectorAll(".fbtn").forEach(b =>
+    b.classList.toggle("active", b.textContent === f));
   renderLog();
 }
 
 function renderLog() {
-  const all = getE();
-  const fil = curF === "Alle" ? all : all.filter(e => e.einheit === curF);
-  const rev = [...fil].reverse();
-  document.getElementById("s-tot").textContent = all.length;
-  document.getElementById("s-up").textContent = all.filter(e => e.erhoehen).length;
-  document.getElementById("s-days").textContent = new Set(all.map(e => e.date+e.einheit)).size;
+  const all      = loadEntries();
+  const filtered = curFilter === "Alle" ? all : all.filter(e => e.einheit === curFilter);
+  const reversed = [...filtered].reverse();
+
+  document.getElementById("s-tot").textContent  = all.length;
+  document.getElementById("s-up").textContent   = all.filter(e => e.erhoehen).length;
+  document.getElementById("s-days").textContent = new Set(all.map(e => e.date + e.einheit)).size;
+
   const cont = document.getElementById("entries");
-  if (!rev.length) { cont.innerHTML = `<div class="empty"><div class="ei2">📋</div><div>Noch keine Einträge</div></div>`; return; }
-  const grps = {};
-  rev.forEach(e => (grps[e.date]=grps[e.date]||[]).push(e));
-  cont.innerHTML = Object.entries(grps).map(([date,es]) => {
-    const [y,m,d] = date.split("-");
-    const wd = new Date(date).toLocaleDateString("de-DE",{weekday:"short"});
+  if (!reversed.length) {
+    cont.innerHTML = `<div class="empty"><div class="ei2">📋</div><div>Noch keine Einträge</div></div>`;
+    return;
+  }
+
+  const groups = {};
+  reversed.forEach(e => (groups[e.date] = groups[e.date] || []).push(e));
+
+  cont.innerHTML = Object.entries(groups).map(([date, es]) => {
+    const [y, m, d] = date.split("-");
+    const wd  = new Date(date).toLocaleDateString("de-DE", { weekday: "short" });
     const lbl = `${wd.toUpperCase()}, ${d}.${m}.${y}`;
     const cards = es.map(e => {
-      const sets = [e.s1,e.s2,e.s3,e.s4].filter(Boolean).join(" / ");
-      const meta = [e.gewicht?`${e.gewicht} kg`:null, sets?`${sets} Wdh`:null, e.notiz||null].filter(Boolean).join("  ·  ");
-      const ip = pendDel === e.id;
+      const sets = [e.s1, e.s2, e.s3, e.s4].filter(Boolean).join(" / ");
+      const meta = [
+        e.gewicht ? e.gewicht + " kg" : null,
+        sets      ? sets + " Wdh"     : null,
+        e.notiz   || null
+      ].filter(Boolean).join("  ·  ");
+      const ip = pendingDel === e.id;
       return `<div class="ec">
         <span class="ebdg badge-${e.einheit}">${e.einheit.toUpperCase()}</span>
-        <div class="ei"><div class="en">${e.uebung}</div>${meta?`<div class="em">${meta}</div>`:""}</div>
-        ${e.erhoehen?'<span class="ubdg">↑</span>':""}
-        <button class="dbtn ${ip?"confirm":""}" onclick="hDel(${e.id})">${ip?"✓":"×"}</button>
+        <div class="ei">
+          <div class="en">${e.uebung}</div>
+          ${meta ? `<div class="em">${meta}</div>` : ""}
+        </div>
+        ${e.erhoehen ? '<span class="ubdg">↑</span>' : ""}
+        <button class="dbtn ${ip ? "confirm" : ""}" onclick="handleDel(${e.id})">${ip ? "✓" : "×"}</button>
       </div>`;
     }).join("");
     return `<div class="dg"><div class="dl2">${lbl}</div>${cards}</div>`;
   }).join("");
 }
 
-function hDel(id) {
-  if (pendDel === id) { setE(getE().filter(e=>e.id!==id)); pendDel=null; renderLog(); }
-  else { pendDel=id; renderLog(); setTimeout(()=>{ if(pendDel===id){pendDel=null;renderLog();} },3000); }
+function handleDel(id) {
+  if (pendingDel === id) {
+    saveEntries(loadEntries().filter(e => e.id !== id));
+    pendingDel = null;
+    renderLog();
+  } else {
+    pendingDel = id;
+    renderLog();
+    setTimeout(() => { if (pendingDel === id) { pendingDel = null; renderLog(); } }, 3000);
+  }
 }
 
-// ── PLAN ──
+// ─── PLAN ────────────────────────────────────────────
 function buildPlan() {
   const cont = document.getElementById("plan-cont");
-  cont.innerHTML = ["Push","Pull","Legs"].map(ein => {
-    const exs = PLAN[ein].map((ex,i) => {
-      const id = `pc-${ein}-${i}`;
-      const steps = ex.schritte.map(s=>`<li>${s}</li>`).join("");
-      const zPill = `<span class="ppill pill-z">→ ${ex.ziel}</span>`;
+  cont.innerHTML = ["Push", "Pull", "Legs"].map(ein => {
+    const exs = PLAN[ein].map((ex, i) => {
+      const id    = `pc-${ein}-${i}`;
+      const steps = ex.schritte.map(s => `<li>${s}</li>`).join("");
+      const pause = PAUSE[ex.typ] || PAUSE.isolation;
       return `<div class="pcard" id="${id}" onclick="togCard('${id}')">
         <div class="pch">
           <div class="pcn">${ex.name}</div>
@@ -511,7 +659,8 @@ function buildPlan() {
           <div class="pmuscle">${ex.muskel}</div>
           <div class="prow">
             <span class="ppill pill-a">${ex.aktuell}</span>
-            ${zPill}
+            <span class="ppill pill-z">→ ${ex.ziel}</span>
+            <span class="ppill ppause">⏱ ${pause.label}</span>
           </div>
           <ul class="psteps">${steps}</ul>
           <div class="ptipp"><strong>Tipp:</strong> ${ex.tipp}</div>
@@ -527,29 +676,44 @@ function buildPlan() {
 
 function togCard(id) { document.getElementById(id).classList.toggle("open"); }
 
-// ── EXPORT ──
+// ─── EXPORT ──────────────────────────────────────────
 function exportCSV() {
   const rows = [
     ["Datum","Einheit","Übung","Gewicht","S1","S2","S3","S4","Notiz","↑ Erhöhen?"],
-    ...getE().map(e=>[fmtD(e.date),e.einheit,e.uebung,e.gewicht,e.s1,e.s2,e.s3,e.s4||"",e.notiz||"",e.erhoehen?"Ja":"Nein"])
-  ].map(r=>r.join(",")).join("\n");
-  dl("\uFEFF"+rows, `training-log-${today()}.csv`, "text/csv;charset=utf-8");
+    ...loadEntries().map(e => [
+      fmtDate(e.date), e.einheit, e.uebung, e.gewicht,
+      e.s1, e.s2, e.s3, e.s4 || "", e.notiz || "",
+      e.erhoehen ? "Ja" : "Nein"
+    ])
+  ].map(r => r.join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href     = URL.createObjectURL(new Blob(["\uFEFF" + rows], { type: "text/csv;charset=utf-8" }));
+  a.download = "training-log-" + todayStr() + ".csv";
+  a.click();
 }
 
-// ── VIEWS ──
-function showV(v) {
-  ["add","log","plan"].forEach(id => {
-    document.getElementById("view-"+id).classList.toggle("active", id===v);
-    document.getElementById("nav-"+id).classList.toggle("active", id===v);
+// ─── VIEWS ───────────────────────────────────────────
+function showView(v) {
+  ["add", "log", "plan"].forEach(id => {
+    document.getElementById("view-" + id).classList.toggle("active", id === v);
+    document.getElementById("nav-"  + id).classList.toggle("active", id === v);
   });
-  if (v==="log") renderLog();
+  if (v === "log") renderLog();
 }
 
-// ── UTILS ──
-function today() { return new Date().toISOString().split("T")[0]; }
-function fmtD(d) { if(!d) return ""; const [y,m,day]=d.split("-"); return `${day}.${m}.${y}`; }
-function dl(content,name,type) { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); }
-function showFlash(msg) { const el=document.getElementById("flash"); el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2000); }
+// ─── UTILS ───────────────────────────────────────────
+function todayStr() { return new Date().toISOString().split("T")[0]; }
+function fmtDate(d) {
+  if (!d) return "";
+  const [y, m, day] = d.split("-");
+  return `${day}.${m}.${y}`;
+}
+function showFlash(msg) {
+  const el = document.getElementById("flash");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2500);
+}
 </script>
 </body>
 </html>
