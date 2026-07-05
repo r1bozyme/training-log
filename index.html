@@ -102,6 +102,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .last-icon { font-size: 16px; flex-shrink: 0; }
 .last-lbl { font-size: 10px; font-weight: 700; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
 .last-data { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
+.last-up { background: #E8F4E8; color: var(--go); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
 
 /* TIMER */
 .timer-wrap { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; transition: border-color .3s; }
@@ -133,6 +134,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 
 .sbar { display: flex; gap: 8px; padding: 16px 20px 0; }
 .sc2 { flex: 1; background: var(--surface); border-radius: 10px; padding: 12px; text-align: center; border: 1px solid var(--border); }
+.sc2.clickable { cursor: pointer; transition: all .15s; }
+.sc2.clickable.active { border-color: var(--go); background: var(--go-bg); }
+.sc2.clickable.active .snum { color: var(--go); }
 .snum { font-family: var(--fd); font-size: 28px; color: var(--neutral); letter-spacing: 1px; }
 .slbl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
 
@@ -189,6 +193,19 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .ptipp strong { color: var(--neutral); }
 .pnote { margin: 16px 20px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
 .pver { text-align: center; font-size: 11px; color: var(--dim); padding: 8px 20px 4px; }
+
+/* STATS */
+.stcard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.stc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+.stc-name { font-weight: 700; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stc-delta { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; flex-shrink: 0; }
+.stc-delta.up { background: var(--go-bg); color: var(--go); }
+.stc-delta.down { background: #FFE8E0; color: #CC2200; }
+.stc-delta.flat { background: #F0F0F0; color: var(--muted); }
+.spark { width: 100%; height: 44px; display: block; }
+.spark-none { font-size: 12px; color: var(--dim); padding: 12px 0; text-align: center; }
+.stc-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+.stc-meta strong { color: var(--text); }
 </style>
 </head>
 <body>
@@ -273,7 +290,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
   <div id="view-log" class="view">
     <div class="sbar">
       <div class="sc2"><div class="snum" id="s-tot">0</div><div class="slbl">Einträge</div></div>
-      <div class="sc2"><div class="snum" id="s-up">0</div><div class="slbl">↑ Erhöhen</div></div>
+      <div class="sc2 clickable" id="card-up" onclick="setFilter('Erhöhen')"><div class="snum" id="s-up">0</div><div class="slbl">↑ Erhöhen</div></div>
       <div class="sc2"><div class="snum" id="s-days">0</div><div class="slbl">Einheiten</div></div>
     </div>
     <div class="frow">
@@ -293,6 +310,11 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
     <div class="pver" id="p-verline"></div>
   </div>
 
+  <!-- STATS -->
+  <div id="view-stats" class="view">
+    <div id="stats-cont"></div>
+  </div>
+
 </div>
 
 <div class="flash" id="flash"></div>
@@ -300,6 +322,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 <div class="bnav">
   <button class="nbtn active" id="nav-add" onclick="showView('add')">＋ Eintrag</button>
   <button class="nbtn" id="nav-log" onclick="showView('log')">Log</button>
+  <button class="nbtn" id="nav-stats" onclick="showView('stats')">Stats</button>
   <button class="nbtn" id="nav-plan" onclick="showView('plan')">Plan</button>
 </div>
 
@@ -310,36 +333,36 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 // Beim Review: aktuell/ziel/zielgewicht von Claude angepasst
 // ═══════════════════════════════════════════════════
 const PLAN = {
-  version: "Juli 2026 (Rev. 01.07.)",
+  version: "Juni 2026 (Rev. 12.06.)",
   Push: [
     { name:"Chest Press", muskel:"Brust · Schulter · Trizeps", typ:"compound",
-      saetze:4, repzone:"8–12", aktuell:"4×12 @ 50 kg", zielgewicht:52.5, ziel:"→ jetzt 52,5 kg testen (50 kg sitzt sauber 4×12)",
+      saetze:4, repzone:"8–12", aktuell:"4×12 @ 45 kg", zielgewicht:47.5, ziel:"→ jetzt 47,5 kg (1× frisch 4×12 bestätigen)",
       schritte:["Rücken fest ans Polster – nicht abheben","3 Sek runter, explosiv hoch","Ellenbogen nicht ganz durchstrecken","Brust am engsten Punkt 1 Sek zusammendrücken"],
       tipp:"16 Wdh @ 35 kg = Ausdauer. Sofort auf 4×10 @ 40 kg wechseln." },
     { name:"Pectoral Fly", muskel:"Brust (Isolation)", typ:"isolation",
-      saetze:3, repzone:"12–15", aktuell:"3×12–15 @ 55 kg", zielgewicht:57.5, ziel:"→ 57,5 kg testen (Reps fallen anfangs auf 12)",
+      saetze:3, repzone:"12–15", aktuell:"3×13–15 @ 55 kg", zielgewicht:57.5, ziel:"→ jetzt 57,5 kg",
       schritte:["Arme immer leicht gebeugt – Ellenbogenschutz!","Langsam zur Mitte, 1–2 Sek halten","Brust aktiv zusammenquetschen","Kontrolliert öffnen bis zur vollen Dehnung"],
       tipp:"Technik vor Gewicht. Dehnung am weitesten Punkt spüren." },
     { name:"Shoulder Press", muskel:"Schulter vorne/mitte · Trizeps", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 27,5 kg sauber (30 kg war nur 3×8)", zielgewicht:30, ziel:"Zwischenschritt 28,75 kg → dann 30 kg",
+      saetze:3, repzone:"10–12", aktuell:"3×10 @ 27,5 kg (30 kg noch zu früh)", zielgewicht:30, ziel:"3×12 @ 27,5 kg sauber, dann 30 kg",
       schritte:["Core anspannen, kein Hohlkreuz","Griffe auf Ohrhöhe – drücken bis kurz vor Streckung","Langsam runter, Schultern nicht hochziehen"],
-      tipp:"27,5 kg jetzt sauber 3×12 (24.06. sogar 28,1 kg). Nächster Schritt: 28,75 kg als Zwischenstufe – 30 kg direkt war letztes Mal nur 3×8." },
+      tipp:"Zurück auf 27,5 kg. Erst wenn 3×12 sauber klappt auf 30 kg erhöhen." },
     { name:"Triceps Press", muskel:"Trizeps (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 80 kg", zielgewicht:82.5, ziel:"→ jetzt 82,5 kg",
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 75 kg", zielgewicht:77.5, ziel:"→ jetzt 77,5 kg",
       schritte:["Aufrecht sitzen, Rücken fest ans Polster","Griffe auf Schulterhöhe, Ellenbogen nah am Körper","Explosiv drücken bis zur vollen Streckung – Trizeps anspannen","3 Sek zurück – kontrolliert, nicht fallen lassen"],
-      tipp:"Top-Progression: 65→80 kg im Zeitraum. Bei 3×12 @ 80 kg sauber → 82,5 kg." },
+      tipp:"Sehr gute Progression: 65→75 kg in 3 Wochen. Bei 3×12 @ 75 kg → 77,5 kg." },
     { name:"Rear Delt Fly", muskel:"Hintere Schulter · Rhomboiden", typ:"isolation",
-      saetze:3, repzone:"12–15", aktuell:"3×12–13 @ 50 kg", zielgewicht:53, ziel:"→ jetzt 52,5 kg",
+      saetze:3, repzone:"12–15", aktuell:"3×12 @ 50 kg", zielgewicht:53, ziel:"3×12–15 @ 52,5 kg",
       schritte:["Sitz umdrehen oder Reverse-Modus","Arme leicht gebeugt, Schulterblätter zusammenziehen","Langsam und kontrolliert – kein Schwung"],
       tipp:"Wichtig für Schulterbalance und Haltung." },
     { name:"Lateral Raise", muskel:"Mittlere Schulter", typ:"isolation",
-      saetze:3, repzone:"12–15", aktuell:"3×8 @ 7,5–8 kg (links noch schmerzhaft trotz Manschette)", zielgewicht:10, ziel:"Nicht forcieren – erst 3×12 schmerzfrei anpeilen",
+      saetze:3, repzone:"12–15", aktuell:"Optional", zielgewicht:10, ziel:"3×12–15 @ 8–12 kg",
       schritte:["Arme seitlich bis Schulterhöhe heben","Leicht gebeugte Ellenbogen, Daumen leicht nach unten"],
-      tipp:"Links weiterhin gereizt. Manschette hilft, aber kein Zwang – lieber leichter und schmerzfrei bis zur Ortho-Kontrolle 20.07." }
+      tipp:"Mittlerer Deltamuskel = Schulterbreite. Hanteln oder Kabelzug." }
   ],
   Pull: [
     { name:"Latzug", muskel:"Latissimus · Bizeps", typ:"compound",
-      saetze:4, repzone:"8–12", aktuell:"⚠️ Pausiert (De Quervain) → Straight Arm Pulldown ~30 kg · Dual Pulley Roll 30 kg", zielgewicht:65, ziel:"3–4×8–12 @ 65 kg (nach Ortho-Freigabe 20.07.)",
+      saetze:4, repzone:"8–12", aktuell:"⚠️ Pausiert (De Quervain) → Straight Arm Pulldown ~30 kg · Dual Pulley Roll 27,5 kg", zielgewicht:65, ziel:"3–4×8–12 @ 65 kg (nach Orthopädie-Freigabe)",
       schritte:["Griff breiter als Schultern (Obergriff)","Stange zur oberen Brust – Ellenbogen nach unten/hinten","Brust nach vorne öffnen – nicht zurückschaukeln!","Latissimus am Ende 1 Sek zusammenziehen","Kontrolliert hoch – volle Streckung"],
       tipp:"Aktuell ersetzt durch Straight Arm Pulldown (3×12 @ ~30 kg) und Dual Pulley Roll (3×12 @ 27,5 kg) – kein Grip/Handgelenkdruck. Nach Orthopädie-Freigabe wieder aufnehmen." },
     { name:"Ruderzug", muskel:"Mittlerer Rücken · Trapezius · Bizeps", typ:"compound",
@@ -347,41 +370,41 @@ const PLAN = {
       schritte:["Aufrecht sitzen – nicht nach hinten lehnen!","Griff zur Brust-/Bauchmitte – Ellenbogen nah am Körper","Schulterblätter am Ende 1–2 Sek zusammendrücken","Kontrolliert zurück"],
       tipp:"Pausiert bis Handgelenk stabil. Dann wieder aufnehmen und Gewicht auf 10–12 Wdh anpassen." },
     { name:"Straight Arm Pulldown", muskel:"Latissimus (kein Grip)", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ ~30 kg (pendelt 28,75–32,5 – 32,5 war zu viel)", zielgewicht:30, ziel:"→ 30 kg festigen, 3×12 sauber",
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 28,75 kg (32 kg war zu viel)", zielgewicht:30, ziel:"→ 30 kg einpendeln",
       schritte:["Kabelzug, Seil oder gerade Stange auf Augenhöhe","Arme gestreckt – Stange/Seil mit gestreckten Armen nach unten/hinten drücken","Latissimus am Ende zusammenziehen","Keine Ellenbogenbeugung – das ist der Trick"],
       tipp:"De Quervain-Alternative zu Latzug: kein Grip nötig, kein Handgelenkdruck. Open-Hand oder Seil nutzen." },
     { name:"Dual Pulley Roll", muskel:"Latissimus · Rumpfstabilität", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 30 kg", zielgewicht:32.5, ziel:"→ 30 kg festigen, dann 32,5 kg",
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 25 kg", zielgewicht:27.5, ziel:"→ jetzt 27,5 kg",
       schritte:["Zwei Kabelzüge auf Schulterhöhe, je eine Umlenkrolle","Einen nach dem anderen nach unten ziehen – alternierend","Rumpf stabil halten, nicht schaukeln","Kontrollierte Bewegung, Lat aktiviert halten"],
       tipp:"Gute Ergänzung zum Straight Arm Pulldown. Trainiert auch Rumpfstabilität." },
     { name:"Bizepscurl", muskel:"Bizeps (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 19 kg sauber (von 22 kg reduziert – Handgelenk)", zielgewicht:22, ziel:"19 kg halten bis Ortho-Freigabe 20.07., dann aufbauen",
+      saetze:3, repzone:"10–12", aktuell:"3×10–12 @ 22 kg (letzter Satz bricht ein)", zielgewicht:25, ziel:"22 kg halten bis Orthopädie-Freigabe",
       schritte:["Oberarme fixiert – nur Unterarme bewegen","Ganz unten strecken, oben 1 Sek halten","3–4 Sek absenken = mehr Muskelreiz","Kein Rückenschwung!"],
-      tipp:"Bei 22 kg brach der letzte Satz ein. Auf 19 kg reduziert = jetzt saubere 3×12. Bleiben bis Handgelenk stabil, dann schrittweise zurück Richtung 22 kg." },
+      tipp:"Bei 22 kg bleiben bis Handgelenk stabil. Erst bei 3×12 ohne Schmerzen auf 25 kg erhöhen." },
     { name:"Face Pulls", muskel:"Hintere Schulter · Rotatorenmanschette", typ:"isolation",
-      saetze:3, repzone:"15", aktuell:"3×12–15 @ 21,25 kg", zielgewicht:null, ziel:"3×15, Tempo halten",
+      saetze:3, repzone:"15", aktuell:"3×12–15 @ ~21 kg", zielgewicht:null, ziel:"3×15, Tempo halten",
       schritte:["Kabelzug mit Seilaufsatz auf Augenhöhe","Seil zur Stirn – Ellenbogen nach außen/oben"],
       tipp:"Schützt das Schultergelenk langfristig." }
   ],
   Legs: [
     { name:"Rückenstrecker", muskel:"Erector spinae (unterer Rücken)", typ:"isolation",
-      saetze:3, repzone:"12–15", aktuell:"3×15 @ 10–15 kg", zielgewicht:20, ziel:"3×15 @ 15 kg festigen → 20 kg",
+      saetze:3, repzone:"12–15", aktuell:"3×15 @ 15 kg", zielgewicht:20, ziel:"3×12–15 @ 20 kg",
       schritte:["Aufrecht in die Maschine, Rücken flach anlegen","Langsam nach vorne beugen – volle Dehnung spüren","Kontrolliert zurückstrecken bis zur aufrechten Position","Keine Überstreckung am Ende – Spannung halten"],
       tipp:"Wichtig für Verletzungsschutz bei allen Beinübungen. Am Anfang der Einheit als Warm-up für die Wirbelsäule." },
     { name:"Beinpresse", muskel:"Quadrizeps · Gesäß · Hamstrings", typ:"compound",
-      saetze:4, repzone:"8–12", aktuell:"4×12 @ 120 kg", zielgewicht:125, ziel:"→ jetzt 125 kg (120 kg sitzt solide 4×12)",
+      saetze:4, repzone:"8–12", aktuell:"4×12 @ 120 kg", zielgewicht:125, ziel:"→ jetzt 125 kg",
       schritte:["Füße schulterbreit, Zehen leicht nach außen (15–30°)","Knie immer in Richtung Zehen – nie einknicken!","Bis ca. 90° Kniewinkel – Rücken bleibt am Sitz","Explosiv drücken, kurz vor voller Streckung stoppen"],
       tipp:"Knie links: Füße etwas höher auf die Platte stellen." },
     { name:"Hip Thrust", muskel:"Gluteus maximus (großer Gesäßmuskel)", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 75 kg", zielgewicht:80, ziel:"→ jetzt 80 kg",
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 70 kg", zielgewicht:75, ziel:"→ jetzt 75 kg",
       schritte:["Rücken gegen Polsterung, Füße schulterbreit auf dem Boden","Hüfte nach oben drücken bis Körper eine Linie bildet","Oben 1–2 Sek halten – Gesäß maximal anspannen","Kontrolliert runter – Gesäß berührt nicht den Boden"],
       tipp:"Falls kein Hip Thrust Gerät: Beinpresse mit Füßen sehr hoch und weit außen auf der Platte als Alternative – deutlich mehr Gluteus maximus Aktivierung." },
     { name:"Beinstrecker", muskel:"Quadrizeps (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 60 kg", zielgewicht:62.5, ziel:"→ jetzt 62,5 kg",
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 55 kg", zielgewicht:57.5, ziel:"→ jetzt 57,5 kg",
       schritte:["Langsam strecken, oben 1–2 Sek halten und Quad anspannen","3–4 Sek zurück – nie fallen lassen"],
       tipp:"Max 113 kg = viel Potenzial. Bei Kniebeschwerden → Beinpresse statt." },
     { name:"Beinbeuger", muskel:"Hamstrings (Isolation)", typ:"isolation",
-      saetze:3, repzone:"12", aktuell:"3×12 @ 50 kg sauber", zielgewicht:52.5, ziel:"→ jetzt 52,5 kg (50 kg konsolidiert)",
+      saetze:3, repzone:"12", aktuell:"3×10–12 @ 50 kg", zielgewicht:50, ziel:"3×12 @ 50 kg – konsolidieren",
       schritte:["Oberschenkel fest auf Polsterung – nicht abheben!","Ferse zur Gesäßfalte, oben 1–2 Sek halten","3–4 Sek langsam strecken – Absenkphase ist entscheidend"],
       tipp:"Langsame Absenkphase bringt mehr Reiz als die Aufwärtsbewegung." },
     { name:"Hip Abduction", muskel:"Gluteus medius/minimus (seitliches Gesäß)", typ:"isolation",
@@ -389,25 +412,25 @@ const PLAN = {
       schritte:["Aufrecht sitzen, Core angespannt","Beine langsam nach außen – Endpunkt 1–2 Sek halten","Kontrolliert zurück – nicht einfedern"],
       tipp:"Trainiert die seitliche Gesäßpartie – wichtig für Hüftstabilität." },
     { name:"Hip Adduktion", muskel:"Adduktoren (Innenseite Oberschenkel)", typ:"isolation",
-      saetze:3, repzone:"15–20", aktuell:"3×20 @ 80 kg", zielgewicht:85, ziel:"→ jetzt 85 kg (80 kg bis 3×20)",
+      saetze:3, repzone:"15–20", aktuell:"3×20 @ 80 kg", zielgewicht:85, ziel:"→ jetzt 85 kg",
       schritte:["Aufrecht sitzen, Beine außen in die Polster","Beine kontrolliert nach innen zusammenführen","Am engsten Punkt 1–2 Sek halten","Langsam öffnen – nicht einfedern lassen"],
       tipp:"Direkt nach Hip Abduction – Agonist und Antagonist im Block. Wichtig für Kniestabilität." },
     { name:"Wadenheben", muskel:"Gastrocnemius · Soleus", typ:"isolation",
-      saetze:3, repzone:"15–20", aktuell:"3×20 @ 125 kg", zielgewicht:130, ziel:"→ jetzt 130 kg",
+      saetze:3, repzone:"15–20", aktuell:"3×17–20 @ 120 kg", zielgewicht:125, ziel:"→ jetzt 125 kg",
       schritte:["Nur Vorderfuß auf der Platte – Ferse hängt frei","Volle Streckung auf Zehenspitzen – 1–2 Sek halten","Ferse tief runter – volle Dehnung, langsam"],
       tipp:"Waden reagieren gut auf hohes Gewicht und langsames Tempo." },
     { name:"Bauch gerade", muskel:"Rectus abdominis", typ:"core",
-      saetze:3, repzone:"15–20", aktuell:"3×13–20 @ 53 kg (Reps schwanken)", zielgewicht:55, ziel:"3×15–20 @ 53 kg festigen → dann 55 kg",
+      saetze:3, repzone:"15–20", aktuell:"3×15–20 @ 53 kg", zielgewicht:55, ziel:"3×15–20 @ 55 kg",
       schritte:["Bauchmuskeln aktiv zusammenziehen – nicht mit dem Rücken drücken","Langsam, kontrolliert, oben 1 Sek halten"],
       tipp:"Auf 50 kg erhöhen, Max ist 70 kg – noch Luft nach oben." },
     { name:"Reverse Crunches", muskel:"Untere Bauchmuskeln", typ:"core",
-      saetze:3, repzone:"15–20", aktuell:"3×20 @ Bodyweight (Captain's Chair) – gefestigt", zielgewicht:null, ziel:"Progression über Tempo oder leichte Zusatzlast",
+      saetze:3, repzone:"15–20", aktuell:"3×20 @ Bodyweight (Captain's Chair)", zielgewicht:null, ziel:"3×20 gefestigt – ggf. leichte Zusatzlast",
       schritte:["Captain's Chair: Unterarme auf die Polster, Rücken an die Rücklehne","Beine hängen lassen – Knie leicht gebeugt","Knie kontrolliert zur Brust ziehen – Hüfte rollt leicht nach oben","Langsam absenken – volle Streckung, Spannung halten"],
       tipp:"Trainiert die unteren Bauchmuskeln, die die Crunch-Maschine kaum erreicht. Kein Schwung – Bewegung kommt aus dem Bauch." },
     { name:"Bauch seitlich", muskel:"Obliques", typ:"core",
       saetze:3, repzone:"20–24", aktuell:"3×24 @ Stufe 12 (Maximum)", zielgewicht:null, ziel:"3×20–24, Tempo 4 Sek/Seite",
       schritte:["Abwechselnd links/rechts – 4 Sek pro Seite","Bewegung aus dem Rumpf, nicht aus den Schultern"],
-      tipp:"Am Maschinenmaximum (Stufe 12): Tempo als Progression, 4 Sek pro Seite. Umstieg auf Hammer Strength Oblique-Maschine erst nach Ortho-Freigabe 20.07. (Firm-Grip)." }
+      tipp:"Am Maschinenmaximum: Tempo als Progression. 4 Sek pro Seite." }
   ]
 };
 
@@ -490,9 +513,13 @@ function showLastEntry(uebung) {
   el.classList.add("show");
   const sets = [last.s1, last.s2, last.s3, last.s4].filter(Boolean).join(" / ");
   document.getElementById("last-date").textContent = fmtDate(last.date);
-  document.getElementById("last-data").textContent =
+  const dataEl = document.getElementById("last-data");
+  dataEl.textContent =
     (last.gewicht ? last.gewicht + " kg" : "") +
     (sets ? "  ·  " + sets + " Wdh" : "");
+  if (last.erhoehen) {
+    dataEl.innerHTML += ' <span class="last-up">↑ erhöhen!</span>';
+  }
 }
 
 function setTimerDefaults(typ) {
@@ -602,24 +629,37 @@ function fmtTime(s) {
 
 // ─── LOG ─────────────────────────────────────────────
 function setFilter(f) {
-  curFilter = f;
+  curFilter = (f === "Erhöhen" && curFilter === "Erhöhen") ? "Alle" : f;
   document.querySelectorAll(".fbtn").forEach(b =>
-    b.classList.toggle("active", b.textContent === f));
+    b.classList.toggle("active", b.textContent === curFilter));
+  document.getElementById("card-up").classList.toggle("active", curFilter === "Erhöhen");
   renderLog();
 }
 
+function erhoehenList() {
+  // Pro Übung den letzten Eintrag – nur wenn dieser als "erhöhen" markiert ist
+  const latest = {};
+  loadEntries().forEach(e => latest[e.uebung] = e);
+  return Object.values(latest).filter(e => e.erhoehen);
+}
+
 function renderLog() {
-  const all      = loadEntries();
-  const filtered = curFilter === "Alle" ? all : all.filter(e => e.einheit === curFilter);
+  const all = loadEntries();
+  let filtered;
+  if (curFilter === "Erhöhen")   filtered = erhoehenList();
+  else if (curFilter === "Alle") filtered = all;
+  else                           filtered = all.filter(e => e.einheit === curFilter);
   const reversed = [...filtered].reverse();
 
   document.getElementById("s-tot").textContent  = all.length;
-  document.getElementById("s-up").textContent   = all.filter(e => e.erhoehen).length;
+  document.getElementById("s-up").textContent   = erhoehenList().length;
   document.getElementById("s-days").textContent = new Set(all.map(e => e.date + e.einheit)).size;
 
   const cont = document.getElementById("entries");
   if (!reversed.length) {
-    cont.innerHTML = `<div class="empty"><div class="ei2">📋</div><div>Noch keine Einträge</div></div>`;
+    cont.innerHTML = curFilter === "Erhöhen"
+      ? `<div class="empty"><div class="ei2">💪</div><div>Keine offenen Erhöhungen –<br>alles auf aktuellem Stand!</div></div>`
+      : `<div class="empty"><div class="ei2">📋</div><div>Noch keine Einträge</div></div>`;
     return;
   }
 
@@ -699,6 +739,103 @@ function buildPlan() {
 
 function togCard(id) { document.getElementById(id).classList.toggle("open"); }
 
+// ─── STATS ───────────────────────────────────────────
+function parseKg(g) {
+  const n = parseFloat(String(g || "").replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+
+function sparkline(vals, cssColor) {
+  const w = 260, h = 44, pad = 4;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const rng = (max - min) || 1;
+  const step = (w - 2 * pad) / Math.max(vals.length - 1, 1);
+  const pts = vals.map((v, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((v - min) / rng) * (h - 2 * pad);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  });
+  const lastPt = pts[pts.length - 1].split(",");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${cssColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3.5" fill="${cssColor}"/>
+  </svg>`;
+}
+
+function fmtKg(n) {
+  return (Number.isInteger(n) ? n : n.toFixed(1).replace(".", ",")) + " kg";
+}
+
+function buildStats() {
+  const all  = loadEntries();
+  const cont = document.getElementById("stats-cont");
+
+  if (!all.length) {
+    cont.innerHTML = `<div class="empty"><div class="ei2">📊</div><div>Noch keine Daten –<br>erst trainieren, dann Statistik!</div></div>`;
+    return;
+  }
+
+  // ── Zusammenfassung ──
+  const sessions   = new Set(all.map(e => e.date + e.einheit)).size;
+  const now        = Date.now();
+  const days30     = new Set(all.filter(e => now - new Date(e.date).getTime() < 30 * 864e5).map(e => e.date + e.einheit)).size;
+  const firstDate  = all.reduce((m, e) => e.date < m ? e.date : m, all[0].date);
+  const weeks      = Math.max((now - new Date(firstDate).getTime()) / (7 * 864e5), 1);
+  const perWeek    = (sessions / weeks).toFixed(1).replace(".", ",");
+
+  let html = `<div class="sbar" style="padding-top:24px">
+    <div class="sc2"><div class="snum">${sessions}</div><div class="slbl">Einheiten</div></div>
+    <div class="sc2"><div class="snum">${days30}</div><div class="slbl">Letzte 30 Tage</div></div>
+    <div class="sc2"><div class="snum">${perWeek}</div><div class="slbl">Ø / Woche</div></div>
+  </div>`;
+
+  // ── Fortschritt pro Übung, gruppiert nach Einheit ──
+  const colors = { Push: "var(--push)", Pull: "var(--pull)", Legs: "var(--legs)" };
+
+  ["Push", "Pull", "Legs"].forEach(ein => {
+    // Übungen in Plan-Reihenfolge, plus geloggte Übungen die nicht (mehr) im Plan sind
+    const planNames   = PLAN[ein].map(x => x.name);
+    const loggedNames = [...new Set(all.filter(e => e.einheit === ein).map(e => e.uebung))];
+    const names       = [...planNames.filter(n => loggedNames.includes(n)),
+                         ...loggedNames.filter(n => !planNames.includes(n))];
+    if (!names.length) return;
+
+    let cards = "";
+    names.forEach(name => {
+      const es = all.filter(e => e.uebung === name && parseKg(e.gewicht) !== null);
+      if (!es.length) return;
+      const vals  = es.map(e => parseKg(e.gewicht));
+      const first = vals[0], last = vals[vals.length - 1], best = Math.max(...vals);
+      const delta = last - first;
+      const deltaStr = delta === 0 ? "±0" : (delta > 0 ? "+" : "−") + fmtKg(Math.abs(delta));
+      const deltaCls = delta > 0 ? "up" : (delta < 0 ? "down" : "flat");
+      const chart = vals.length >= 2
+        ? sparkline(vals, colors[ein])
+        : `<div class="spark-none">Erst 1 Datenpunkt – dranbleiben!</div>`;
+      cards += `<div class="stcard">
+        <div class="stc-top">
+          <div class="stc-name">${name}</div>
+          <span class="stc-delta ${deltaCls}">${deltaStr}</span>
+        </div>
+        ${chart}
+        <div class="stc-meta">
+          <span>Start ${fmtKg(first)}</span>
+          <span>Aktuell <strong>${fmtKg(last)}</strong></span>
+          <span>Best ${fmtKg(best)}</span>
+          <span>${es.length}× geloggt</span>
+        </div>
+      </div>`;
+    });
+
+    if (cards) html += `<div class="peinheit">
+      <div class="peh"><div class="pel ${ein}">${ein.toUpperCase()}</div><div class="pline"></div></div>
+      ${cards}
+    </div>`;
+  });
+
+  cont.innerHTML = html;
+}
+
 // ─── EXPORT ──────────────────────────────────────────
 function exportCSV() {
   const rows = [
@@ -717,11 +854,12 @@ function exportCSV() {
 
 // ─── VIEWS ───────────────────────────────────────────
 function showView(v) {
-  ["add", "log", "plan"].forEach(id => {
+  ["add", "log", "stats", "plan"].forEach(id => {
     document.getElementById("view-" + id).classList.toggle("active", id === v);
     document.getElementById("nav-"  + id).classList.toggle("active", id === v);
   });
-  if (v === "log") renderLog();
+  if (v === "log")   renderLog();
+  if (v === "stats") buildStats();
 }
 
 // ─── UTILS ───────────────────────────────────────────
