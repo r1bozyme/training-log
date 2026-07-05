@@ -13,14 +13,17 @@
 <script>
   (function(){
     const c = document.createElement("canvas");
-    c.width = 180; c.height = 180;
+    c.width = 512; c.height = 512;
     const ctx = c.getContext("2d");
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0,0,180,180);
-    ctx.font = "120px serif";
+    // Runder Hintergrund – Ecken bleiben transparent
+    ctx.beginPath();
+    ctx.arc(256, 256, 254, 0, Math.PI * 2);
+    ctx.fillStyle = "#1A1A1A";
+    ctx.fill();
+    ctx.font = "280px serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("💪", 90, 95);
+    ctx.fillText("💪", 256, 278);
     const url = c.toDataURL("image/png");
     document.getElementById("apple-icon").href = url;
     document.getElementById("favicon").href = url;
@@ -333,7 +336,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 // Beim Review: aktuell/ziel/zielgewicht von Claude angepasst
 // ═══════════════════════════════════════════════════
 const PLAN = {
-  version: "Juni 2026 (Rev. 12.06.)",
+  version: "Juli 2026 (Rev. 05.07.)",
   Push: [
     { name:"Chest Press", muskel:"Brust · Schulter · Trizeps", typ:"compound",
       saetze:4, repzone:"8–12", aktuell:"4×12 @ 45 kg", zielgewicht:47.5, ziel:"→ jetzt 47,5 kg (1× frisch 4×12 bestätigen)",
@@ -430,7 +433,11 @@ const PLAN = {
     { name:"Bauch seitlich", muskel:"Obliques", typ:"core",
       saetze:3, repzone:"20–24", aktuell:"3×24 @ Stufe 12 (Maximum)", zielgewicht:null, ziel:"3×20–24, Tempo 4 Sek/Seite",
       schritte:["Abwechselnd links/rechts – 4 Sek pro Seite","Bewegung aus dem Rumpf, nicht aus den Schultern"],
-      tipp:"Am Maschinenmaximum: Tempo als Progression. 4 Sek pro Seite." }
+      tipp:"Am Maschinenmaximum: Tempo als Progression. 4 Sek pro Seite." },
+    { name:"Oblique Crunch (Hammer Strength)", muskel:"Obliques · Rectus abdominis", typ:"core",
+      saetze:3, repzone:"12–15", aktuell:"3×12–15 @ 10 kg (beide Seiten gleich)", zielgewicht:12.5, ziel:"3×15 @ 10 kg sauber, dann 12,5 kg",
+      schritte:["Seitlich einstellen – Schulterpolster fest anlegen","Rumpf diagonal einrollen – Schulter Richtung gegenüberliegender Hüfte","Am tiefsten Punkt 1 Sek halten, Obliques aktiv anspannen","Langsam zurück – Spannung halten, nicht zurückfallen lassen","Seite wechseln – beide Seiten gleiche Wiederholungszahl"],
+      tipp:"Plate-loaded = Progression über Stufe 12 hinaus möglich. Kraft kommt aus dem Rumpf, nicht aus den Armen – Hände nur locker anlegen, Handgelenk neutral halten (De Quervain). Links mit weniger Gewicht starten, falls nötig." }
   ]
 };
 
