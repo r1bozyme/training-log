@@ -107,6 +107,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .last-data { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
 .last-up { background: #E8F4E8; color: var(--go); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
 
+/* EDIT BANNER */
+.edit-banner { display: none; background: #FFF6D6; border: 1px solid #E8C840; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 10px; }
+.edit-banner.show { display: flex; }
+.edit-txt { font-size: 13px; font-weight: 700; color: #8A6D00; }
+.edit-sub { font-size: 12px; color: #A98F2E; margin-top: 2px; }
+.edit-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid #E8C840; background: #FFFFFF; color: #8A6D00; font-family: var(--fb); font-weight: 600; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+
 /* TIMER */
 .timer-wrap { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; transition: border-color .3s; }
 .timer-wrap.running { border-color: var(--neutral); }
@@ -225,6 +232,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
   <!-- EINTRAG -->
   <div id="view-add" class="view active">
     <div class="sec" style="padding-top:24px">
+      <div class="edit-banner" id="edit-banner">
+        <div>
+          <div class="edit-txt">✎ Eintrag bearbeiten</div>
+          <div class="edit-sub" id="edit-sub"></div>
+        </div>
+        <button class="edit-cancel" onclick="cancelEdit()">Abbrechen</button>
+      </div>
+
       <label class="fl">Datum</label>
       <input type="date" id="f-date">
 
@@ -285,7 +300,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
         <div class="tsw"><div class="tkn"></div></div>
       </div>
 
-      <button class="sbtn" onclick="saveEntry()">SPEICHERN</button>
+      <button class="sbtn" id="save-btn" onclick="saveEntry()">SPEICHERN</button>
     </div>
   </div>
 
@@ -453,6 +468,7 @@ let curEinheit = "Push";
 let erhoehen   = false;
 let curFilter  = "Alle";
 let pendingDel = null;
+let editingId  = null;
 let timerIv    = null;
 let timerLeft  = 0;
 let timerTotal = 0;
@@ -545,7 +561,7 @@ function toggleErhoehen() {
 
 function saveEntry() {
   const entry = {
-    id:       Date.now(),
+    id:       editingId || Date.now(),
     date:     document.getElementById("f-date").value,
     einheit:  curEinheit,
     uebung:   document.getElementById("f-uebung").value,
@@ -558,16 +574,74 @@ function saveEntry() {
     erhoehen: erhoehen
   };
   const arr = loadEntries();
-  arr.push(entry);
-  saveEntries(arr);
+  const wasEdit = editingId !== null;
 
-  ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id =>
-    document.getElementById(id).value = "");
-  erhoehen = false;
-  document.getElementById("trow").classList.remove("on");
+  if (wasEdit) {
+    const idx = arr.findIndex(e => e.id === editingId);
+    if (idx >= 0) arr[idx] = entry; else arr.push(entry);
+  } else {
+    arr.push(entry);
+  }
+  saveEntries(arr);
+  resetForm();
 
   showLastEntry(entry.uebung);
-  showFlash("Gespeichert ✓");
+  if (wasEdit) {
+    showFlash("Aktualisiert ✓");
+    showView("log");
+  } else {
+    showFlash("Gespeichert ✓");
+  }
+}
+
+function resetForm() {
+  ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id =>
+    document.getElementById(id).value = "");
+  document.getElementById("f-date").value = todayStr();
+  erhoehen = false;
+  document.getElementById("trow").classList.remove("on");
+  editingId = null;
+  document.getElementById("edit-banner").classList.remove("show");
+  document.getElementById("save-btn").textContent = "SPEICHERN";
+}
+
+function startEdit(id) {
+  const e = loadEntries().find(x => x.id === id);
+  if (!e) return;
+  editingId = id;
+  pendingDel = null;
+
+  selEinheit(e.einheit);
+  const sel = document.getElementById("f-uebung");
+  if (![...sel.options].some(o => o.value === e.uebung)) {
+    const opt = document.createElement("option");
+    opt.value = e.uebung; opt.textContent = e.uebung;
+    sel.appendChild(opt);
+  }
+  sel.value = e.uebung;
+  refreshHint();
+
+  document.getElementById("f-date").value = e.date || todayStr();
+  document.getElementById("f-gew").value  = e.gewicht || "";
+  document.getElementById("f-s1").value   = e.s1 || "";
+  document.getElementById("f-s2").value   = e.s2 || "";
+  document.getElementById("f-s3").value   = e.s3 || "";
+  document.getElementById("f-s4").value   = e.s4 || "";
+  document.getElementById("f-not").value  = e.notiz || "";
+  erhoehen = !!e.erhoehen;
+  document.getElementById("trow").classList.toggle("on", erhoehen);
+
+  document.getElementById("edit-sub").textContent = e.uebung + " · " + fmtDate(e.date);
+  document.getElementById("edit-banner").classList.add("show");
+  document.getElementById("save-btn").textContent = "AKTUALISIEREN";
+
+  showView("add");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelEdit() {
+  resetForm();
+  showView("log");
 }
 
 // ─── TIMER ───────────────────────────────────────────
@@ -692,6 +766,7 @@ function renderLog() {
           ${meta ? `<div class="em">${meta}</div>` : ""}
         </div>
         ${e.erhoehen ? '<span class="ubdg">↑</span>' : ""}
+        <button class="dbtn" onclick="startEdit(${e.id})" style="font-size:15px">✎</button>
         <button class="dbtn ${ip ? "confirm" : ""}" onclick="handleDel(${e.id})">${ip ? "✓" : "×"}</button>
       </div>`;
     }).join("");
