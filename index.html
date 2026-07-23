@@ -129,6 +129,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .tkn { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #FFF; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .trow.on .tkn { left: 23px; }
 
+/* EDIT */
+.edit-banner { display: none; background: #FFF6DC; border: 1px solid #E8C84A; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 10px; }
+.edit-banner.show { display: flex; }
+.edit-txt { font-size: 13px; font-weight: 700; color: #8A6D00; }
+.edit-sub { font-size: 12px; color: #A8892A; margin-top: 2px; }
+.edit-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid #E8C84A; background: transparent; color: #8A6D00; font-family: var(--fb); font-weight: 700; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+
 .sbtn { width: 100%; padding: 18px; background: var(--neutral); border: none; border-radius: 12px; font-family: var(--fd); font-size: 22px; letter-spacing: 3px; color: #FFFFFF; cursor: pointer; transition: opacity .15s, transform .1s; margin-bottom: 8px; }
 .sbtn:active { opacity: 0.85; transform: scale(0.98); }
 
@@ -255,6 +262,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
   <!-- EINTRAG -->
   <div id="view-add" class="view active">
     <div class="sec" style="padding-top:24px">
+      <div class="edit-banner" id="edit-banner">
+        <div>
+          <div class="edit-txt">✎ Eintrag bearbeiten</div>
+          <div class="edit-sub" id="edit-sub"></div>
+        </div>
+        <button class="edit-cancel" onclick="cancelEdit()">Abbrechen</button>
+      </div>
+
       <label class="fl">Datum</label>
       <input type="date" id="f-date">
 
@@ -315,7 +330,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
         <div class="tsw"><div class="tkn"></div></div>
       </div>
 
-      <button class="sbtn" onclick="saveEntry()">SPEICHERN</button>
+      <button class="sbtn" id="save-btn" onclick="saveEntry()">SPEICHERN</button>
     </div>
   </div>
 
@@ -497,6 +512,7 @@ let curEinheit = "Push";
 let erhoehen   = false;
 let curFilter  = "Alle";
 let pendingDel = null;
+let editId     = null;
 let timerIv    = null;
 let timerLeft  = 0;
 let timerTotal = 0;
@@ -588,9 +604,53 @@ function toggleErhoehen() {
   document.getElementById("trow").classList.toggle("on", erhoehen);
 }
 
+function resetForm() {
+  editId = null;
+  ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id =>
+    document.getElementById(id).value = "");
+  erhoehen = false;
+  document.getElementById("trow").classList.remove("on");
+  document.getElementById("edit-banner").classList.remove("show");
+  document.getElementById("save-btn").textContent = "SPEICHERN";
+}
+
+function startEdit(id) {
+  const e = loadEntries().find(x => x.id === id);
+  if (!e) return;
+  editId = id;
+
+  document.getElementById("f-date").value = e.date;
+  selEinheit(e.einheit);
+  document.getElementById("f-uebung").value = e.uebung;
+  refreshHint();
+
+  document.getElementById("f-gew").value = e.gewicht || "";
+  document.getElementById("f-s1").value  = e.s1 || "";
+  document.getElementById("f-s2").value  = e.s2 || "";
+  document.getElementById("f-s3").value  = e.s3 || "";
+  document.getElementById("f-s4").value  = e.s4 || "";
+  document.getElementById("f-not").value = e.notiz || "";
+
+  erhoehen = !!e.erhoehen;
+  document.getElementById("trow").classList.toggle("on", erhoehen);
+
+  document.getElementById("edit-sub").textContent = e.uebung + " · " + fmtDate(e.date);
+  document.getElementById("edit-banner").classList.add("show");
+  document.getElementById("save-btn").textContent = "AKTUALISIEREN";
+
+  showView("add");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelEdit() {
+  resetForm();
+  showView("log");
+}
+
 function saveEntry() {
+  const wasEdit = editId !== null;
   const entry = {
-    id:       Date.now(),
+    id:       wasEdit ? editId : Date.now(),
     date:     document.getElementById("f-date").value,
     einheit:  curEinheit,
     uebung:   document.getElementById("f-uebung").value,
@@ -603,16 +663,24 @@ function saveEntry() {
     erhoehen: erhoehen
   };
   const arr = loadEntries();
-  arr.push(entry);
+  if (wasEdit) {
+    const i = arr.findIndex(x => x.id === editId);
+    if (i >= 0) arr[i] = entry; else arr.push(entry);
+  } else {
+    arr.push(entry);
+  }
   saveEntries(arr);
 
-  ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id =>
-    document.getElementById(id).value = "");
-  erhoehen = false;
-  document.getElementById("trow").classList.remove("on");
+  const uebung = entry.uebung;
+  resetForm();
 
-  showLastEntry(entry.uebung);
-  showFlash("Gespeichert ✓");
+  if (wasEdit) {
+    showFlash("Aktualisiert ✓");
+    showView("log");
+  } else {
+    showLastEntry(uebung);
+    showFlash("Gespeichert ✓");
+  }
 }
 
 // ─── TIMER ───────────────────────────────────────────
@@ -737,6 +805,7 @@ function renderLog() {
           ${meta ? `<div class="em">${meta}</div>` : ""}
         </div>
         ${e.erhoehen ? '<span class="ubdg">↑</span>' : ""}
+        <button class="dbtn" onclick="startEdit(${e.id})" style="font-size:15px">✎</button>
         <button class="dbtn ${ip ? "confirm" : ""}" onclick="handleDel(${e.id})">${ip ? "✓" : "×"}</button>
       </div>`;
     }).join("");
@@ -818,6 +887,31 @@ function fmtKg(n) {
   return (Number.isInteger(n) ? n : n.toFixed(1).replace(".", ",")) + " kg";
 }
 
+function entryTonnage(e) {
+  const kg = parseKg(e.gewicht);
+  if (kg === null) return 0;
+  const reps = [e.s1, e.s2, e.s3, e.s4]
+    .map(x => parseInt(x, 10) || 0)
+    .reduce((a, b) => a + b, 0);
+  return kg * reps;
+}
+
+function mondayOfWeek() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const dow = (d.getDay() + 6) % 7; // Mo=0 … So=6
+  d.setDate(d.getDate() - dow);
+  return d;
+}
+
+function fmtTonnage(kg) {
+  if (kg >= 1000) {
+    const t = kg / 1000;
+    return (t >= 100 ? Math.round(t) : t.toFixed(1).replace(".", ",")) + " t";
+  }
+  return Math.round(kg) + " kg";
+}
+
 function buildStats() {
   const all  = loadEntries();
   const cont = document.getElementById("stats-cont");
@@ -835,10 +929,21 @@ function buildStats() {
   const weeks      = Math.max((now - new Date(firstDate).getTime()) / (7 * 864e5), 1);
   const perWeek    = (sessions / weeks).toFixed(1).replace(".", ",");
 
+  // ── Bewegtes Gewicht (Tonnage) ──
+  const monday     = mondayOfWeek();
+  const totalTon   = all.reduce((s, e) => s + entryTonnage(e), 0);
+  const weekTon    = all
+    .filter(e => e.date && new Date(e.date + "T12:00:00") >= monday)
+    .reduce((s, e) => s + entryTonnage(e), 0);
+
   let html = `<div class="sbar" style="padding-top:24px">
     <div class="sc2"><div class="snum">${sessions}</div><div class="slbl">Einheiten</div></div>
     <div class="sc2"><div class="snum">${days30}</div><div class="slbl">Letzte 30 Tage</div></div>
     <div class="sc2"><div class="snum">${perWeek}</div><div class="slbl">Ø / Woche</div></div>
+  </div>
+  <div class="sbar" style="padding-top:8px">
+    <div class="sc2"><div class="snum">${fmtTonnage(weekTon)}</div><div class="slbl">🏋️ Diese Woche</div></div>
+    <div class="sc2"><div class="snum">${fmtTonnage(totalTon)}</div><div class="slbl">🏋️ Gesamt bewegt</div></div>
   </div>`;
 
   // ── Fortschritt pro Übung, gruppiert nach Einheit ──
