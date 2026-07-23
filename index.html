@@ -246,6 +246,15 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .wrow-kg { font-size: 15px; font-weight: 700; flex: 1; }
 .wrow-tr { font-size: 12px; color: var(--muted); flex-shrink: 0; }
 .wnote { margin: 16px 20px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.wstart { margin: 8px 20px 0; padding: 11px 14px; background: var(--go-bg); border: 1px solid #B8DCB8; border-radius: 10px; display: flex; align-items: center; gap: 12px; }
+.wstart-num { font-family: var(--fd); font-size: 26px; letter-spacing: 1px; color: var(--go); line-height: 1; flex-shrink: 0; }
+.wstart-txt { font-size: 11.5px; color: #2A5A2A; line-height: 1.45; }
+.wstart-txt strong { font-weight: 700; }
+.wset { margin: 16px 20px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.wset-h { font-family: var(--fd); font-size: 14px; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
+.wset-sub { font-size: 11px; color: var(--dim); line-height: 1.45; margin-bottom: 12px; }
+.wset-btn { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; }
+.wset-btn.prim { background: var(--neutral); border-color: var(--neutral); color: #FFFFFF; }
 </style>
 </head>
 <body>
@@ -1033,6 +1042,75 @@ function delWeight(id) {
 
 function setWRange(d) { wRange = d; buildWeight(); }
 
+// ── Startpunkt: einmaliger Referenzwert, NICHT Teil der Messreihe ──
+// Fließt bewusst weder in computeTrend() noch in weeklyRate() ein.
+function loadStart() {
+  try { return JSON.parse(localStorage.getItem("tl-w0") || "null"); } catch { return null; }
+}
+
+function saveStartPoint() {
+  const date = document.getElementById("w0-date").value;
+  const kg   = parseFloat(String(document.getElementById("w0-kg").value).replace(",", "."));
+  if (!date || isNaN(kg)) { showFlash("Datum und Gewicht eintragen"); return; }
+  localStorage.setItem("tl-w0", JSON.stringify({ date: date, kg: kg }));
+  buildWeight();
+  showFlash("Startpunkt gespeichert ✓");
+}
+
+function clearStart() {
+  localStorage.removeItem("tl-w0");
+  buildWeight();
+  showFlash("Startpunkt entfernt");
+}
+
+function monthLabel(d) {
+  return new Date(d + "T12:00:00")
+    .toLocaleDateString("de-DE", { month: "short", year: "numeric" });
+}
+
+// Anzeigeblock: Fortschritt seit Trainingsbeginn
+function startBanner(curTrend) {
+  const s = loadStart();
+  if (!s) return "";
+  if (curTrend === null) {
+    return `<div class="wstart">
+      <div class="wstart-num">${fmtNum(s.kg, 1)}</div>
+      <div class="wstart-txt">Startpunkt <strong>${monthLabel(s.date)}</strong> hinterlegt.
+      Sobald die erste Messung vorliegt, steht hier die Differenz.</div>
+    </div>`;
+  }
+  const diff   = curTrend - s.kg;
+  const months = Math.max((dayNum(todayStr()) - dayNum(s.date)) / 30.44, 0.5);
+  const perM   = diff / months;
+  const sign   = diff >= 0 ? "+" : "−";
+  return `<div class="wstart">
+    <div class="wstart-num">${sign}${fmtNum(Math.abs(diff), 1)}</div>
+    <div class="wstart-txt">Seit Trainingsbeginn <strong>${monthLabel(s.date)}</strong>:
+    ${fmtNum(s.kg, 1)} → ${fmtNum(curTrend, 1)} kg in ${fmtNum(months, 1)} Monaten
+    (ø ${sign}${fmtNum(Math.abs(perM), 2)} kg/Monat)</div>
+  </div>`;
+}
+
+// Editor für den Startpunkt – immer am Ende des Tabs
+function startEditor() {
+  const s = loadStart();
+  return `<div class="wset">
+    <div class="wset-h">STARTPUNKT</div>
+    <div class="wset-sub">Einmaliger Referenzwert zu Trainingsbeginn. Zählt nur für die
+    Fortschrittsanzeige oben – Trendlinie und kg/Woche bleiben davon unberührt.</div>
+    <div class="sr" style="margin-bottom:12px">
+      <div class="sc" style="flex:1.4"><label>Datum</label>
+        <input type="date" id="w0-date" value="${s ? s.date : ""}" style="margin-bottom:0;text-align:center;padding:14px 4px"></div>
+      <div class="sc"><label>kg</label>
+        <input type="number" id="w0-kg" value="${s ? s.kg : ""}" placeholder="65,5" inputmode="decimal" step="0.1" style="margin-bottom:0"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="wset-btn prim" onclick="saveStartPoint()">${s ? "AKTUALISIEREN" : "SPEICHERN"}</button>
+      ${s ? `<button class="wset-btn" onclick="clearStart()">Entfernen</button>` : ""}
+    </div>
+  </div>`;
+}
+
 function dayNum(d) { return Math.round(new Date(d + "T00:00:00").getTime() / 864e5); }
 
 // Zeitgewichteter exponentieller Trend – gleicht ungleiche Wiege-Abstände aus
@@ -1114,7 +1192,8 @@ function buildWeight() {
   const all  = loadWeights().slice().sort((a, b) => a.date < b.date ? -1 : 1);
 
   if (!all.length) {
-    cont.innerHTML = `<div class="empty"><div class="ei2">⚖️</div><div>Noch keine Messungen –<br>zweimal pro Woche nüchtern wiegen.</div></div>`;
+    cont.innerHTML = `<div class="empty" style="padding:40px 20px 20px"><div class="ei2">⚖️</div><div>Noch keine Messungen –<br>zweimal pro Woche nüchtern wiegen.</div></div>`
+      + startBanner(null) + startEditor();
     return;
   }
 
@@ -1155,6 +1234,7 @@ function buildWeight() {
     <div class="wkpi"><div class="wkpi-num ${rateCls}">${rateStr}</div><div class="wkpi-lbl">kg / Woche</div></div>
     <div class="wkpi"><div class="wkpi-num">${d30Str}</div><div class="wkpi-lbl">Δ 30 Tage</div></div>
   </div>
+  ${startBanner(cur.trend)}
   <div class="wverdict ${verdictCls}">${verdict}</div>`;
 
   if (pts.length >= 2) {
@@ -1188,6 +1268,8 @@ function buildWeight() {
 
   html += `<div class="wnote">⚖️ Immer unter gleichen Bedingungen wiegen: morgens, nüchtern, nach dem Toilettengang, vor dem Trinken. Die Trendlinie glättet Tagesschwankungen über eine Zeitkonstante von ${W_TAU} Tagen – nur sie zählt, nicht der Einzelwert.<br><br>Zielkorridor Lean Bulk: <strong>${fmtNum(W_MIN, 2)}–${fmtNum(W_MAX, 2)} kg/Woche</strong>. Gewichtsdaten sind im CSV-Export im Log-Tab enthalten.</div>`;
 
+  html += startEditor();
+
   cont.innerHTML = html;
 }
 
@@ -1204,6 +1286,12 @@ function exportCSV() {
 
   const wArr = loadWeights().slice().sort((a, b) => a.date < b.date ? -1 : 1);
   let out = rows;
+  const st = loadStart();
+  if (st) {
+    out += "\n\n# STARTPUNKT (Referenz, nicht Teil der Messreihe)\n" +
+      ["Datum", "Gewicht (kg)"].join(",") + "\n" +
+      [fmtDate(st.date), fmtNum(st.kg, 1)].join(",");
+  }
   if (wArr.length) {
     const wp = computeTrend(wArr);
     out += "\n\n# GEWICHT\n" + [
