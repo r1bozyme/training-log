@@ -54,9 +54,9 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--fb); 
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px; background: var(--surface);
   border-top: 1px solid var(--border);
-  display: flex; padding: 8px 12px calc(8px + var(--sb)); gap: 6px; z-index: 100;
+  display: flex; padding: 8px 8px calc(8px + var(--sb)); gap: 3px; z-index: 100;
 }
-.nbtn { flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 12px; transition: all .15s; background: transparent; color: var(--muted); }
+.nbtn { flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 11px; letter-spacing: -0.2px; transition: all .15s; background: transparent; color: var(--muted); }
 .nbtn.active { background: var(--neutral); color: #FFFFFF; }
 
 .view { display: none; } .view.active { display: block; }
@@ -106,13 +106,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .last-lbl { font-size: 10px; font-weight: 700; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
 .last-data { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
 .last-up { background: #E8F4E8; color: var(--go); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
-
-/* EDIT BANNER */
-.edit-banner { display: none; background: #FFF6D6; border: 1px solid #E8C840; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 10px; }
-.edit-banner.show { display: flex; }
-.edit-txt { font-size: 13px; font-weight: 700; color: #8A6D00; }
-.edit-sub { font-size: 12px; color: #A98F2E; margin-top: 2px; }
-.edit-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid #E8C840; background: #FFFFFF; color: #8A6D00; font-family: var(--fb); font-weight: 600; font-size: 12px; cursor: pointer; flex-shrink: 0; }
 
 /* TIMER */
 .timer-wrap { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; transition: border-color .3s; }
@@ -216,6 +209,36 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .spark-none { font-size: 12px; color: var(--dim); padding: 12px 0; text-align: center; }
 .stc-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
 .stc-meta strong { color: var(--text); }
+
+/* GEWICHT */
+.wbar { display: flex; gap: 8px; padding: 24px 20px 0; }
+.wkpi { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 10px; text-align: center; }
+.wkpi-num { font-family: var(--fd); font-size: 26px; letter-spacing: 1px; line-height: 1.1; color: var(--neutral); }
+.wkpi-num.up { color: var(--go); }
+.wkpi-num.fast { color: var(--legs); }
+.wkpi-num.slow { color: var(--muted); }
+.wkpi-lbl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 3px; text-transform: uppercase; }
+.wverdict { margin: 8px 20px 0; padding: 10px 14px; border-radius: 10px; font-size: 12px; line-height: 1.45; border: 1px solid; }
+.wverdict.ok   { background: var(--go-bg);  border-color: #B8DCB8; color: #2A5A2A; }
+.wverdict.fast { background: var(--legs-bg); border-color: var(--legs-bd); color: #8A2E10; }
+.wverdict.slow { background: #F0F0F0; border-color: var(--border); color: #666; }
+.wverdict strong { font-weight: 700; }
+.wchart { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 16px 20px 0; padding: 14px 12px 10px; }
+.wchart-hd { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 10px; }
+.wchart-t { font-family: var(--fd); font-size: 15px; letter-spacing: 2px; color: var(--muted); }
+.wlegend { display: flex; gap: 12px; font-size: 10px; color: var(--muted); font-weight: 600; }
+.wlegend span { display: flex; align-items: center; gap: 4px; }
+.wdot { width: 14px; height: 2.5px; border-radius: 2px; display: inline-block; }
+.wsvg { width: 100%; height: auto; display: block; }
+.wrange { display: flex; gap: 6px; padding: 12px 20px 0; }
+.wrbtn { flex: 1; padding: 8px 0; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-family: var(--fb); font-weight: 600; font-size: 12px; cursor: pointer; transition: all .15s; }
+.wrbtn.active { background: var(--neutral); color: #FFFFFF; border-color: var(--neutral); }
+.wlist { padding: 16px 20px 0; }
+.wrow { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; margin-bottom: 6px; }
+.wrow-d { font-size: 13px; color: var(--muted); width: 78px; flex-shrink: 0; font-weight: 600; }
+.wrow-kg { font-size: 15px; font-weight: 700; flex: 1; }
+.wrow-tr { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.wnote { margin: 16px 20px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -232,14 +255,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
   <!-- EINTRAG -->
   <div id="view-add" class="view active">
     <div class="sec" style="padding-top:24px">
-      <div class="edit-banner" id="edit-banner">
-        <div>
-          <div class="edit-txt">✎ Eintrag bearbeiten</div>
-          <div class="edit-sub" id="edit-sub"></div>
-        </div>
-        <button class="edit-cancel" onclick="cancelEdit()">Abbrechen</button>
-      </div>
-
       <label class="fl">Datum</label>
       <input type="date" id="f-date">
 
@@ -300,7 +315,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
         <div class="tsw"><div class="tkn"></div></div>
       </div>
 
-      <button class="sbtn" id="save-btn" onclick="saveEntry()">SPEICHERN</button>
+      <button class="sbtn" onclick="saveEntry()">SPEICHERN</button>
     </div>
   </div>
 
@@ -333,6 +348,19 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
     <div id="stats-cont"></div>
   </div>
 
+  <!-- GEWICHT -->
+  <div id="view-weight" class="view">
+    <div class="sec" style="padding-top:24px">
+      <label class="fl">Wiegen (nüchtern, morgens)</label>
+      <div class="sr" style="margin-bottom:12px">
+        <div class="sc" style="flex:1.4"><label>Datum</label><input type="date" id="w-date" style="margin-bottom:0;text-align:center;padding:14px 4px"></div>
+        <div class="sc"><label>kg</label><input type="number" id="w-kg" placeholder="74,5" inputmode="decimal" step="0.1"></div>
+      </div>
+      <button class="sbtn" onclick="saveWeight()">EINTRAGEN</button>
+    </div>
+    <div id="weight-cont"></div>
+  </div>
+
 </div>
 
 <div class="flash" id="flash"></div>
@@ -341,6 +369,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
   <button class="nbtn active" id="nav-add" onclick="showView('add')">＋ Eintrag</button>
   <button class="nbtn" id="nav-log" onclick="showView('log')">Log</button>
   <button class="nbtn" id="nav-stats" onclick="showView('stats')">Stats</button>
+  <button class="nbtn" id="nav-weight" onclick="showView('weight')">Gewicht</button>
   <button class="nbtn" id="nav-plan" onclick="showView('plan')">Plan</button>
 </div>
 
@@ -468,7 +497,6 @@ let curEinheit = "Push";
 let erhoehen   = false;
 let curFilter  = "Alle";
 let pendingDel = null;
-let editingId  = null;
 let timerIv    = null;
 let timerLeft  = 0;
 let timerTotal = 0;
@@ -477,6 +505,7 @@ let timerState = "idle"; // idle | running | done
 // ─── INIT ────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("f-date").value = todayStr();
+  document.getElementById("w-date").value = todayStr();
   document.getElementById("hdr-date").textContent =
     new Date().toLocaleDateString("de-DE", { weekday:"long", day:"numeric", month:"long" });
   document.getElementById("p-ver").textContent = PLAN.version;
@@ -561,7 +590,7 @@ function toggleErhoehen() {
 
 function saveEntry() {
   const entry = {
-    id:       editingId || Date.now(),
+    id:       Date.now(),
     date:     document.getElementById("f-date").value,
     einheit:  curEinheit,
     uebung:   document.getElementById("f-uebung").value,
@@ -574,74 +603,16 @@ function saveEntry() {
     erhoehen: erhoehen
   };
   const arr = loadEntries();
-  const wasEdit = editingId !== null;
-
-  if (wasEdit) {
-    const idx = arr.findIndex(e => e.id === editingId);
-    if (idx >= 0) arr[idx] = entry; else arr.push(entry);
-  } else {
-    arr.push(entry);
-  }
+  arr.push(entry);
   saveEntries(arr);
-  resetForm();
 
-  showLastEntry(entry.uebung);
-  if (wasEdit) {
-    showFlash("Aktualisiert ✓");
-    showView("log");
-  } else {
-    showFlash("Gespeichert ✓");
-  }
-}
-
-function resetForm() {
   ["f-gew","f-s1","f-s2","f-s3","f-s4","f-not"].forEach(id =>
     document.getElementById(id).value = "");
-  document.getElementById("f-date").value = todayStr();
   erhoehen = false;
   document.getElementById("trow").classList.remove("on");
-  editingId = null;
-  document.getElementById("edit-banner").classList.remove("show");
-  document.getElementById("save-btn").textContent = "SPEICHERN";
-}
 
-function startEdit(id) {
-  const e = loadEntries().find(x => x.id === id);
-  if (!e) return;
-  editingId = id;
-  pendingDel = null;
-
-  selEinheit(e.einheit);
-  const sel = document.getElementById("f-uebung");
-  if (![...sel.options].some(o => o.value === e.uebung)) {
-    const opt = document.createElement("option");
-    opt.value = e.uebung; opt.textContent = e.uebung;
-    sel.appendChild(opt);
-  }
-  sel.value = e.uebung;
-  refreshHint();
-
-  document.getElementById("f-date").value = e.date || todayStr();
-  document.getElementById("f-gew").value  = e.gewicht || "";
-  document.getElementById("f-s1").value   = e.s1 || "";
-  document.getElementById("f-s2").value   = e.s2 || "";
-  document.getElementById("f-s3").value   = e.s3 || "";
-  document.getElementById("f-s4").value   = e.s4 || "";
-  document.getElementById("f-not").value  = e.notiz || "";
-  erhoehen = !!e.erhoehen;
-  document.getElementById("trow").classList.toggle("on", erhoehen);
-
-  document.getElementById("edit-sub").textContent = e.uebung + " · " + fmtDate(e.date);
-  document.getElementById("edit-banner").classList.add("show");
-  document.getElementById("save-btn").textContent = "AKTUALISIEREN";
-
-  showView("add");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function cancelEdit() {
-  resetForm();
-  showView("log");
+  showLastEntry(entry.uebung);
+  showFlash("Gespeichert ✓");
 }
 
 // ─── TIMER ───────────────────────────────────────────
@@ -766,7 +737,6 @@ function renderLog() {
           ${meta ? `<div class="em">${meta}</div>` : ""}
         </div>
         ${e.erhoehen ? '<span class="ubdg">↑</span>' : ""}
-        <button class="dbtn" onclick="startEdit(${e.id})" style="font-size:15px">✎</button>
         <button class="dbtn ${ip ? "confirm" : ""}" onclick="handleDel(${e.id})">${ip ? "✓" : "×"}</button>
       </div>`;
     }).join("");
@@ -848,31 +818,6 @@ function fmtKg(n) {
   return (Number.isInteger(n) ? n : n.toFixed(1).replace(".", ",")) + " kg";
 }
 
-function entryTonnage(e) {
-  const kg = parseKg(e.gewicht);
-  if (kg === null) return 0;
-  const reps = [e.s1, e.s2, e.s3, e.s4]
-    .map(x => parseInt(x, 10) || 0)
-    .reduce((a, b) => a + b, 0);
-  return kg * reps;
-}
-
-function mondayOfWeek() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  const dow = (d.getDay() + 6) % 7; // Mo=0 … So=6
-  d.setDate(d.getDate() - dow);
-  return d;
-}
-
-function fmtTonnage(kg) {
-  if (kg >= 1000) {
-    const t = kg / 1000;
-    return (t >= 100 ? Math.round(t) : t.toFixed(1).replace(".", ",")) + " t";
-  }
-  return Math.round(kg) + " kg";
-}
-
 function buildStats() {
   const all  = loadEntries();
   const cont = document.getElementById("stats-cont");
@@ -890,21 +835,10 @@ function buildStats() {
   const weeks      = Math.max((now - new Date(firstDate).getTime()) / (7 * 864e5), 1);
   const perWeek    = (sessions / weeks).toFixed(1).replace(".", ",");
 
-  // ── Bewegtes Gewicht (Tonnage) ──
-  const monday     = mondayOfWeek();
-  const totalTon   = all.reduce((s, e) => s + entryTonnage(e), 0);
-  const weekTon    = all
-    .filter(e => e.date && new Date(e.date + "T12:00:00") >= monday)
-    .reduce((s, e) => s + entryTonnage(e), 0);
-
   let html = `<div class="sbar" style="padding-top:24px">
     <div class="sc2"><div class="snum">${sessions}</div><div class="slbl">Einheiten</div></div>
     <div class="sc2"><div class="snum">${days30}</div><div class="slbl">Letzte 30 Tage</div></div>
     <div class="sc2"><div class="snum">${perWeek}</div><div class="slbl">Ø / Woche</div></div>
-  </div>
-  <div class="sbar" style="padding-top:8px">
-    <div class="sc2"><div class="snum">${fmtTonnage(weekTon)}</div><div class="slbl">🏋️ Diese Woche</div></div>
-    <div class="sc2"><div class="snum">${fmtTonnage(totalTon)}</div><div class="slbl">🏋️ Gesamt bewegt</div></div>
   </div>`;
 
   // ── Fortschritt pro Übung, gruppiert nach Einheit ──
@@ -954,6 +888,204 @@ function buildStats() {
   cont.innerHTML = html;
 }
 
+// ─── GEWICHT ─────────────────────────────────────────
+// Zielkorridor Lean Bulk: 0,05–0,15 kg/Woche (~0,2–0,6 kg/Monat)
+const W_MIN = 0.05, W_MAX = 0.15;
+const W_TAU = 10;   // Glättungskonstante in Tagen
+const W_WIN = 28;   // Regressionsfenster in Tagen
+let wRange = 90;    // sichtbarer Zeitraum in Tagen (0 = alles)
+let wPendingDel = null;
+
+function loadWeights() {
+  try { return JSON.parse(localStorage.getItem("tl-w") || "[]"); } catch { return []; }
+}
+function saveWeights(arr) { localStorage.setItem("tl-w", JSON.stringify(arr)); }
+
+function saveWeight() {
+  const date = document.getElementById("w-date").value;
+  const kg   = parseFloat(String(document.getElementById("w-kg").value).replace(",", "."));
+  if (!date || isNaN(kg)) { showFlash("Datum und Gewicht eintragen"); return; }
+  const arr = loadWeights().filter(w => w.date !== date);
+  arr.push({ id: Date.now(), date: date, kg: kg });
+  arr.sort((a, b) => a.date < b.date ? -1 : 1);
+  saveWeights(arr);
+  document.getElementById("w-kg").value = "";
+  buildWeight();
+  showFlash("Gewicht gespeichert ✓");
+}
+
+function delWeight(id) {
+  if (wPendingDel === id) {
+    saveWeights(loadWeights().filter(w => w.id !== id));
+    wPendingDel = null;
+    buildWeight();
+  } else {
+    wPendingDel = id;
+    buildWeight();
+    setTimeout(() => { if (wPendingDel === id) { wPendingDel = null; buildWeight(); } }, 3000);
+  }
+}
+
+function setWRange(d) { wRange = d; buildWeight(); }
+
+function dayNum(d) { return Math.round(new Date(d + "T00:00:00").getTime() / 864e5); }
+
+// Zeitgewichteter exponentieller Trend – gleicht ungleiche Wiege-Abstände aus
+function computeTrend(arr) {
+  const out = [];
+  let t = null, prevDay = null;
+  arr.forEach(w => {
+    const d = dayNum(w.date);
+    if (t === null) { t = w.kg; }
+    else {
+      const gap = Math.max(d - prevDay, 1);
+      const alpha = 1 - Math.exp(-gap / W_TAU);
+      t = t + alpha * (w.kg - t);
+    }
+    prevDay = d;
+    out.push({ date: w.date, day: d, kg: w.kg, trend: t, id: w.id });
+  });
+  return out;
+}
+
+// Steigung der Trendlinie über die letzten W_WIN Tage (kg/Woche)
+function weeklyRate(pts) {
+  if (pts.length < 2) return null;
+  const last = pts[pts.length - 1].day;
+  const win  = pts.filter(p => last - p.day <= W_WIN);
+  if (win.length < 3 || (win[win.length - 1].day - win[0].day) < 10) return null;
+  const n = win.length;
+  const mx = win.reduce((s, p) => s + p.day, 0) / n;
+  const my = win.reduce((s, p) => s + p.trend, 0) / n;
+  let num = 0, den = 0;
+  win.forEach(p => { num += (p.day - mx) * (p.trend - my); den += (p.day - mx) ** 2; });
+  if (den === 0) return null;
+  return (num / den) * 7;
+}
+
+function fmtNum(n, dec) {
+  return n.toFixed(dec).replace(".", ",");
+}
+
+function weightChart(pts) {
+  const W = 320, H = 180, padL = 34, padR = 8, padT = 10, padB = 20;
+  const days = pts.map(p => p.day);
+  const vals = pts.flatMap(p => [p.kg, p.trend]);
+  const dMin = Math.min(...days), dMax = Math.max(...days);
+  const vMin = Math.min(...vals),  vMax = Math.max(...vals);
+  const span = Math.max(vMax - vMin, 1.2);
+  const lo = vMin - span * 0.15, hi = vMax + span * 0.15;
+  const dRng = Math.max(dMax - dMin, 1);
+  const X = d => padL + ((d - dMin) / dRng) * (W - padL - padR);
+  const Y = v => padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
+
+  // Gridlines auf halbe Kilo gerundet
+  const stepKg = (hi - lo) > 6 ? 2 : ((hi - lo) > 3 ? 1 : 0.5);
+  let grid = "";
+  for (let g = Math.ceil(lo / stepKg) * stepKg; g <= hi; g += stepKg) {
+    grid += `<line x1="${padL}" y1="${Y(g).toFixed(1)}" x2="${W - padR}" y2="${Y(g).toFixed(1)}" stroke="#EEEEEE" stroke-width="1"/>
+      <text x="${padL - 5}" y="${(Y(g) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#BBBBBB" font-family="Figtree,sans-serif">${fmtNum(g, stepKg < 1 ? 1 : 0)}</text>`;
+  }
+
+  const raw   = pts.map(p => X(p.day).toFixed(1) + "," + Y(p.kg).toFixed(1)).join(" ");
+  const trend = pts.map(p => X(p.day).toFixed(1) + "," + Y(p.trend).toFixed(1)).join(" ");
+  const lastP = pts[pts.length - 1];
+
+  const lblFirst = fmtDate(pts[0].date).slice(0, 6);
+  const lblLast  = fmtDate(lastP.date).slice(0, 6);
+
+  return `<svg class="wsvg" viewBox="0 0 ${W} ${H}">
+    ${grid}
+    <polyline points="${raw}" fill="none" stroke="#D8D8D8" stroke-width="1.5" stroke-linejoin="round"/>
+    <polyline points="${trend}" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${X(lastP.day).toFixed(1)}" cy="${Y(lastP.trend).toFixed(1)}" r="3.5" fill="#1A1A1A"/>
+    <text x="${padL}" y="${H - 5}" font-size="9" fill="#BBBBBB" font-family="Figtree,sans-serif">${lblFirst}</text>
+    <text x="${W - padR}" y="${H - 5}" text-anchor="end" font-size="9" fill="#BBBBBB" font-family="Figtree,sans-serif">${lblLast}</text>
+  </svg>`;
+}
+
+function buildWeight() {
+  const cont = document.getElementById("weight-cont");
+  const all  = loadWeights().slice().sort((a, b) => a.date < b.date ? -1 : 1);
+
+  if (!all.length) {
+    cont.innerHTML = `<div class="empty"><div class="ei2">⚖️</div><div>Noch keine Messungen –<br>zweimal pro Woche nüchtern wiegen.</div></div>`;
+    return;
+  }
+
+  const allPts = computeTrend(all);
+  const lastDay = allPts[allPts.length - 1].day;
+  const pts = wRange ? allPts.filter(p => lastDay - p.day <= wRange) : allPts;
+
+  const cur  = allPts[allPts.length - 1];
+  const rate = weeklyRate(allPts);
+
+  // Δ 30 Tage auf Trendbasis
+  const ref30 = allPts.filter(p => lastDay - p.day >= 28);
+  const d30   = ref30.length ? cur.trend - ref30[ref30.length - 1].trend : null;
+
+  let rateCls = "", verdictCls = "", verdict = "";
+  if (rate === null) {
+    verdictCls = "slow";
+    verdict = `Noch zu wenig Daten für eine belastbare Rate. Ab etwa 3 Wochen bzw. 6 Messungen wird die Trendlinie tragfähig – bis dahin sagen einzelne Werte mehr über Wasserhaushalt und Darminhalt als über Muskelaufbau.`;
+  } else if (rate < 0) {
+    rateCls = "fast"; verdictCls = "fast";
+    verdict = `<strong>Trend fällt.</strong> Bei laufendem Aufbau spricht das für ein Kaloriendefizit – Zufuhr über eine Woche gegenprüfen, bevor du nachjustierst.`;
+  } else if (rate < W_MIN) {
+    rateCls = "slow"; verdictCls = "slow";
+    verdict = `<strong>Unter dem Korridor.</strong> Hält das über 2–3 Wochen an, Zufuhr um 100–150 kcal anheben – der Überschuss ist rechnerisch zu knapp für spürbaren Aufbau.`;
+  } else if (rate <= W_MAX) {
+    rateCls = "up"; verdictCls = "ok";
+    verdict = `<strong>Im Zielkorridor.</strong> Rund ${fmtNum(rate * 4.35, 2)} kg/Monat – in dieser Größenordnung bleibt der Fettanteil am Zuwachs klein. Kurs halten.`;
+  } else {
+    rateCls = "fast"; verdictCls = "fast";
+    verdict = `<strong>Über dem Korridor.</strong> Oberhalb von ${fmtNum(W_MAX, 2)} kg/Woche wandert ein wachsender Anteil in Fettmasse, weil die Muskelproteinsynthese die Obergrenze bildet – nicht die Kalorienzufuhr. Überschuss um 100–150 kcal senken.`;
+  }
+
+  const rateStr = rate === null ? "–" : (rate > 0 ? "+" : "−") + fmtNum(Math.abs(rate), 2);
+  const d30Str  = d30 === null ? "–" : (d30 >= 0 ? "+" : "−") + fmtNum(Math.abs(d30), 1);
+
+  let html = `<div class="wbar">
+    <div class="wkpi"><div class="wkpi-num">${fmtNum(cur.trend, 1)}</div><div class="wkpi-lbl">Trend kg</div></div>
+    <div class="wkpi"><div class="wkpi-num ${rateCls}">${rateStr}</div><div class="wkpi-lbl">kg / Woche</div></div>
+    <div class="wkpi"><div class="wkpi-num">${d30Str}</div><div class="wkpi-lbl">Δ 30 Tage</div></div>
+  </div>
+  <div class="wverdict ${verdictCls}">${verdict}</div>`;
+
+  if (pts.length >= 2) {
+    html += `<div class="wchart">
+      <div class="wchart-hd">
+        <div class="wchart-t">VERLAUF</div>
+        <div class="wlegend">
+          <span><i class="wdot" style="background:#D8D8D8"></i>Messung</span>
+          <span><i class="wdot" style="background:#1A1A1A"></i>Trend</span>
+        </div>
+      </div>
+      ${weightChart(pts)}
+    </div>`;
+  }
+
+  html += `<div class="wrange">
+    ${[[30, "1M"], [90, "3M"], [0, "Alles"]].map(([d, l]) =>
+      `<button class="wrbtn ${wRange === d ? "active" : ""}" onclick="setWRange(${d})">${l}</button>`).join("")}
+  </div>`;
+
+  const recent = allPts.slice(-14).reverse();
+  html += `<div class="wlist">
+    <div class="dl2">LETZTE MESSUNGEN</div>
+    ${recent.map(p => `<div class="wrow">
+      <div class="wrow-d">${fmtDate(p.date)}</div>
+      <div class="wrow-kg">${fmtNum(p.kg, 1)} kg</div>
+      <div class="wrow-tr">Trend ${fmtNum(p.trend, 1)}</div>
+      <button class="dbtn ${wPendingDel === p.id ? "confirm" : ""}" onclick="delWeight(${p.id})">${wPendingDel === p.id ? "✓" : "×"}</button>
+    </div>`).join("")}
+  </div>`;
+
+  html += `<div class="wnote">⚖️ Immer unter gleichen Bedingungen wiegen: morgens, nüchtern, nach dem Toilettengang, vor dem Trinken. Die Trendlinie glättet Tagesschwankungen über eine Zeitkonstante von ${W_TAU} Tagen – nur sie zählt, nicht der Einzelwert.<br><br>Zielkorridor Lean Bulk: <strong>${fmtNum(W_MIN, 2)}–${fmtNum(W_MAX, 2)} kg/Woche</strong>. Gewichtsdaten sind im CSV-Export im Log-Tab enthalten.</div>`;
+
+  cont.innerHTML = html;
+}
+
 // ─── EXPORT ──────────────────────────────────────────
 function exportCSV() {
   const rows = [
@@ -964,20 +1096,32 @@ function exportCSV() {
       e.erhoehen ? "Ja" : "Nein"
     ])
   ].map(r => r.join(",")).join("\n");
+
+  const wArr = loadWeights().slice().sort((a, b) => a.date < b.date ? -1 : 1);
+  let out = rows;
+  if (wArr.length) {
+    const wp = computeTrend(wArr);
+    out += "\n\n# GEWICHT\n" + [
+      ["Datum", "Gewicht (kg)", "Trend (kg)"],
+      ...wp.map(p => [fmtDate(p.date), fmtNum(p.kg, 1), fmtNum(p.trend, 2)])
+    ].map(r => r.join(",")).join("\n");
+  }
+  const rowsOut = out;
   const a = document.createElement("a");
-  a.href     = URL.createObjectURL(new Blob(["\uFEFF" + rows], { type: "text/csv;charset=utf-8" }));
+  a.href     = URL.createObjectURL(new Blob(["\uFEFF" + rowsOut], { type: "text/csv;charset=utf-8" }));
   a.download = "training-log-" + todayStr() + ".csv";
   a.click();
 }
 
 // ─── VIEWS ───────────────────────────────────────────
 function showView(v) {
-  ["add", "log", "stats", "plan"].forEach(id => {
+  ["add", "log", "stats", "weight", "plan"].forEach(id => {
     document.getElementById("view-" + id).classList.toggle("active", id === v);
     document.getElementById("nav-"  + id).classList.toggle("active", id === v);
   });
-  if (v === "log")   renderLog();
-  if (v === "stats") buildStats();
+  if (v === "log")    renderLog();
+  if (v === "stats")  buildStats();
+  if (v === "weight") buildWeight();
 }
 
 // ─── UTILS ───────────────────────────────────────────
