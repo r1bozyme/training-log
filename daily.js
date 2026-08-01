@@ -3,7 +3,7 @@
 // Stand: 1. August 2026
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
-// Injiziert CSS + Markup selbst in den Gewicht-Tab und
+// Injiziert CSS + Markup selbst in den Werte-Tab und
 // erweitert showView() sowie exportCSV().
 //
 // Bewusst minimal gehalten: kein Zahlenfeld für Kalorien
@@ -173,7 +173,7 @@ window.buildDaily = function () {
 
 // ─── CSS ───────────────────────────────────────
 const CSS = `
-.dsec { margin: 16px 20px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.dsec { margin: 12px 20px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 .dsub { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
 .dstates { display: flex; gap: 8px; }
 .dsbtn { flex: 1; padding: 12px 0; border-radius: 10px; border: 2px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; }
@@ -206,11 +206,19 @@ const CSS = `
 .drends { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); font-weight: 600; margin-top: 6px; }
 .dmin { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .dminl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.dhead { display: flex; align-items: center; gap: 10px; margin: 30px 20px 12px; }
+.dhead.first { margin-top: 22px; }
+.dhl { font-family: var(--fd); font-size: 21px; letter-spacing: 2px; color: var(--text); }
+.dhline { flex: 1; height: 1px; background: var(--border); }
+.ddate { display: flex; align-items: center; gap: 12px; margin: 0 20px 12px; }
+.ddate label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
+.ddate input { flex: 1; margin-bottom: 0; }
 `;
 
 const MARKUP = `
-<div class="sec" style="padding-top:24px;padding-bottom:0">
-  <label class="fl">Täglich</label>
+<div class="dhead first"><div class="dhl">TÄGLICH</div><div class="dhline"></div></div>
+<div class="ddate">
+  <label for="d-date">Datum</label>
   <input type="date" id="d-date" onchange="buildDaily()">
 </div>
 <div class="dsec">
@@ -237,6 +245,7 @@ const MARKUP = `
     </div>
   </div>
 </div>
+<div class="dhead"><div class="dhl">GEWICHT</div><div class="dhline"></div></div>
 `;
 
 // ─── INIT ──────────────────────────────────────
@@ -253,6 +262,14 @@ function init() {
   view.insertBefore(wrap, view.firstChild);
 
   document.getElementById("d-date").value = todayStr();
+
+  // Tab heißt nicht mehr nur "Gewicht"
+  const nav = document.getElementById("nav-weight");
+  if (nav) nav.textContent = "Werte";
+
+  // Wiegen-Block sitzt jetzt unter dem GEWICHT-Kopf – oberen Abstand rausnehmen
+  const wSec = view.querySelector(".sec");
+  if (wSec) wSec.style.paddingTop = "0";
 
   // showView erweitern
   const origShow = window.showView;
