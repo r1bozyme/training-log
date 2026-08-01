@@ -69,7 +69,7 @@ const PLAN = {
     { name:"Rückenstrecker", muskel:"Erector spinae (unterer Rücken)", typ:"isolation",
       saetze:3, repzone:"12–15", aktuell:"3×15 @ 10–15 kg", zielgewicht:20, ziel:"15 kg festigen → 20 kg",
       schritte:["Aufrecht in die Maschine, Rücken flach anlegen","Langsam nach vorne beugen – volle Dehnung spüren","Kontrolliert zurückstrecken bis zur aufrechten Position","Keine Überstreckung am Ende – Spannung halten"],
-      tipp:"Im Juli nicht geloggt – wieder aufnehmen. Wichtig für Verletzungsschutz bei allen Beinübungen. Am Anfang der Einheit als Warm-up für die Wirbelsäule." },
+      tipp:"Feste erste Position der Einheit – im Juli nicht geloggt. Warm-up für die Wirbelsäule und Verletzungsschutz bei allen Beinübungen." },
     { name:"Beinpresse", muskel:"Quadrizeps · Gesäß · Hamstrings", typ:"compound",
       saetze:4, repzone:"8–12", aktuell:"4×11–12 @ 130 kg", zielgewicht:130, ziel:"130 kg festigen → 4×12",
       schritte:["Füße schulterbreit, Zehen leicht nach außen (15–30°)","Knie immer in Richtung Zehen – nie einknicken!","Bis ca. 90° Kniewinkel – Rücken bleibt am Sitz","Explosiv drücken, kurz vor voller Streckung stoppen"],
@@ -88,16 +88,16 @@ const PLAN = {
       tipp:"50 → 60 kg im Juli, zuletzt 11/10/8. Nicht erhöhen, erst 3×12 @ 60 kg. Langsame Absenkphase bringt mehr Reiz als die Aufwärtsbewegung." },
     { name:"Hip Abduction", muskel:"Gluteus medius/minimus (seitliches Gesäß)", typ:"isolation",
       saetze:3, repzone:"15–20", aktuell:"3×15 @ 80 kg", zielgewicht:82.5, ziel:"→ 82,5 kg",
-      schritte:["Aufrecht sitzen, Core angespannt","Beine langsam nach außen – Endpunkt 1–2 Sek halten","Kontrolliert zurück – nicht einfedern"],
-      tipp:"Im Juli nicht geloggt – wieder aufnehmen. Trainiert die seitliche Gesäßpartie, wichtig für Hüftstabilität." },
+      schritte:["Aufrecht sitzen, Core angespannt","Beine langsam nach außen – Endpunkt 1–2 Sek halten","Kontrolliert zurück – nicht einfedern","Direkt weiter zur Adduktion, ohne Pause"],
+      tipp:"Als Superset mit Hip Adduktion ohne Pause dazwischen – Agonist und Antagonist behindern sich nicht, spart 4–5 Min bei gleichem Reiz. Im Juli aus Zeitgründen ausgefallen." },
     { name:"Hip Adduktion", muskel:"Adduktoren (Innenseite Oberschenkel)", typ:"isolation",
       saetze:3, repzone:"15–20", aktuell:"3×20 @ 80 kg", zielgewicht:85, ziel:"→ 85 kg",
       schritte:["Aufrecht sitzen, Beine außen in die Polster","Beine kontrolliert nach innen zusammenführen","Am engsten Punkt 1–2 Sek halten","Langsam öffnen – nicht einfedern lassen"],
-      tipp:"Im Juli nicht geloggt – wieder aufnehmen. Direkt nach Hip Abduction, Agonist und Antagonist im Block." },
+      tipp:"Zweiter Teil des Supersets mit Hip Abduction. Pause erst nach beiden Übungen. Wichtig für Kniestabilität." },
     { name:"Wadenheben (HSR)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:4, repzone:"6–8", aktuell:"3×8 @ 90 kg (Heavy Slow Resistance)", zielgewicht:90, ziel:"90 kg festigen, 4×8 – Steuerung über Morgensteifigkeit",
       schritte:["Nur Vorderfuß auf der Platte – Ferse hängt frei","3 Sek kontrolliert runter bis zur vollen Dehnung","Am tiefsten Punkt NICHT halten – direkt umkehren, ohne Abfedern","3 Sek hoch bis zur vollen Streckung","Volle ROM (Midportion-Tendinopathie – keine Einschränkung nötig)"],
-      tipp:"Umstellung 01.08. wegen Achillessehnen-Tendinopathie (Midportion). Statt 3×20 @ 130 kg jetzt 3–4×6–8 @ 90 kg mit 3/3-Tempo – Sehnen adaptieren auf Zeit unter Spannung und Last, nicht auf Wiederholungszahl. 3×/Woche: am Legs-Tag plus als kurzer Block am Ende der Push+Pull-Einheiten. Steuerung: Morgensteifigkeit täglich in Minuten notieren. Gleich oder fallend = Last passt. Steigend = letzte Einheit zurücknehmen. Unter 10 Min über mehrere Tage = Last darf hoch. Rückkehr zu höherem Volumen erst nach 4–6 Wochen stabiler Werte – und dann über Last, nicht über Wiederholungen." },
+      tipp:"Umstellung 01.08. wegen Achillessehnen-Tendinopathie (Midportion). Statt 3×20 @ 130 kg jetzt 3–4×6–8 @ 90 kg mit 3/3-Tempo – Sehnen adaptieren auf Zeit unter Spannung und Last, nicht auf Wiederholungszahl. 3×/Woche: am Legs-Tag plus als kurzer Block am Ende der Push+Pull-Einheiten. Steuerung: Morgensteifigkeit täglich in Minuten im Gewicht-Tab eintragen. Gleich oder fallend = Last passt. Steigend = letzte Einheit zurücknehmen. Unter 10 Min über mehrere Tage = Last darf hoch. Rückkehr zu höherem Volumen erst nach 4–6 Wochen stabiler Werte – und dann über Last, nicht über Wiederholungen." },
     { name:"Bauch gerade", muskel:"Rectus abdominis", typ:"core",
       saetze:3, repzone:"15–20", aktuell:"3×13–20 @ 53 kg (Reps schwanken)", zielgewicht:55, ziel:"3×15–20 @ 53 kg festigen → 55 kg",
       schritte:["Bauchmuskeln aktiv zusammenziehen – nicht mit dem Rücken drücken","Langsam, kontrolliert, oben 1 Sek halten"],
@@ -118,3 +118,9 @@ const PLAN = {
 };
 
 // PAUSE bleibt in index.html – hier nur die Plan-Daten.
+
+// Lädt das Daily-Modul nach (Kalorien-Haken + Morgensteifigkeit).
+// Liegt hier, weil GitHub keine Teil-Updates erlaubt und index.html
+// dadurch unangetastet bleibt. Beim nächsten index.html-Commit sauber
+// als eigenes <script>-Tag dorthin ziehen und diese Zeile entfernen.
+document.head.appendChild(Object.assign(document.createElement("script"), { src: "daily.js" }));
