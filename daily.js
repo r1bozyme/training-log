@@ -1,0 +1,260 @@
+// ═══════════════════════════════════════════════════
+// DAILY – Kalorien-Haken + Morgensteifigkeit
+// Stand: 1. August 2026
+//
+// Eigenständiges Modul, wird von plan.js nachgeladen.
+// Injiziert CSS + Markup selbst in den Gewicht-Tab und
+// erweitert showView() sowie exportCSV().
+//
+// Bewusst minimal gehalten: kein Zahlenfeld für Kalorien
+// (das wäre Tracking durch die Hintertür), keine Makros,
+// kein Mahlzeiten-Log. Nur die zwei Größen, die
+// tatsächlich gesteuert werden.
+// ═══════════════════════════════════════════════════
+
+(function () {
+
+// ─── STORAGE ──────────────────────────────────────
+window.loadDaily = function () {
+  try { return JSON.parse(localStorage.getItem("tl-d") || "[]"); } catch { return []; }
+};
+function saveDailyArr(arr) { localStorage.setItem("tl-d", JSON.stringify(arr)); }
+
+function dailyDate() {
+  const el = document.getElementById("d-date");
+  return (el && el.value) || todayStr();
+}
+function getDay(date) { return loadDaily().find(d => d.date === date) || null; }
+
+function putDay(date, patch) {
+  const arr = loadDaily();
+  const i = arr.findIndex(d => d.date === date);
+  if (i >= 0) arr[i] = Object.assign({}, arr[i], patch);
+  else arr.push(Object.assign({ date: date, kcal: null, stiff: null }, patch));
+  arr.sort((a, b) => a.date < b.date ? -1 : 1);
+  saveDailyArr(arr);
+}
+
+// ─── AKTIONEN ───────────────────────────────────
+window.setKcal = function (state) {
+  const date = dailyDate();
+  const cur  = getDay(date);
+  const next = (cur && cur.kcal === state) ? null : state;   // nochmal tippen = zurücksetzen
+  putDay(date, { kcal: next });
+  buildDaily();
+  showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
+};
+
+window.saveStiff = function () {
+  const date = dailyDate();
+  const raw  = document.getElementById("d-stiff").value;
+  if (raw === "") { putDay(date, { stiff: null }); buildDaily(); showFlash("Zurückgesetzt"); return; }
+  const min = parseInt(raw, 10);
+  if (isNaN(min) || min < 0) { showFlash("Minuten eintragen"); return; }
+  putDay(date, { stiff: min });
+  buildDaily();
+  showFlash("Gespeichert ✓");
+};
+
+// ─── HELFER ────────────────────────────────────
+function dayDiff(a, b) {
+  return Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000);
+}
+function lastNDays(n, ref) {
+  const out = [], base = new Date((ref || todayStr()) + "T12:00:00");
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(base); d.setDate(d.getDate() - i);
+    out.push(d.toISOString().split("T")[0]);
+  }
+  return out;
+}
+
+// ─── RENDER ────────────────────────────────────
+window.buildDaily = function () {
+  const date = dailyDate();
+  const day  = getDay(date);
+  const all  = loadDaily();
+
+  // ── Kalorien-Haken ──
+  ["under", "hit", "over"].forEach(st => {
+    const b = document.getElementById("dc-" + st);
+    if (b) b.className = "dsbtn" + (day && day.kcal === st ? " on-" + st : "");
+  });
+
+  const win  = lastNDays(14, date);
+  const dots = win.map(d => {
+    const e = all.find(x => x.date === d);
+    return `<div class="ddot ${e && e.kcal ? e.kcal : ""}"></div>`;
+  }).join("");
+
+  const logged = win.filter(d => { const e = all.find(x => x.date === d); return e && e.kcal; });
+  const nHit   = logged.filter(d => all.find(x => x.date === d).kcal === "hit").length;
+
+  let kHint;
+  if (logged.length < 5) {
+    kHint = `Noch zu wenige Tage erfasst. Die Woche zählt, nicht der Einzeltag – ein Tag unter Ziel ist ohne Bedeutung, wenn die Wochensumme stimmt.`;
+  } else if (nHit / logged.length >= 0.7) {
+    kHint = `<strong>${nHit} von ${logged.length}</strong> erfassten Tagen im Ziel. Das trägt – der Gewichtstrend ist der Gegencheck.`;
+  } else {
+    kHint = `Nur <strong>${nHit} von ${logged.length}</strong> erfassten Tagen im Ziel. Wenn der Gewichtstrend gleichzeitig flach liegt, ist die Zufuhr die Ursache, nicht das Training.`;
+  }
+
+  const dcc = document.getElementById("dc-cont");
+  if (dcc) dcc.innerHTML = `<div class="ddots">${dots}</div><div class="dhint">${kHint}</div>`;
+
+  // ── Morgensteifigkeit ──
+  const sEl = document.getElementById("d-stiff");
+  if (sEl) sEl.value = (day && typeof day.stiff === "number") ? day.stiff : "";
+
+  const stiffAll = all.filter(d => typeof d.stiff === "number").sort((a, b) => a.date < b.date ? -1 : 1);
+  let sHtml;
+
+  if (!stiffAll.length) {
+    sHtml = `<div class="dhint">Täglich direkt beim Aufstehen in Minuten notieren. Das ist die Steuergröße für die Wadenlast – nicht das Gefühl während der Einheit.</div>`;
+  } else {
+    const cur7  = stiffAll.filter(d => dayDiff(d.date, date) >= 0 && dayDiff(d.date, date) < 7);
+    const prev7 = stiffAll.filter(d => dayDiff(d.date, date) >= 7 && dayDiff(d.date, date) < 14);
+    const avg   = a => a.length ? a.reduce((s, d) => s + d.stiff, 0) / a.length : null;
+    const a1 = avg(cur7), a2 = avg(prev7);
+    const delta = (a1 !== null && a2 !== null) ? a1 - a2 : null;
+
+    let dCls = "", dStr = "–", verdict;
+    if (delta === null) {
+      verdict = `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln.`;
+    } else if (delta <= -1) {
+      dCls = "good"; dStr = fmtNum(delta, 1);
+      verdict = `<strong>Fallend.</strong> Die Last passt – 24-Stunden-Regel erfüllt. Bleibt der 7-Tage-Schnitt mehrere Tage unter 10 Minuten, darf das Gewicht hoch.`;
+    } else if (delta >= 1) {
+      dCls = "warn"; dStr = "+" + fmtNum(delta, 1);
+      verdict = `<strong>Steigend.</strong> Die letzte Einheit war zu viel – Gewicht oder Satzzahl beim nächsten Mal zurücknehmen.`;
+    } else {
+      dStr = (delta >= 0 ? "+" : "") + fmtNum(delta, 1);
+      verdict = `<strong>Konstant.</strong> Last ist tragfähig, aber noch keine Verbesserung. Über 6–8 Wochen ohne Rückgang: erneut orthopädisch vorstellen, Frage nach Sonographie.`;
+    }
+
+    const recent = stiffAll.slice(-7).reverse();
+    sHtml = `<div class="dkpi">
+      <div class="dkc"><div class="dkn ${a1 !== null && a1 < 10 ? "good" : ""}">${a1 === null ? "–" : fmtNum(a1, 0)}</div><div class="dkl">Ø 7 Tage</div></div>
+      <div class="dkc"><div class="dkn">${a2 === null ? "–" : fmtNum(a2, 0)}</div><div class="dkl">Ø Vorwoche</div></div>
+      <div class="dkc"><div class="dkn ${dCls}">${dStr}</div><div class="dkl">Δ Min</div></div>
+    </div>
+    <div class="dhint">${verdict}</div>
+    <div style="margin-top:12px">
+      ${recent.map(d => `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">${d.stiff} Min</div></div>`).join("")}
+    </div>`;
+  }
+
+  const dsc = document.getElementById("ds-cont");
+  if (dsc) dsc.innerHTML = sHtml;
+};
+
+// ─── CSS ───────────────────────────────────────
+const CSS = `
+.dsec { margin: 16px 20px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.dsub { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+.dstates { display: flex; gap: 8px; }
+.dsbtn { flex: 1; padding: 12px 0; border-radius: 10px; border: 2px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; }
+.dsbtn.on-under { border-color: #E8A33D; color: #B87A15; background: #FDF3E4; }
+.dsbtn.on-hit   { border-color: #4FA34F; color: #2A7A2A; background: #E8F4E8; }
+.dsbtn.on-over  { border-color: #D96A6A; color: #B33A3A; background: #FBE9E9; }
+.drow2 { display: flex; gap: 8px; }
+.drow2 input { flex: 1; margin-bottom: 0; }
+.dsave { padding: 14px 22px; border-radius: 10px; border: none; background: var(--text); color: #FFF; font-family: var(--fb); font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+.dkpi { display: flex; gap: 8px; margin-top: 12px; }
+.dkc { flex: 1; text-align: center; padding: 10px 4px; background: var(--bg); border-radius: 8px; }
+.dkn { font-family: var(--fd); font-size: 24px; line-height: 1; color: var(--text); }
+.dkn.good { color: #2A7A2A; }
+.dkn.warn { color: #B33A3A; }
+.dkl { font-size: 9px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+.ddots { display: flex; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
+.ddot { width: 20px; height: 20px; border-radius: 5px; background: var(--bg); border: 1px solid var(--border); }
+.ddot.under { background: #E8A33D; border-color: #E8A33D; }
+.ddot.hit   { background: #4FA34F; border-color: #4FA34F; }
+.ddot.over  { background: #D96A6A; border-color: #D96A6A; }
+.dhint { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 12px; }
+.dhint strong { color: var(--text); font-weight: 700; }
+.dsrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.dsrow:last-child { border-bottom: none; }
+.dsrow-d { font-size: 12px; color: var(--muted); width: 82px; flex-shrink: 0; font-weight: 600; }
+.dsrow-v { font-size: 14px; font-weight: 700; flex: 1; }
+`;
+
+const MARKUP = `
+<div class="sec" style="padding-top:24px;padding-bottom:0">
+  <label class="fl">Täglich</label>
+  <input type="date" id="d-date" onchange="buildDaily()">
+</div>
+<div class="dsec">
+  <div class="dsub">Kalorienziel</div>
+  <div class="dstates">
+    <button class="dsbtn" id="dc-under" onclick="setKcal('under')">darunter</button>
+    <button class="dsbtn" id="dc-hit"   onclick="setKcal('hit')">Ziel</button>
+    <button class="dsbtn" id="dc-over"  onclick="setKcal('over')">darüber</button>
+  </div>
+  <div id="dc-cont"></div>
+</div>
+<div class="dsec">
+  <div class="dsub">Morgensteifigkeit Achillessehne</div>
+  <div class="drow2">
+    <input type="number" id="d-stiff" placeholder="Minuten" inputmode="numeric" step="1" min="0">
+    <button class="dsave" onclick="saveStiff()">OK</button>
+  </div>
+  <div id="ds-cont"></div>
+</div>
+`;
+
+// ─── INIT ──────────────────────────────────────
+function init() {
+  const view = document.getElementById("view-weight");
+  if (!view || document.getElementById("d-date")) return;
+
+  const st = document.createElement("style");
+  st.textContent = CSS;
+  document.head.appendChild(st);
+
+  const wrap = document.createElement("div");
+  wrap.innerHTML = MARKUP;
+  view.insertBefore(wrap, view.firstChild);
+
+  document.getElementById("d-date").value = todayStr();
+
+  // showView erweitern
+  const origShow = window.showView;
+  if (typeof origShow === "function") {
+    window.showView = function (v) {
+      origShow(v);
+      if (v === "weight") buildDaily();
+    };
+  }
+
+  // exportCSV erweitern
+  const origExport = window.exportCSV;
+  if (typeof origExport !== "function") { buildDaily(); return; }
+  window.exportCSV = function () {
+    const rows = loadDaily()
+      .filter(d => d.kcal || typeof d.stiff === "number")
+      .sort((a, b) => a.date < b.date ? -1 : 1);
+    if (!rows.length) return origExport();
+
+    const lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
+    const extra = "\n\n# TÄGLICH\n" + [
+      ["Datum", "Kalorienziel", "Morgensteifigkeit (Min)"],
+      ...rows.map(d => [fmtDate(d.date), d.kcal ? lbl[d.kcal] : "", typeof d.stiff === "number" ? d.stiff : ""])
+    ].map(r => r.join(",")).join("\n");
+
+    // Original-Export abfangen und Täglich-Sektion anhängen
+    const origCreate = URL.createObjectURL;
+    URL.createObjectURL = function (blob) {
+      URL.createObjectURL = origCreate;
+      return origCreate(new Blob([blob, extra], { type: "text/csv;charset=utf-8" }));
+    };
+    try { origExport(); } finally { URL.createObjectURL = origCreate; }
+  };
+
+  buildDaily();
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+else init();
+
+})();
