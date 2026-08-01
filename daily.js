@@ -8,8 +8,13 @@
 //
 // Bewusst minimal gehalten: kein Zahlenfeld für Kalorien
 // (das wäre Tracking durch die Hintertür), keine Makros,
-// kein Mahlzeiten-Log. Nur die zwei Größen, die
-// tatsächlich gesteuert werden.
+// kein Mahlzeiten-Log.
+//
+// Steifigkeit: Primärgröße ist die Bewertung 0–10 auf den
+// ersten ~20 Schritten – immer dieselbe Belastung,
+// unabhängig vom weiteren Morgenablauf. Die Minutenangabe
+// ist optional und nur für den Arzttermin gedacht (VISA-A
+// fragt danach), weil sie vom Tagesablauf verwässert wird.
 // ═══════════════════════════════════════════════════
 
 (function () {
@@ -30,7 +35,7 @@ function putDay(date, patch) {
   const arr = loadDaily();
   const i = arr.findIndex(d => d.date === date);
   if (i >= 0) arr[i] = Object.assign({}, arr[i], patch);
-  else arr.push(Object.assign({ date: date, kcal: null, stiff: null }, patch));
+  else arr.push(Object.assign({ date: date, kcal: null, rate: null, stiff: null }, patch));
   arr.sort((a, b) => a.date < b.date ? -1 : 1);
   saveDailyArr(arr);
 }
@@ -41,6 +46,15 @@ window.setKcal = function (state) {
   const cur  = getDay(date);
   const next = (cur && cur.kcal === state) ? null : state;   // nochmal tippen = zurücksetzen
   putDay(date, { kcal: next });
+  buildDaily();
+  showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
+};
+
+window.setRate = function (v) {
+  const date = dailyDate();
+  const cur  = getDay(date);
+  const next = (cur && cur.rate === v) ? null : v;   // nochmal tippen = zurücksetzen
+  putDay(date, { rate: next });
   buildDaily();
   showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
 };
@@ -102,29 +116,34 @@ window.buildDaily = function () {
   const dcc = document.getElementById("dc-cont");
   if (dcc) dcc.innerHTML = `<div class="ddots">${dots}</div><div class="dhint">${kHint}</div>`;
 
-  // ── Morgensteifigkeit ──
+  // ── Morgensteifigkeit: Bewertung 0–10 (Primärgröße) ──
+  for (let v = 0; v <= 10; v++) {
+    const b = document.getElementById("dr-" + v);
+    if (b) b.className = "drbtn" + (day && day.rate === v ? " on" : "");
+  }
+
   const sEl = document.getElementById("d-stiff");
   if (sEl) sEl.value = (day && typeof day.stiff === "number") ? day.stiff : "";
 
-  const stiffAll = all.filter(d => typeof d.stiff === "number").sort((a, b) => a.date < b.date ? -1 : 1);
+  const rateAll = all.filter(d => typeof d.rate === "number").sort((a, b) => a.date < b.date ? -1 : 1);
   let sHtml;
 
-  if (!stiffAll.length) {
-    sHtml = `<div class="dhint">Täglich direkt beim Aufstehen in Minuten notieren. Das ist die Steuergröße für die Wadenlast – nicht das Gefühl während der Einheit.</div>`;
+  if (!rateAll.length) {
+    sHtml = `<div class="dhint">Direkt nach dem Aufstehen auf den ersten ~20 Schritten bewerten. 0 = nichts zu spüren, 10 = maximal steif. Immer dieselbe Belastung, unabhängig davon, wie der Morgen weiterläuft – das ist der Grund für die Skala statt der Uhr.</div>`;
   } else {
-    const cur7  = stiffAll.filter(d => dayDiff(d.date, date) >= 0 && dayDiff(d.date, date) < 7);
-    const prev7 = stiffAll.filter(d => dayDiff(d.date, date) >= 7 && dayDiff(d.date, date) < 14);
-    const avg   = a => a.length ? a.reduce((s, d) => s + d.stiff, 0) / a.length : null;
+    const cur7  = rateAll.filter(d => dayDiff(d.date, date) >= 0 && dayDiff(d.date, date) < 7);
+    const prev7 = rateAll.filter(d => dayDiff(d.date, date) >= 7 && dayDiff(d.date, date) < 14);
+    const avg   = a => a.length ? a.reduce((s, d) => s + d.rate, 0) / a.length : null;
     const a1 = avg(cur7), a2 = avg(prev7);
     const delta = (a1 !== null && a2 !== null) ? a1 - a2 : null;
 
     let dCls = "", dStr = "–", verdict;
     if (delta === null) {
       verdict = `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln.`;
-    } else if (delta <= -1) {
+    } else if (delta <= -0.5) {
       dCls = "good"; dStr = fmtNum(delta, 1);
-      verdict = `<strong>Fallend.</strong> Die Last passt – 24-Stunden-Regel erfüllt. Bleibt der 7-Tage-Schnitt mehrere Tage unter 10 Minuten, darf das Gewicht hoch.`;
-    } else if (delta >= 1) {
+      verdict = `<strong>Fallend.</strong> Die Last passt – 24-Stunden-Regel erfüllt. Bleibt der 7-Tage-Schnitt mehrere Tage unter 2, darf das Gewicht hoch.`;
+    } else if (delta >= 0.5) {
       dCls = "warn"; dStr = "+" + fmtNum(delta, 1);
       verdict = `<strong>Steigend.</strong> Die letzte Einheit war zu viel – Gewicht oder Satzzahl beim nächsten Mal zurücknehmen.`;
     } else {
@@ -132,15 +151,19 @@ window.buildDaily = function () {
       verdict = `<strong>Konstant.</strong> Last ist tragfähig, aber noch keine Verbesserung. Über 6–8 Wochen ohne Rückgang: erneut orthopädisch vorstellen, Frage nach Sonographie.`;
     }
 
-    const recent = stiffAll.slice(-7).reverse();
+    const recent = rateAll.slice(-7).reverse();
     sHtml = `<div class="dkpi">
-      <div class="dkc"><div class="dkn ${a1 !== null && a1 < 10 ? "good" : ""}">${a1 === null ? "–" : fmtNum(a1, 0)}</div><div class="dkl">Ø 7 Tage</div></div>
-      <div class="dkc"><div class="dkn">${a2 === null ? "–" : fmtNum(a2, 0)}</div><div class="dkl">Ø Vorwoche</div></div>
-      <div class="dkc"><div class="dkn ${dCls}">${dStr}</div><div class="dkl">Δ Min</div></div>
+      <div class="dkc"><div class="dkn ${a1 !== null && a1 < 2 ? "good" : ""}">${a1 === null ? "–" : fmtNum(a1, 1)}</div><div class="dkl">Ø 7 Tage</div></div>
+      <div class="dkc"><div class="dkn">${a2 === null ? "–" : fmtNum(a2, 1)}</div><div class="dkl">Ø Vorwoche</div></div>
+      <div class="dkc"><div class="dkn ${dCls}">${dStr}</div><div class="dkl">Δ</div></div>
     </div>
     <div class="dhint">${verdict}</div>
     <div style="margin-top:12px">
-      ${recent.map(d => `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">${d.stiff} Min</div></div>`).join("")}
+      ${recent.map(d => {
+        const m = all.find(x => x.date === d.date);
+        const mins = m && typeof m.stiff === "number" ? ` · ${m.stiff} Min` : "";
+        return `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">${d.rate}/10${mins}</div></div>`;
+      }).join("")}
     </div>`;
   }
 
@@ -177,6 +200,12 @@ const CSS = `
 .dsrow:last-child { border-bottom: none; }
 .dsrow-d { font-size: 12px; color: var(--muted); width: 82px; flex-shrink: 0; font-weight: 600; }
 .dsrow-v { font-size: 14px; font-weight: 700; flex: 1; }
+.drscale { display: flex; gap: 3px; }
+.drbtn { flex: 1; padding: 11px 0; border-radius: 7px; border: 1.5px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .12s; min-width: 0; }
+.drbtn.on { border-color: var(--text); background: var(--text); color: #FFF; }
+.drends { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); font-weight: 600; margin-top: 6px; }
+.dmin { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.dminl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
 `;
 
 const MARKUP = `
@@ -195,11 +224,18 @@ const MARKUP = `
 </div>
 <div class="dsec">
   <div class="dsub">Morgensteifigkeit Achillessehne</div>
-  <div class="drow2">
-    <input type="number" id="d-stiff" placeholder="Minuten" inputmode="numeric" step="1" min="0">
-    <button class="dsave" onclick="saveStiff()">OK</button>
+  <div class="drscale">
+    ${[0,1,2,3,4,5,6,7,8,9,10].map(v => `<button class="drbtn" id="dr-${v}" onclick="setRate(${v})">${v}</button>`).join("")}
   </div>
+  <div class="drends"><span>0 = nichts</span><span>10 = maximal</span></div>
   <div id="ds-cont"></div>
+  <div class="dmin">
+    <div class="dminl">Optional: Dauer in Minuten (für den Arzttermin)</div>
+    <div class="drow2">
+      <input type="number" id="d-stiff" placeholder="Minuten" inputmode="numeric" step="1" min="0">
+      <button class="dsave" onclick="saveStiff()">OK</button>
+    </div>
+  </div>
 </div>
 `;
 
@@ -232,14 +268,19 @@ function init() {
   if (typeof origExport !== "function") { buildDaily(); return; }
   window.exportCSV = function () {
     const rows = loadDaily()
-      .filter(d => d.kcal || typeof d.stiff === "number")
+      .filter(d => d.kcal || typeof d.rate === "number" || typeof d.stiff === "number")
       .sort((a, b) => a.date < b.date ? -1 : 1);
     if (!rows.length) return origExport();
 
     const lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
     const extra = "\n\n# TÄGLICH\n" + [
-      ["Datum", "Kalorienziel", "Morgensteifigkeit (Min)"],
-      ...rows.map(d => [fmtDate(d.date), d.kcal ? lbl[d.kcal] : "", typeof d.stiff === "number" ? d.stiff : ""])
+      ["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)"],
+      ...rows.map(d => [
+        fmtDate(d.date),
+        d.kcal ? lbl[d.kcal] : "",
+        typeof d.rate  === "number" ? d.rate  : "",
+        typeof d.stiff === "number" ? d.stiff : ""
+      ])
     ].map(r => r.join(",")).join("\n");
 
     // Original-Export abfangen und Täglich-Sektion anhängen
