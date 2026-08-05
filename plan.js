@@ -119,8 +119,15 @@ const PLAN = {
 
 // PAUSE bleibt in index.html – hier nur die Plan-Daten.
 
-// Lädt das Daily-Modul nach (Kalorien-Haken + Morgensteifigkeit).
-// Liegt hier, weil GitHub keine Teil-Updates erlaubt und index.html
-// dadurch unangetastet bleibt. Beim nächsten index.html-Commit sauber
-// als eigenes <script>-Tag dorthin ziehen und diese Zeile entfernen.
-document.head.appendChild(Object.assign(document.createElement("script"), { src: "daily.js" }));
+// Lädt die Zusatzmodule nach (daily.js = Kalorien/Steifigkeit, sync.js = GitHub-Backup).
+// Liegt hier, weil GitHub keine Teil-Updates erlaubt und index.html dadurch
+// unangetastet bleibt. async=false erzwingt die Ausführungsreihenfolge –
+// sync.js muss nach daily.js laufen, damit es showView/exportCSV aussen umschliesst.
+// Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
+// und diesen Block entfernen.
+["daily.js", "sync.js"].forEach(function (src) {
+  var s = document.createElement("script");
+  s.src = src;
+  s.async = false;
+  document.head.appendChild(s);
+});
