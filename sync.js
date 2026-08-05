@@ -1,15 +1,26 @@
 /* ─────────────────────────────────────────────────────────────
-   sync.js — Backup der App-Daten in ein privates GitHub-Repo.
+   sync.js — Backup der App-Daten in ein privates GitHub-Repo
+             + korrekte CSV-Erzeugung.
 
    Zweck: Die vier localStorage-Keys (tl-e, tl-w, tl-w0, tl-d)
    liegen sonst ausschliesslich auf diesem Geraet. Dieses Modul
    schreibt sie nach jeder Aenderung in ein privates Repo:
 
      backup.json  vollstaendiger Dump  -> Wiederherstellungspfad
-     export.csv   identisch zum manuellen Export -> Monatsreview
+     export.csv   dieselbe Datei wie der Download-Button
 
    Der Token liegt NUR im localStorage dieses Geraets (Key tl-sync)
    und darf niemals in den Code oder ins oeffentliche Repo.
+
+   CSV: Dieses Modul ersetzt window.exportCSV vollstaendig.
+   Die Fassungen in index.html und daily.js hatten zwei Fehler:
+   Dezimalkommas in einer kommagetrennten Datei ("72,7" = zwei
+   Felder) und keine Maskierung des Notizfeldes, das Kommas
+   enthalten kann. Beides zerlegt die Spalten.
+   Weil GitHub keine Teil-Updates erlaubt und index.html 58 KB
+   gross ist, liegt die Korrektur hier statt dort. Beim naechsten
+   index.html-Commit nach oben ziehen und die alten Fassungen
+   entfernen (Notiz fuer den Review 01.09.).
    ───────────────────────────────────────────────────────────── */
 (function () {
 "use strict";
@@ -57,44 +68,89 @@ function flash(msg) {
   if (typeof window.showFlash === "function") window.showFlash(msg);
 }
 
-/* ─── Nutzdaten ─────────────────────────────────────────── */
-function buildJSON() {
-  var keys = {};
-  DATA_KEYS.forEach(function (k) { keys[k] = localStorage.getItem(k); });
-  return JSON.stringify({ v: 1, ts: new Date().toISOString(), keys: keys }, null, 1);
+/* ─── CSV-Primitive ─────────────────────────────────────── */
+// Punkt als Dezimaltrennzeichen. fmtNum() der App liefert bewusst
+// ein Komma – fuer die Anzeige richtig, fuer CSV falsch.
+function csvNum(n, dec) {
+  return (typeof n === "number" && isFinite(n)) ? n.toFixed(dec) : "";
+}
+// RFC 4180: Feld quoten, wenn es Komma, Anfuehrungszeichen
+// oder Zeilenumbruch enthaelt.
+function csvCell(v) {
+  var s = (v === null || typeof v === "undefined") ? "" : String(v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function csvRow(arr) { return arr.map(csvCell).join(","); }
+
+/* ─── CSV-Aufbau ────────────────────────────────────────── */
+function buildCSV() {
+  if (typeof window.loadEntries !== "function" || typeof window.fmtDate !== "function")
+    throw new Error("App-Funktionen nicht verfuegbar");
+
+  var out = [csvRow(["Datum", "Einheit", "Übung", "Gewicht",
+                     "S1", "S2", "S3", "S4", "Notiz", "↑ Erhöhen?"])];
+  window.loadEntries().forEach(function (e) {
+    out.push(csvRow([
+      window.fmtDate(e.date), e.einheit, e.uebung, e.gewicht,
+      e.s1, e.s2, e.s3, e.s4 || "", e.notiz || "",
+      e.erhoehen ? "Ja" : "Nein"
+    ]));
+  });
+  var csv = out.join("\n");
+
+  if (typeof window.loadStart === "function") {
+    var st = window.loadStart();
+    if (st) {
+      csv += "\n\n# STARTPUNKT (Referenz, nicht Teil der Messreihe)\n" +
+             csvRow(["Datum", "Gewicht (kg)"]) + "\n" +
+             csvRow([window.fmtDate(st.date), csvNum(st.kg, 1)]);
+    }
+  }
+
+  if (typeof window.loadWeights === "function" && typeof window.computeTrend === "function") {
+    var wArr = window.loadWeights().slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    if (wArr.length) {
+      var wp = window.computeTrend(wArr);
+      csv += "\n\n# GEWICHT\n" + csvRow(["Datum", "Gewicht (kg)", "Trend (kg)"]);
+      wp.forEach(function (p) {
+        csv += "\n" + csvRow([window.fmtDate(p.date), csvNum(p.kg, 1), csvNum(p.trend, 2)]);
+      });
+    }
+  }
+
+  if (typeof window.loadDaily === "function") {
+    var lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
+    var rows = window.loadDaily().filter(function (d) {
+      return d.kcal || typeof d.rate === "number" || typeof d.stiff === "number";
+    }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    if (rows.length) {
+      csv += "\n\n# TÄGLICH\n" +
+             csvRow(["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)"]);
+      rows.forEach(function (d) {
+        csv += "\n" + csvRow([
+          window.fmtDate(d.date),
+          d.kcal ? lbl[d.kcal] : "",
+          typeof d.rate  === "number" ? d.rate  : "",
+          typeof d.stiff === "number" ? d.stiff : ""
+        ]);
+      });
+    }
+  }
+  return csv;
 }
 
-/* exportCSV() wiederverwenden, statt die Logik zu duplizieren.
-   Download unterdruecken, Blob abfangen. daily.js patcht exportCSV
-   bereits nach demselben Muster – unsere Huelle liegt aussen und
-   bekommt daher die fertige, um die Taeglich-Sektion ergaenzte
-   Fassung. Faellt exportCSV aus, bleibt backup.json unberuehrt. */
-function buildCSV() {
-  return new Promise(function (resolve, reject) {
-    if (typeof window.exportCSV !== "function") return reject(new Error("exportCSV fehlt"));
-    var origCreate = URL.createObjectURL;
-    var origRevoke = URL.revokeObjectURL;
-    var origClick  = HTMLAnchorElement.prototype.click;
-    var grabbed    = null;
-
-    URL.createObjectURL = function (blob) { grabbed = blob; return "blob:captured"; };
-    URL.revokeObjectURL = function () {};
-    HTMLAnchorElement.prototype.click = function () {};
-
-    var restore = function () {
-      URL.createObjectURL = origCreate;
-      URL.revokeObjectURL = origRevoke;
-      HTMLAnchorElement.prototype.click = origClick;
-    };
-
-    try { window.exportCSV(); } catch (e) { restore(); return reject(e); }
-    restore();
-
-    if (!grabbed) return reject(new Error("kein CSV erzeugt"));
-    grabbed.text().then(function (t) {
-      resolve(t.charCodeAt(0) === 0xFEFF ? t.slice(1) : t);
-    }).catch(reject);
-  });
+/* Download-Button auf dieselbe Quelle umstellen, damit manueller
+   Export und Upload nicht auseinanderlaufen koennen. */
+function installExport() {
+  window.exportCSV = function () {
+    var url = URL.createObjectURL(new Blob(["\uFEFF" + buildCSV()],
+              { type: "text/csv;charset=utf-8" }));
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "training-log-" + window.todayStr() + ".csv";
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  };
 }
 
 /* ─── GitHub Contents API ───────────────────────────────── */
@@ -138,6 +194,13 @@ function putFile(path, content, msg) {
   });
 }
 
+/* ─── Nutzdaten ─────────────────────────────────────────── */
+function buildJSON() {
+  var keys = {};
+  DATA_KEYS.forEach(function (k) { keys[k] = localStorage.getItem(k); });
+  return JSON.stringify({ v: 1, ts: new Date().toISOString(), keys: keys }, null, 1);
+}
+
 /* ─── Sync ──────────────────────────────────────────────── */
 function sync(manual) {
   if (running || !configured()) return Promise.resolve(false);
@@ -146,11 +209,14 @@ function sync(manual) {
   render();
 
   var stamp = new Date().toISOString();
+  // backup.json zuerst – der Wiederherstellungspfad ist das
+  // Wichtigere und darf nicht an einem CSV-Fehler scheitern.
   return putFile("backup.json", buildJSON(), "backup " + stamp)
     .then(function () {
-      return buildCSV()
-        .then(function (csv) { return putFile("export.csv", csv, "export " + stamp); })
-        .catch(function (e) { console.warn("CSV uebersprungen:", e.message); });
+      var csv;
+      try { csv = buildCSV(); }
+      catch (e) { console.warn("CSV uebersprungen:", e.message); return; }
+      return putFile("export.csv", csv, "export " + stamp);
     })
     .then(function () {
       var c = cfg(); c.lastOk = stamp; c.dirty = false; delete c.lastErr; saveCfg(c);
@@ -273,6 +339,7 @@ function mount() {
 
 /* ─── Init ──────────────────────────────────────────────── */
 function init() {
+  installExport();
   hookStorage();
   mount();
 
@@ -293,6 +360,6 @@ function init() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();
 
-window.tlSync = { run: sync, restore: restore, settings: settings };
+window.tlSync = { run: sync, restore: restore, settings: settings, csv: buildCSV };
 
 })();
