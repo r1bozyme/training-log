@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════
 // DAILY – Kalorien-Haken + Morgensteifigkeit
-// Stand: 1. August 2026
+// Stand: 10. August 2026
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Injiziert CSS + Markup selbst in den Werte-Tab und
@@ -15,6 +15,17 @@
 // unabhängig vom weiteren Morgenablauf. Die Minutenangabe
 // ist optional und nur für den Arzttermin gedacht (VISA-A
 // fragt danach), weil sie vom Tagesablauf verwässert wird.
+//
+// NEU 10.08.: Jedes Rating bekommt mit ratedAt einen vollen
+// Zeitstempel (ISO). Grund: die Skala ist nur dann über die
+// Tage vergleichbar, wenn sie im selben Fenster nach dem
+// Aufstehen erhoben wird. Ein abends nachgetragener Wert
+// misst nicht dasselbe wie einer um 6:30 und zieht den
+// 7-Tage-Schnitt nach unten. Die Uhrzeit macht das sichtbar,
+// statt es zu verstecken.
+//
+// Deep-Link: ?v=weight öffnet direkt den Werte-Tab und
+// springt zur Skala (für Wecker-/Automations-Notification).
 // ═══════════════════════════════════════════════════
 
 (function () {
@@ -35,7 +46,7 @@ function putDay(date, patch) {
   const arr = loadDaily();
   const i = arr.findIndex(d => d.date === date);
   if (i >= 0) arr[i] = Object.assign({}, arr[i], patch);
-  else arr.push(Object.assign({ date: date, kcal: null, rate: null, stiff: null }, patch));
+  else arr.push(Object.assign({ date: date, kcal: null, rate: null, ratedAt: null, stiff: null }, patch));
   arr.sort((a, b) => a.date < b.date ? -1 : 1);
   saveDailyArr(arr);
 }
@@ -54,7 +65,14 @@ window.setRate = function (v) {
   const date = dailyDate();
   const cur  = getDay(date);
   const next = (cur && cur.rate === v) ? null : v;   // nochmal tippen = zurücksetzen
-  putDay(date, { rate: next });
+
+  // Zeitstempel nur setzen, wenn der Eintrag heute für heute erfolgt.
+  // Wird ein zurückliegendes Datum nachgepflegt, wäre die aktuelle Uhrzeit
+  // irreführend – dann bleibt ratedAt leer und die Zeile zeigt "nachgetragen".
+  let stamp = null;
+  if (next !== null) stamp = (date === todayStr()) ? new Date().toISOString() : "manual";
+
+  putDay(date, { rate: next, ratedAt: stamp });
   buildDaily();
   showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
 };
@@ -81,6 +99,21 @@ function lastNDays(n, ref) {
     out.push(d.toISOString().split("T")[0]);
   }
   return out;
+}
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+// Minuten seit Mitternacht aus einem ratedAt-Stempel, sonst null
+function stampMinutes(iso) {
+  if (!iso || iso === "manual") return null;
+  const d = new Date(iso);
+  if (isNaN(d)) return null;
+  return d.getHours() * 60 + d.getMinutes();
+}
+function fmtClock(iso) {
+  if (iso === "manual") return "nachgetragen";
+  const m = stampMinutes(iso);
+  if (m === null) return "";
+  return pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
 }
 
 // ─── RENDER ────────────────────────────────────
@@ -151,18 +184,42 @@ window.buildDaily = function () {
       verdict = `<strong>Konstant.</strong> Last ist tragfähig, aber noch keine Verbesserung. Über 6–8 Wochen ohne Rückgang: erneut orthopädisch vorstellen, Frage nach Sonographie.`;
     }
 
+    // ── Erfassungszeit-Kontrolle ──
+    // Die Skala misst nur dann dasselbe, wenn sie im selben Fenster nach dem
+    // Aufstehen erhoben wird. Median + Spannweite machen Drift sichtbar.
     const recent = rateAll.slice(-7).reverse();
+    const mins = recent.map(d => stampMinutes(d.ratedAt)).filter(m => m !== null).sort((a, b) => a - b);
+    let tHint = "";
+    if (mins.length >= 3) {
+      const med  = mins[Math.floor(mins.length / 2)];
+      const span = mins[mins.length - 1] - mins[0];
+      const late = mins.filter(m => m > 600).length;
+      const hhmm = m => pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
+      tHint = `<div class="dhint">Erfassung im Median um <strong>${hhmm(med)}</strong>, Spannweite ${hhmm(mins[0])}–${hhmm(mins[mins.length - 1])}.`;
+      if (late >= 2) {
+        tHint += ` <strong>${late} der letzten ${mins.length} Ratings entstanden nach 10 Uhr.</strong> So spät ist die Morgensteifigkeit meist abgeklungen – der 7-Tage-Schnitt liegt dann systematisch zu niedrig und der Δ-Vergleich wird unbrauchbar.`;
+      } else if (span > 180) {
+        tHint += ` Die Spannweite von über drei Stunden schwächt den Vergleich – gleiche Uhrzeit ist wichtiger als die exakte Zahl.`;
+      } else {
+        tHint += ` Enges Zeitfenster – die Werte sind untereinander vergleichbar.`;
+      }
+      tHint += `</div>`;
+    }
+
     sHtml = `<div class="dkpi">
       <div class="dkc"><div class="dkn ${a1 !== null && a1 < 2 ? "good" : ""}">${a1 === null ? "–" : fmtNum(a1, 1)}</div><div class="dkl">Ø 7 Tage</div></div>
       <div class="dkc"><div class="dkn">${a2 === null ? "–" : fmtNum(a2, 1)}</div><div class="dkl">Ø Vorwoche</div></div>
       <div class="dkc"><div class="dkn ${dCls}">${dStr}</div><div class="dkl">Δ</div></div>
     </div>
     <div class="dhint">${verdict}</div>
+    ${tHint}
     <div style="margin-top:12px">
       ${recent.map(d => {
         const m = all.find(x => x.date === d.date);
-        const mins = m && typeof m.stiff === "number" ? ` · ${m.stiff} Min` : "";
-        return `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">${d.rate}/10${mins}</div></div>`;
+        const mins2 = m && typeof m.stiff === "number" ? ` · ${m.stiff} Min` : "";
+        const clock = fmtClock(d.ratedAt);
+        const cls   = (d.ratedAt === "manual" || !d.ratedAt) ? "dsrow-t dim" : "dsrow-t";
+        return `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">${d.rate}/10${mins2}</div><div class="${cls}">${clock || "–"}</div></div>`;
       }).join("")}
     </div>`;
   }
@@ -200,6 +257,8 @@ const CSS = `
 .dsrow:last-child { border-bottom: none; }
 .dsrow-d { font-size: 12px; color: var(--muted); width: 82px; flex-shrink: 0; font-weight: 600; }
 .dsrow-v { font-size: 14px; font-weight: 700; flex: 1; }
+.dsrow-t { font-size: 12px; color: var(--muted); font-weight: 600; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.dsrow-t.dim { color: var(--dim); font-weight: 500; font-size: 11px; }
 .drscale { display: flex; gap: 3px; }
 .drbtn { flex: 1; padding: 11px 0; border-radius: 7px; border: 1.5px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .12s; min-width: 0; }
 .drbtn.on { border-color: var(--text); background: var(--text); color: #FFF; }
@@ -213,6 +272,8 @@ const CSS = `
 .ddate { display: flex; align-items: center; gap: 12px; margin: 0 20px 12px; }
 .ddate label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
 .ddate input { flex: 1; margin-bottom: 0; }
+.dsec.flash { animation: dflash 1.4s ease-out; }
+@keyframes dflash { 0%, 60% { box-shadow: 0 0 0 2px var(--text); } 100% { box-shadow: 0 0 0 0 transparent; } }
 `;
 
 const MARKUP = `
@@ -230,7 +291,7 @@ const MARKUP = `
   </div>
   <div id="dc-cont"></div>
 </div>
-<div class="dsec">
+<div class="dsec" id="d-stiffsec">
   <div class="dsub">Morgensteifigkeit Achillessehne</div>
   <div class="drscale">
     ${[0,1,2,3,4,5,6,7,8,9,10].map(v => `<button class="drbtn" id="dr-${v}" onclick="setRate(${v})">${v}</button>`).join("")}
@@ -282,34 +343,52 @@ function init() {
 
   // exportCSV erweitern
   const origExport = window.exportCSV;
-  if (typeof origExport !== "function") { buildDaily(); return; }
-  window.exportCSV = function () {
-    const rows = loadDaily()
-      .filter(d => d.kcal || typeof d.rate === "number" || typeof d.stiff === "number")
-      .sort((a, b) => a.date < b.date ? -1 : 1);
-    if (!rows.length) return origExport();
+  if (typeof origExport === "function") {
+    window.exportCSV = function () {
+      const rows = loadDaily()
+        .filter(d => d.kcal || typeof d.rate === "number" || typeof d.stiff === "number")
+        .sort((a, b) => a.date < b.date ? -1 : 1);
+      if (!rows.length) return origExport();
 
-    const lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
-    const extra = "\n\n# TÄGLICH\n" + [
-      ["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)"],
-      ...rows.map(d => [
-        fmtDate(d.date),
-        d.kcal ? lbl[d.kcal] : "",
-        typeof d.rate  === "number" ? d.rate  : "",
-        typeof d.stiff === "number" ? d.stiff : ""
-      ])
-    ].map(r => r.join(",")).join("\n");
+      const lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
+      const extra = "\n\n# TÄGLICH\n" + [
+        ["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Uhrzeit", "Steifigkeit (Min)"],
+        ...rows.map(d => [
+          fmtDate(d.date),
+          d.kcal ? lbl[d.kcal] : "",
+          typeof d.rate  === "number" ? d.rate  : "",
+          fmtClock(d.ratedAt),
+          typeof d.stiff === "number" ? d.stiff : ""
+        ])
+      ].map(r => r.join(",")).join("\n");
 
-    // Original-Export abfangen und Täglich-Sektion anhängen
-    const origCreate = URL.createObjectURL;
-    URL.createObjectURL = function (blob) {
-      URL.createObjectURL = origCreate;
-      return origCreate(new Blob([blob, extra], { type: "text/csv;charset=utf-8" }));
+      // Original-Export abfangen und Täglich-Sektion anhängen
+      const origCreate = URL.createObjectURL;
+      URL.createObjectURL = function (blob) {
+        URL.createObjectURL = origCreate;
+        return origCreate(new Blob([blob, extra], { type: "text/csv;charset=utf-8" }));
+      };
+      try { origExport(); } finally { URL.createObjectURL = origCreate; }
     };
-    try { origExport(); } finally { URL.createObjectURL = origCreate; }
-  };
+  }
 
   buildDaily();
+
+  // ── Deep-Link: ?v=weight ──
+  // Ziel für eine per Wecker/Automations-App ausgelöste Notification:
+  // ein Tap landet direkt auf der Skala, nicht auf der Startansicht.
+  try {
+    const p = new URLSearchParams(location.search);
+    if (p.get("v") === "weight") {
+      if (typeof window.showView === "function") window.showView("weight");
+      const sec = document.getElementById("d-stiffsec");
+      if (sec) setTimeout(function () {
+        sec.scrollIntoView({ behavior: "smooth", block: "center" });
+        sec.classList.add("flash");
+        setTimeout(function () { sec.classList.remove("flash"); }, 1600);
+      }, 150);
+    }
+  } catch (e) { /* URLSearchParams nicht verfügbar – unkritisch */ }
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
