@@ -24,8 +24,11 @@
 // 7-Tage-Schnitt nach unten. Die Uhrzeit macht das sichtbar,
 // statt es zu verstecken.
 //
-// Deep-Link: ?v=weight öffnet direkt den Werte-Tab und
-// springt zur Skala (für Wecker-/Automations-Notification).
+// Deep-Links (Ziel für Automate/Tasker-Notifications):
+//   ?v=stiff   → Morgensteifigkeit
+//   ?v=weight  → Gewicht
+//   ?v=kcal    → Kalorienziel
+// Jeweils Werte-Tab öffnen, zur Sektion scrollen, kurz anblinken.
 // ═══════════════════════════════════════════════════
 
 (function () {
@@ -272,8 +275,8 @@ const CSS = `
 .ddate { display: flex; align-items: center; gap: 12px; margin: 0 20px 12px; }
 .ddate label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
 .ddate input { flex: 1; margin-bottom: 0; }
-.dsec.flash { animation: dflash 1.4s ease-out; }
-@keyframes dflash { 0%, 60% { box-shadow: 0 0 0 2px var(--text); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.dflash { animation: dflash 1.5s ease-out; border-radius: 12px; }
+@keyframes dflash { 0%, 55% { box-shadow: 0 0 0 2px var(--text); } 100% { box-shadow: 0 0 0 0 transparent; } }
 `;
 
 const MARKUP = `
@@ -282,7 +285,7 @@ const MARKUP = `
   <label for="d-date">Datum</label>
   <input type="date" id="d-date" onchange="buildDaily()">
 </div>
-<div class="dsec">
+<div class="dsec" id="d-kcalsec">
   <div class="dsub">Kalorienziel</div>
   <div class="dstates">
     <button class="dsbtn" id="dc-under" onclick="setKcal('under')">darunter</button>
@@ -329,8 +332,9 @@ function init() {
   if (nav) nav.textContent = "Werte";
 
   // Wiegen-Block sitzt jetzt unter dem GEWICHT-Kopf – oberen Abstand rausnehmen
+  // und als Deep-Link-Ziel markieren.
   const wSec = view.querySelector(".sec");
-  if (wSec) wSec.style.paddingTop = "0";
+  if (wSec) { wSec.style.paddingTop = "0"; wSec.id = "d-weightsec"; }
 
   // showView erweitern
   const origShow = window.showView;
@@ -374,18 +378,19 @@ function init() {
 
   buildDaily();
 
-  // ── Deep-Link: ?v=weight ──
-  // Ziel für eine per Wecker/Automations-App ausgelöste Notification:
-  // ein Tap landet direkt auf der Skala, nicht auf der Startansicht.
+  // ── Deep-Links ──
+  // ?v=stiff | weight | kcal – Ziel für Notifications aus Automate/Tasker.
+  // Ein Tap landet direkt auf der richtigen Sektion, nicht auf der Startansicht.
   try {
-    const p = new URLSearchParams(location.search);
-    if (p.get("v") === "weight") {
+    const TARGETS = { stiff: "d-stiffsec", weight: "d-weightsec", kcal: "d-kcalsec" };
+    const id = TARGETS[new URLSearchParams(location.search).get("v")];
+    if (id) {
       if (typeof window.showView === "function") window.showView("weight");
-      const sec = document.getElementById("d-stiffsec");
+      const sec = document.getElementById(id);
       if (sec) setTimeout(function () {
         sec.scrollIntoView({ behavior: "smooth", block: "center" });
-        sec.classList.add("flash");
-        setTimeout(function () { sec.classList.remove("flash"); }, 1600);
+        sec.classList.add("dflash");
+        setTimeout(function () { sec.classList.remove("dflash"); }, 1700);
       }, 150);
     }
   } catch (e) { /* URLSearchParams nicht verfügbar – unkritisch */ }
