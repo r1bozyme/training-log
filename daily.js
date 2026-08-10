@@ -16,19 +16,21 @@
 // ist optional und nur für den Arzttermin gedacht (VISA-A
 // fragt danach), weil sie vom Tagesablauf verwässert wird.
 //
-// NEU 10.08.: Jedes Rating bekommt mit ratedAt einen vollen
-// Zeitstempel (ISO). Grund: die Skala ist nur dann über die
-// Tage vergleichbar, wenn sie im selben Fenster nach dem
-// Aufstehen erhoben wird. Ein abends nachgetragener Wert
-// misst nicht dasselbe wie einer um 6:30 und zieht den
-// 7-Tage-Schnitt nach unten. Die Uhrzeit macht das sichtbar,
-// statt es zu verstecken.
+// ratedAt (10.08.): Jedes Rating bekommt einen vollen ISO-
+// Zeitstempel. Die Skala ist nur über die Tage vergleichbar,
+// wenn sie im selben Fenster nach dem Aufstehen erhoben wird.
+// Ein abends nachgetragener Wert misst nicht dasselbe wie
+// einer um 6:30 und zieht den 7-Tage-Schnitt nach unten.
 //
-// Deep-Links (Ziel für Automate/Tasker-Notifications):
-//   ?v=stiff   → Morgensteifigkeit
-//   ?v=weight  → Gewicht
-//   ?v=kcal    → Kalorienziel
-// Jeweils Werte-Tab öffnen, zur Sektion scrollen, kurz anblinken.
+// OFFEN-BAND (10.08.): Deep-Links allein tragen nicht – wenn
+// die PWA noch im Hintergrund liegt, holt Android das alte
+// Fenster nach vorn, ohne die URL zu laden, und der Parameter
+// kommt nie an. Deshalb entscheidet die App selbst, was heute
+// fehlt, und zeigt es oben an. Neu berechnet bei jedem
+// Sichtbarwerden – inkl. Datumswechsel über Nacht.
+//
+// Deep-Links (Abkürzung, nicht mehr tragende Schicht):
+//   ?v=stiff | ?v=weight | ?v=kcal
 // ═══════════════════════════════════════════════════
 
 (function () {
@@ -71,7 +73,7 @@ window.setRate = function (v) {
 
   // Zeitstempel nur setzen, wenn der Eintrag heute für heute erfolgt.
   // Wird ein zurückliegendes Datum nachgepflegt, wäre die aktuelle Uhrzeit
-  // irreführend – dann bleibt ratedAt leer und die Zeile zeigt "nachgetragen".
+  // irreführend – dann steht "nachgetragen" statt einer Zeit.
   let stamp = null;
   if (next !== null) stamp = (date === todayStr()) ? new Date().toISOString() : "manual";
 
@@ -105,7 +107,6 @@ function lastNDays(n, ref) {
 }
 function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
-// Minuten seit Mitternacht aus einem ratedAt-Stempel, sonst null
 function stampMinutes(iso) {
   if (!iso || iso === "manual") return null;
   const d = new Date(iso);
@@ -119,11 +120,64 @@ function fmtClock(iso) {
   return pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
 }
 
+// ─── OFFEN-BAND ──────────────────────────────────
+// Wiegen laut Plan Di + Fr (nuechtern, morgens). Gewichte liegen
+// in tl-w – hier nur lesend, das Schreiben bleibt in index.html.
+function weighDue(dateStr) {
+  const dow = new Date(dateStr + "T12:00:00").getDay();   // 0 = So
+  return dow === 2 || dow === 5;
+}
+function hasWeight(dateStr) {
+  try {
+    const w = JSON.parse(localStorage.getItem("tl-w") || "[]");
+    return w.some(x => x.date === dateStr);
+  } catch { return false; }
+}
+
+function openItems() {
+  const t = todayStr();
+  const d = getDay(t);
+  const out = [];
+  // Reihenfolge = Tagesablauf: morgens Steifigkeit, dann Wiegen, abends Kalorien
+  if (!d || typeof d.rate !== "number") out.push({ label: "Steifigkeit", id: "d-stiffsec" });
+  if (weighDue(t) && !hasWeight(t))     out.push({ label: "Wiegen",      id: "d-weightsec" });
+  if (!d || !d.kcal)                    out.push({ label: "Kalorien",    id: "d-kcalsec" });
+  return out;
+}
+
+window.jumpOpen = function () {
+  const items = openItems();
+  if (!items.length) return;
+  const sec = document.getElementById(items[0].id);
+  if (!sec) return;
+  sec.scrollIntoView({ behavior: "smooth", block: "center" });
+  sec.classList.add("dflash");
+  setTimeout(function () { sec.classList.remove("dflash"); }, 1700);
+};
+
+function buildTodo() {
+  const el = document.getElementById("d-todo");
+  if (!el) return;
+  const items = openItems();
+
+  if (!items.length) {
+    el.className = "dtodo done";
+    el.innerHTML = `<span class="dtl">Heute vollständig</span><span class="dtv">✓</span>`;
+    return;
+  }
+  el.className = "dtodo";
+  el.innerHTML = `<span class="dtl">Heute offen</span>`
+    + `<span class="dtv">${items.map(i => i.label).join(" · ")}</span>`
+    + `<span class="dta">→</span>`;
+}
+
 // ─── RENDER ────────────────────────────────────
 window.buildDaily = function () {
   const date = dailyDate();
   const day  = getDay(date);
   const all  = loadDaily();
+
+  buildTodo();
 
   // ── Kalorien-Haken ──
   ["under", "hit", "over"].forEach(st => {
@@ -188,8 +242,6 @@ window.buildDaily = function () {
     }
 
     // ── Erfassungszeit-Kontrolle ──
-    // Die Skala misst nur dann dasselbe, wenn sie im selben Fenster nach dem
-    // Aufstehen erhoben wird. Median + Spannweite machen Drift sichtbar.
     const recent = rateAll.slice(-7).reverse();
     const mins = recent.map(d => stampMinutes(d.ratedAt)).filter(m => m !== null).sort((a, b) => a - b);
     let tHint = "";
@@ -233,6 +285,12 @@ window.buildDaily = function () {
 
 // ─── CSS ───────────────────────────────────────
 const CSS = `
+.dtodo { display: flex; align-items: center; gap: 10px; margin: 18px 20px 0; padding: 13px 16px; border-radius: 11px; border: 1.5px solid var(--text); background: var(--surface); cursor: pointer; }
+.dtodo .dtl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
+.dtodo .dtv { font-size: 13.5px; font-weight: 700; color: var(--text); flex: 1; }
+.dtodo .dta { font-size: 16px; color: var(--muted); flex-shrink: 0; }
+.dtodo.done { border-color: var(--border); border-style: dashed; cursor: default; }
+.dtodo.done .dtv { color: var(--muted); font-weight: 600; text-align: right; }
 .dsec { margin: 12px 20px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 .dsub { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
 .dstates { display: flex; gap: 8px; }
@@ -280,6 +338,7 @@ const CSS = `
 `;
 
 const MARKUP = `
+<div class="dtodo" id="d-todo" onclick="jumpOpen()"></div>
 <div class="dhead first"><div class="dhl">TÄGLICH</div><div class="dhline"></div></div>
 <div class="ddate">
   <label for="d-date">Datum</label>
@@ -331,8 +390,8 @@ function init() {
   const nav = document.getElementById("nav-weight");
   if (nav) nav.textContent = "Werte";
 
-  // Wiegen-Block sitzt jetzt unter dem GEWICHT-Kopf – oberen Abstand rausnehmen
-  // und als Deep-Link-Ziel markieren.
+  // Wiegen-Block sitzt unter dem GEWICHT-Kopf – oberen Abstand rausnehmen
+  // und als Sprungziel markieren.
   const wSec = view.querySelector(".sec");
   if (wSec) { wSec.style.paddingTop = "0"; wSec.id = "d-weightsec"; }
 
@@ -343,6 +402,12 @@ function init() {
       origShow(v);
       if (v === "weight") buildDaily();
     };
+  }
+
+  // saveWeight erweitern – nach dem Wiegen muss das Band nachziehen
+  const origSaveW = window.saveWeight;
+  if (typeof origSaveW === "function") {
+    window.saveWeight = function () { origSaveW.apply(this, arguments); buildTodo(); };
   }
 
   // exportCSV erweitern
@@ -366,7 +431,6 @@ function init() {
         ])
       ].map(r => r.join(",")).join("\n");
 
-      // Original-Export abfangen und Täglich-Sektion anhängen
       const origCreate = URL.createObjectURL;
       URL.createObjectURL = function (blob) {
         URL.createObjectURL = origCreate;
@@ -378,9 +442,26 @@ function init() {
 
   buildDaily();
 
+  // ── Rueckkehr aus dem Hintergrund ──
+  // Der eigentliche Fix: liegt die PWA über Nacht im Hintergrund, zeigt das
+  // Datumsfeld noch gestern – ein Eintrag landete dann am falschen Tag.
+  // Nur weiterstellen, wenn das Feld unverändert auf dem alten Tag stand;
+  // eine bewusste manuelle Auswahl bleibt erhalten.
+  let lastToday = todayStr();
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible") return;
+    const now = todayStr();
+    if (now !== lastToday) {
+      const el = document.getElementById("d-date");
+      if (el && el.value === lastToday) el.value = now;
+      lastToday = now;
+    }
+    buildDaily();
+  });
+
   // ── Deep-Links ──
-  // ?v=stiff | weight | kcal – Ziel für Notifications aus Automate/Tasker.
-  // Ein Tap landet direkt auf der richtigen Sektion, nicht auf der Startansicht.
+  // Nur wirksam bei echtem Seitenaufruf. Holt Android ein bestehendes Fenster
+  // nach vorn, kommt der Parameter nicht an – dafür ist das Band oben da.
   try {
     const TARGETS = { stiff: "d-stiffsec", weight: "d-weightsec", kcal: "d-kcalsec" };
     const id = TARGETS[new URLSearchParams(location.search).get("v")];
