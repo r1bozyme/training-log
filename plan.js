@@ -13,6 +13,11 @@
 //
 // NEU 03.09. – pause:
 //   { secs:n, label:"" } übersteuert PAUSE[typ].
+//
+// SCHRITTWEITEN entsprechen der tatsächlichen Granularität
+// des jeweiligen Geräts. eGym erlaubt 1-kg-Schritte; dort
+// steht bewusst 2 kg, um die Zahl der Mikroanpassungen zu
+// begrenzen. Auf 1 setzen, wenn es feiner laufen soll.
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "September 2026 (Rev. 03.09.)",
@@ -97,10 +102,10 @@ const PLAN = {
       schritte:["Füße schulterbreit, Zehen leicht nach außen (15–30°)","Knie immer in Richtung Zehen – nie einknicken!","Bis ca. 90° Kniewinkel – Rücken bleibt am Sitz","Explosiv drücken, kurz vor voller Streckung stoppen"],
       tipp:"KERNBLOCK – läuft auch an kurzen Tagen. 4×12 @ 130 kg am 17.08. und am 20.08., zweimal die Schwelle getroffen ohne Erhöhung. Knie links: Füße etwas höher auf die Platte." },
     { name:"Beinbeuger", muskel:"Hamstrings (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×8–12 @ 60 kg", zielgewicht:60, ziel:"Summe ≥32 Wdh → 65 kg",
-      progression:{ schwelle:32, schritt:5 }, pause:{ secs:120, label:"120 Sek" },
+      saetze:3, repzone:"10–12", aktuell:"3×8–12 @ 60 kg", zielgewicht:60, ziel:"Summe ≥32 Wdh → 62 kg",
+      progression:{ schwelle:32, schritt:2 }, pause:{ secs:120, label:"120 Sek" },
       schritte:["Oberschenkel fest auf Polsterung – nicht abheben!","Ferse zur Gesäßfalte, oben 1–2 Sek halten","3–4 Sek langsam strecken – Absenkphase ist entscheidend","Pause 120 Sek – bewusst länger als sonst bei Isolation"],
-      tipp:"KERNBLOCK – läuft auch an kurzen Tagen. Grund: Die Beinpresse deckt den Quadrizeps mit ab, die Hamstrings hat sonst nichts. Zuletzt am 13.08., davor nur 4 Einheiten in 4 Wochen – die halbe Frequenz erklärt den Stillstand mit. Satz 1 stieg von 10 auf 12, Satz 3 fiel auf 8: Erholungsproblem, deshalb 120 Sek Pause." },
+      tipp:"KERNBLOCK – läuft auch an kurzen Tagen. Grund: Die Beinpresse deckt den Quadrizeps mit ab, die Hamstrings hat sonst nichts. Zuletzt am 13.08., davor nur 4 Einheiten in 4 Wochen – die halbe Frequenz erklärt den Stillstand mit. Satz 1 stieg von 10 auf 12, Satz 3 fiel auf 8: Erholungsproblem, deshalb 120 Sek Pause. eGym kann 1-kg-Schritte; 2 kg als Kompromiss zwischen feiner Steuerung und ständiger Nachjustierung. Der alte Sprung 55 → 60 kg war mit 9 % zu groß." },
     { name:"Wadenheben (HSR)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:4, repzone:"6–8", aktuell:"3×8 @ 90 kg (Heavy Slow Resistance)", zielgewicht:90, ziel:"90 kg halten – Steuerung über Morgensteifigkeit",
       progression:{ gesperrt:true, grund:"Steuerung läuft über den 7-Tage-Schnitt der Morgensteifigkeit im Werte-Tab. Erst mehrere Tage unter 2 darf die Last hoch." },
@@ -117,10 +122,10 @@ const PLAN = {
       schritte:["Rücken gegen Polsterung, Füße schulterbreit auf dem Boden","Hüfte nach oben drücken bis Körper eine Linie bildet","Oben 1–2 Sek halten – Gesäß maximal anspannen","Kontrolliert runter – Gesäß berührt nicht den Boden"],
       tipp:"ZUSATZBLOCK. Stärkste Progression im Log: 75 → 85 → 90 → 100 kg seit Juli. Bei 100 kg erst 3×10 – hier sauber ausbauen, bevor der nächste Sprung kommt." },
     { name:"Beinstrecker", muskel:"Quadrizeps (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 72 kg", zielgewicht:72, ziel:"Schwelle erreicht → 78 kg",
-      progression:{ schritt:6 },
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 72 kg", zielgewicht:72, ziel:"Schwelle erreicht → 74 kg",
+      progression:{ schritt:2 },
       schritte:["Langsam strecken, oben 1–2 Sek halten und Quad anspannen","3–4 Sek zurück – nie fallen lassen"],
-      tipp:"ZUSATZBLOCK – der Quadrizeps wird an kurzen Tagen von der Beinpresse mitgetragen, deshalb ist das hier die verzichtbare Übung. 3×12 @ 72 kg am 13.08. erreicht, seitdem nicht mehr geloggt. Max 113 kg = viel Potenzial." },
+      tipp:"ZUSATZBLOCK – der Quadrizeps wird an kurzen Tagen von der Beinpresse mitgetragen, deshalb ist das hier die verzichtbare Übung. 3×12 @ 72 kg am 13.08. erreicht, seitdem nicht mehr geloggt. eGym kann 1-kg-Schritte; 2 kg als Kompromiss. Max 113 kg = viel Potenzial." },
     { name:"Hip Abduction", muskel:"Gluteus medius/minimus (seitliches Gesäß)", typ:"isolation",
       saetze:3, repzone:"15–20", aktuell:"3×15 @ 80 kg", zielgewicht:80, ziel:"Summe ≥58 Wdh → 82,5 kg",
       progression:{ schritt:2.5 },
