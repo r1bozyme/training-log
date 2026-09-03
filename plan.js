@@ -1,131 +1,178 @@
 // ═══════════════════════════════════════════════════
-// PLAN DATA – Letzte Aktualisierung: 1. August 2026
+// PLAN DATA – Letzte Aktualisierung: 3. September 2026
 // typ: compound | isolation | core  → bestimmt Pausenzeit
 // Beim Review: aktuell/ziel/zielgewicht von Claude angepasst
+//
+// NEU 03.09. – progression:
+//   {}                          → Default-Schwelle
+//   { schwelle:n, schritt:n }   → eigene Schwelle/Schrittweite
+//   { gesperrt:true, grund:"" } → kein Signal, mit Begründung
+// Default-Schwelle = Sätze × Obergrenze − (Sätze − 1).
+// Auswertung: Summe aller Sätze, nicht "jeder Satz an der
+// Obergrenze". Siehe Kopf von progress.js.
+//
+// NEU 03.09. – pause:
+//   { secs:n, label:"" } übersteuert PAUSE[typ].
 // ═══════════════════════════════════════════════════
 const PLAN = {
-  version: "August 2026 (Rev. 01.08.)",
+  version: "September 2026 (Rev. 03.09.)",
   Push: [
     { name:"Chest Press", muskel:"Brust · Schulter · Trizeps", typ:"compound",
-      saetze:4, repzone:"8–12", aktuell:"4×8–12 @ 55 kg", zielgewicht:55, ziel:"55 kg festigen → 4×12",
-      schritte:["Rücken fest ans Polster – nicht abheben","3 Sek runter, explosiv hoch","Ellenbogen nicht ganz durchstrecken","Brust am engsten Punkt 1 Sek zusammendrücken"],
-      tipp:"52,5 → 55 kg im Juli. Erst 4×12 @ 55 kg sauber, dann 57,5 kg." },
+      saetze:4, repzone:"8–12", aktuell:"4×10 @ 55 kg", zielgewicht:55, ziel:"Summe ≥44 Wdh → 57,5 kg",
+      progression:{ schwelle:44, schritt:2.5 },
+      schritte:["Rücken fest ans Polster – nicht abheben","3 Sek runter, explosiv hoch","Ellenbogen nicht ganz durchstrecken","Brust am engsten Punkt 1 Sek zusammendrücken","Ausgangsposition immer Stufe 2 – Stufe 1 verkürzt den Weg"],
+      tipp:"Seit 25.07. auf 55 kg, Summe bewegt sich nicht: 42 Wdh am 25.07., 42 Wdh am 02.09. Das alte Kriterium 4×12 war für einen Sprung von 4,8 % zu hart. Neue Schwelle 44 – zwei Wiederholungen entfernt. Wenn die Maschine 1,25er kennt, diesen Schritt nehmen und schritt hier auf 1.25 setzen." },
     { name:"Pectoral Fly", muskel:"Brust (Isolation)", typ:"isolation",
-      saetze:3, repzone:"12–15", aktuell:"3×12 @ 57,5 kg", zielgewicht:60, ziel:"→ 60 kg testen",
-      schritte:["Arme immer leicht gebeugt – Ellenbogenschutz!","Langsam zur Mitte, 1–2 Sek halten","Brust aktiv zusammenquetschen","Kontrolliert öffnen bis zur vollen Dehnung"],
-      tipp:"9 Einheiten im Juli ohne Steigerung, 3×12 stabil. Jetzt 60 kg testen – Reps fallen anfangs auf 10." },
+      saetze:3, repzone:"12–15", aktuell:"3×10–13 @ 57,5 kg", zielgewicht:57.5, ziel:"Summe ≥40 Wdh → 60 kg",
+      progression:{ schwelle:40, schritt:2.5 },
+      schritte:["Arme immer leicht gebeugt – Ellenbogenschutz!","Langsam zur Mitte, 1–2 Sek halten","Brust aktiv zusammenquetschen","Kontrolliert öffnen bis zur vollen Dehnung","Einstellung Stufe 2 für mehr Dehnung"],
+      tipp:"Seit 02.07. auf 57,5 kg – neun Wochen, 17 Einheiten, Reps pendeln 9–13. 3×15 wurde nie erreicht und wird es auch nicht: das Tor war zu hoch angesetzt. Schwelle jetzt 40." },
     { name:"Shoulder Press", muskel:"Schulter vorne/mitte · Trizeps", typ:"compound",
-      saetze:3, repzone:"8–12", aktuell:"3×10 @ 30 kg", zielgewicht:30, ziel:"3×12 @ 30 kg festigen",
-      schritte:["Core anspannen, kein Hohlkreuz","Griffe auf Ohrhöhe – drücken bis kurz vor Streckung","Langsam runter, Schultern nicht hochziehen","Backoff: 4. Satz @ 27,5 kg bis zum Versagen"],
-      tipp:"Maschine kennt nur 27,5 oder 30 kg. 27,5 war im Juni bereits 3×12 – zurückgehen wäre ein Rückschritt. 30 kg mit 8–10 Wdh liegt im Zielfenster. Drei Hebel: (1) in jeder zweiten Push-Einheit an erste Position, sonst ist die vordere Schulter durch Chest Press + Fly vorermüdet, (2) 120 Sek Pause statt 90, (3) Backoff-Satz @ 27,5 kg." },
+      saetze:3, repzone:"8–12", aktuell:"3×8–10 @ 32,5 kg", zielgewicht:32.5, ziel:"Summe ≥34 Wdh → 35 kg",
+      progression:{ schritt:2.5 },
+      schritte:["Core anspannen, kein Hohlkreuz","Griffe auf Ohrhöhe – drücken bis kurz vor Streckung","Langsam runter, Schultern nicht hochziehen","Backoff: 4. Satz @ 30 kg bis zum Versagen"],
+      tipp:"30 → 32,5 kg am 21.08. nach 3×12–14. Zuletzt 8/10/8 = 26 Wdh – normale Anpassungsphase nach einem Sprung. In jeder zweiten Push-Einheit an erste Position, sonst ist die vordere Schulter durch Chest Press und Fly vorermüdet." },
     { name:"Triceps Press", muskel:"Trizeps (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 95 kg", zielgewicht:null, ziel:"Einstellung prüfen – nicht erhöhen",
-      schritte:["Aufrecht sitzen, Rücken fest ans Polster","Griffe auf Schulterhöhe, Ellenbogen nah am Körper","Explosiv drücken bis zur vollen Streckung – Trizeps anspannen","3 Sek zurück – kontrolliert, nicht fallen lassen"],
-      tipp:"80 → 95 kg in vier Wochen bei durchgehend 3×12 ist als reiner Kraftzuwachs unplausibel. Vor der nächsten Einheit Sitz- und Hebeleinstellung prüfen und notieren, sonst ist die Zahl keine Vergleichsgröße mehr." },
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 95 kg", zielgewicht:95, ziel:"Schwelle erreicht → 97,5 kg",
+      progression:{ schritt:2.5 },
+      schritte:["Aufrecht sitzen, Rücken fest ans Polster","Sitzhöhe Stufe 3 – seit 21.08. fest dokumentiert","Griffe auf Schulterhöhe, Ellenbogen nah am Körper","Explosiv drücken bis zur vollen Streckung – Trizeps anspannen","3 Sek zurück – kontrolliert, nicht fallen lassen"],
+      tipp:"Die Einstellungsfrage aus dem Juli ist geklärt: Sitzhöhe Stufe 3 steht seit 21.08. in der Notiz, damit ist die Zahl wieder eine Vergleichsgröße. Seit 29.07. durchgehend 3×12 auf 95 kg – überfällig." },
     { name:"Rear Delt Fly", muskel:"Hintere Schulter · Rhomboiden", typ:"isolation",
-      saetze:3, repzone:"12–15", aktuell:"3×12 @ 55 kg", zielgewicht:55, ziel:"55 kg festigen → 3×12–15",
-      schritte:["Sitz umdrehen oder Reverse-Modus","Arme leicht gebeugt, Schulterblätter zusammenziehen","Langsam und kontrolliert – kein Schwung"],
-      tipp:"Wichtig für Schulterbalance und Haltung." },
+      saetze:3, repzone:"12–15", aktuell:"3×11–14 @ 55 kg", zielgewicht:55, ziel:"Summe ≥40 Wdh → 57,5 kg",
+      progression:{ schwelle:40, schritt:2.5 }, pause:{ secs:120, label:"120 Sek" },
+      schritte:["Sitz umdrehen oder Reverse-Modus","Arme leicht gebeugt, Schulterblätter zusammenziehen","Langsam und kontrolliert – kein Schwung","Pause 120 Sek – bewusst länger als sonst bei Isolation"],
+      tipp:"Seit 10.07. auf 55 kg, aber Satz 1 ist von 11 auf 14 Wdh gestiegen. Der Einbruch sitzt in Satz 2 und 3 (auf 9–11) – das ist ein Erholungs-, kein Kraftproblem. Deshalb 120 Sek Pause statt 60–90." },
     { name:"Lateral Raise", muskel:"Mittlere Schulter", typ:"isolation",
       saetze:3, repzone:"12–15", aktuell:"3×8 @ 7,5–8 kg (links schmerzhaft)", zielgewicht:null, ziel:"Nicht forcieren – erst 3×12 schmerzfrei",
+      progression:{ gesperrt:true, grund:"Links weiter gereizt. Erst 3×12 schmerzfrei, dann wieder Progression." },
       schritte:["Arme seitlich bis Schulterhöhe heben","Leicht gebeugte Ellenbogen, Daumen leicht nach unten"],
       tipp:"Links weiter gereizt trotz Manschette – nicht forcieren. Erst wenn 3×12 schmerzfrei laufen, wieder aufbauen." },
     { name:"Wadenheben (HSR-Block)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
-      saetze:3, repzone:"6–8", aktuell:"3×8 @ 90 kg", zielgewicht:90, ziel:"Frequenzblock – kein eigenes Progressionsziel",
+      saetze:3, repzone:"6–8", aktuell:"3×7 @ 80 kg", zielgewicht:80, ziel:"Frequenzblock – kein eigenes Progressionsziel",
+      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen." },
       schritte:["3 Sek runter, am tiefsten Punkt direkt umkehren","3 Sek hoch, volle Streckung","Kein Halten unten, kein Abfedern"],
-      tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche), nicht Volumen – Sehnenadaptation braucht wiederholte Reize. Steigerung nur am Legs-Tag entscheiden, hier immer das dort gültige Gewicht verwenden." }
+      tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche), nicht Volumen – Sehnenadaptation braucht wiederholte Reize. Steigerung nur am Legs-Tag entscheiden." }
   ],
   Pull: [
     { name:"Latzug", muskel:"Latissimus · Bizeps", typ:"compound",
-      saetze:4, repzone:"8–12", aktuell:"3×12 @ 80 kg", zielgewicht:80, ziel:"80 kg festigen – 24-h-Reaktion beobachten",
-      schritte:["Griff breiter als Schultern (Obergriff)","Stange zur oberen Brust – Ellenbogen nach unten/hinten","Brust nach vorne öffnen – nicht zurückschaukeln!","Latissimus am Ende 1 Sek zusammenziehen","Kontrolliert hoch – volle Streckung"],
-      tipp:"Freigegeben am 30.07. Bedingung: Daumen NICHT in den Griff einschlagen (Vier-Finger-Griff). Läuft seit 10.07. wieder, 70 → 80 kg. Steuerung über die 24-Stunden-Reaktion, nicht über das Gefühl während der Einheit – die Injektion vom 20.07. kann Schmerzsignale noch maskieren." },
+      saetze:3, repzone:"8–12", aktuell:"3×12 @ 80 kg", zielgewicht:80, ziel:"Eine reaktionsfreie Einheit mit Zughilfen → 85 kg",
+      progression:{ gesperrt:true, grund:"Zughilfen seit 02.09. neu im Spiel. Erst eine Einheit ohne 24-h-Reaktion rechts, dann 85 kg – sonst ist eine Reaktion nicht zuordenbar." },
+      schritte:["Griff breiter als Schultern (Obergriff)","Zughilfen verwenden – Griffkraft ist nicht der Zielmuskel","Stange zur oberen Brust – Ellenbogen nach unten/hinten","Brust nach vorne öffnen – nicht zurückschaukeln!","Latissimus am Ende 1 Sek zusammenziehen"],
+      tipp:"3×12 @ 80 kg in sieben Einheiten seit 25.07. – die Lat-Kraft ist längst für 85 kg da, der Griff war der Begrenzer. Zughilfen seit 02.09. Steuerung weiter über die 24-Stunden-Reaktion, nicht über das Gefühl während der Einheit. Daumen NICHT einschlagen (Vier-Finger-Griff, links De Quervain)." },
     { name:"Ruderzug", muskel:"Mittlerer Rücken · Trapezius · Bizeps", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"Im Juli nicht trainiert", zielgewicht:35, ziel:"Wiedereinstieg 3×12 @ ~35 kg",
+      saetze:3, repzone:"10–12", aktuell:"3×12–13 @ 45 kg", zielgewicht:45, ziel:"Schwelle erreicht → 50 kg",
+      progression:{ schritt:5 },
       schritte:["Aufrecht sitzen – nicht nach hinten lehnen!","Griff zur Brust-/Bauchmitte – Ellenbogen nah am Körper","Schulterblätter am Ende 1–2 Sek zusammendrücken","Kontrolliert zurück"],
-      tipp:"Freigegeben am 30.07., Vier-Finger-Griff. Als einzige Übung im Juli komplett ausgefallen – konservativ bei ~35 kg einsteigen, langsame Exzentrik, dann in 5-kg-Schritten nach 24-h-Reaktion." },
+      tipp:"Wiedereinstieg am 15.08. direkt mit 12/12/13 @ 45 kg – deutlich über dem konservativen Plan von 35 kg. Seitdem nicht mehr geloggt. Zurück in die feste Rotation, Vier-Finger-Griff." },
     { name:"Straight Arm Pulldown", muskel:"Latissimus (kein Grip)", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"3×12–13 @ 28,75 kg", zielgewicht:28.75, ziel:"28,75 kg festigen, 3×12 sauber",
+      saetze:3, repzone:"10–12", aktuell:"3×11–12 @ 28,75 kg", zielgewicht:28.75, ziel:"Schwelle erreicht → 30 kg",
+      progression:{ schritt:1.25 },
       schritte:["Kabelzug, Seil oder gerade Stange auf Augenhöhe","Arme gestreckt – Stange/Seil mit gestreckten Armen nach unten/hinten drücken","Latissimus am Ende zusammenziehen","Keine Ellenbogenbeugung – das ist der Trick"],
-      tipp:"32,5 kg am 23.07. war zu schwer (8/5/5). Bei 28,75 kg bleiben. Kein Grip nötig – Open-Hand oder Seil. Bleibt als Ergänzung im Plan, auch jetzt wo Latzug wieder läuft." },
+      tipp:"32,5 kg am 23.07. war zu schwer (8/5/5). Der Weg führt über 30 kg, nicht über 32,5. Kein Grip nötig – Open-Hand oder Seil." },
     { name:"Dual Pulley Roll", muskel:"Latissimus · Rumpfstabilität", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"3×8–10 @ 35 kg", zielgewicht:35, ziel:"35 kg festigen → 3×12",
+      saetze:3, repzone:"10–12", aktuell:"3×8–10 @ 35 kg", zielgewicht:35, ziel:"Summe ≥34 Wdh → 37,5 kg",
+      progression:{ schritt:2.5 },
       schritte:["Zwei Kabelzüge auf Schulterhöhe, je eine Umlenkrolle","Einen nach dem anderen nach unten ziehen – alternierend","Rumpf stabil halten, nicht schaukeln","Kontrollierte Bewegung, Lat aktiviert halten"],
-      tipp:"Am 29.07. auf 8/8/10 gefallen – nicht erhöhen, erst 3×12 @ 35 kg sauber." },
+      tipp:"Am 29.07. auf 8/8/10 gefallen, seitdem nur noch bei 30 kg geloggt. Wieder bei 35 kg ansetzen." },
     { name:"Bizepscurl", muskel:"Bizeps (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×8–12 @ 21 kg", zielgewicht:21, ziel:"21 kg festigen → 3×12",
+      saetze:3, repzone:"10–12", aktuell:"3×6–12 @ 25 kg", zielgewicht:25, ziel:"Summe ≥34 Wdh → 27 kg",
+      progression:{ schritt:2 },
       schritte:["Oberarme fixiert – nur Unterarme bewegen","Ganz unten strecken, oben 1 Sek halten","3–4 Sek absenken = mehr Muskelreiz","Kein Rückenschwung!"],
-      tipp:"Freigegeben am 30.07., aber nur Maschine/Kabel und ohne Daumen im Griff. Am 29.07. auf 10/9/7 gefallen – nicht erhöhen, erst 3×12 @ 21 kg sauber." },
+      tipp:"21 → 23 → 25 kg im August, saubere Linie. Zuletzt 12/11/6 – der letzte Satz bricht weg, weil der Curl am Ende der Einheit liegt. An den Anfang ziehen, wie am 21.08. notiert. Nur Maschine/Kabel, Daumen nicht im Griff. Der Eintrag mit 55 kg am 21.08. war ein anderes Gerät und zählt nicht mit." },
     { name:"Face Pulls", muskel:"Hintere Schulter · Rotatorenmanschette", typ:"isolation",
-      saetze:3, repzone:"15", aktuell:"3×12–15 @ 21,25 kg", zielgewicht:null, ziel:"3×15, Tempo halten",
+      saetze:3, repzone:"15", aktuell:"3×12 @ 21,25 kg", zielgewicht:21.25, ziel:"Summe ≥43 Wdh → 22,5 kg",
+      progression:{ schritt:1.25 },
       schritte:["Kabelzug mit Seilaufsatz auf Augenhöhe","Seil zur Stirn – Ellenbogen nach außen/oben"],
-      tipp:"Schützt das Schultergelenk langfristig." },
+      tipp:"Schützt das Schultergelenk langfristig. Seit 29.07. nicht mehr geloggt – gehört zurück in die feste Pull-Rotation." },
     { name:"Wadenheben (HSR-Block)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
-      saetze:3, repzone:"6–8", aktuell:"3×8 @ 90 kg", zielgewicht:90, ziel:"Frequenzblock – kein eigenes Progressionsziel",
+      saetze:3, repzone:"6–8", aktuell:"3×7 @ 80 kg", zielgewicht:80, ziel:"Frequenzblock – kein eigenes Progressionsziel",
+      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen." },
       schritte:["3 Sek runter, am tiefsten Punkt direkt umkehren","3 Sek hoch, volle Streckung","Kein Halten unten, kein Abfedern"],
-      tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche), nicht Volumen – Sehnenadaptation braucht wiederholte Reize. Steigerung nur am Legs-Tag entscheiden, hier immer das dort gültige Gewicht verwenden." }
+      tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche), nicht Volumen – Sehnenadaptation braucht wiederholte Reize. Steigerung nur am Legs-Tag entscheiden." }
   ],
   Legs: [
-    { name:"Rückenstrecker", muskel:"Erector spinae (unterer Rücken)", typ:"isolation",
-      saetze:3, repzone:"12–15", aktuell:"3×15 @ 10–15 kg", zielgewicht:20, ziel:"15 kg festigen → 20 kg",
-      schritte:["Aufrecht in die Maschine, Rücken flach anlegen","Langsam nach vorne beugen – volle Dehnung spüren","Kontrolliert zurückstrecken bis zur aufrechten Position","Keine Überstreckung am Ende – Spannung halten"],
-      tipp:"Feste erste Position der Einheit – im Juli nicht geloggt. Warm-up für die Wirbelsäule und Verletzungsschutz bei allen Beinübungen." },
     { name:"Beinpresse", muskel:"Quadrizeps · Gesäß · Hamstrings", typ:"compound",
-      saetze:4, repzone:"8–12", aktuell:"4×11–12 @ 130 kg", zielgewicht:130, ziel:"130 kg festigen → 4×12",
+      saetze:4, repzone:"8–12", aktuell:"4×12 @ 130 kg", zielgewicht:130, ziel:"Schwelle erreicht → 135 kg",
+      progression:{ schritt:5 },
       schritte:["Füße schulterbreit, Zehen leicht nach außen (15–30°)","Knie immer in Richtung Zehen – nie einknicken!","Bis ca. 90° Kniewinkel – Rücken bleibt am Sitz","Explosiv drücken, kurz vor voller Streckung stoppen"],
-      tipp:"Knie links: Füße etwas höher auf die Platte stellen." },
-    { name:"Hip Thrust", muskel:"Gluteus maximus (großer Gesäßmuskel)", typ:"compound",
-      saetze:3, repzone:"10–12", aktuell:"3×12 @ 85 kg", zielgewicht:90, ziel:"→ 90 kg",
-      schritte:["Rücken gegen Polsterung, Füße schulterbreit auf dem Boden","Hüfte nach oben drücken bis Körper eine Linie bildet","Oben 1–2 Sek halten – Gesäß maximal anspannen","Kontrolliert runter – Gesäß berührt nicht den Boden"],
-      tipp:"Falls kein Hip Thrust Gerät: Beinpresse mit Füßen sehr hoch und weit außen auf der Platte als Alternative – deutlich mehr Gluteus maximus Aktivierung." },
-    { name:"Beinstrecker", muskel:"Quadrizeps (Isolation)", typ:"isolation",
-      saetze:3, repzone:"10–12", aktuell:"3×11–12 @ 72 kg", zielgewicht:72, ziel:"72 kg festigen → 3×12",
-      schritte:["Langsam strecken, oben 1–2 Sek halten und Quad anspannen","3–4 Sek zurück – nie fallen lassen"],
-      tipp:"Max 113 kg = viel Potenzial. Bei Kniebeschwerden → Beinpresse statt." },
+      tipp:"KERNBLOCK – läuft auch an kurzen Tagen. 4×12 @ 130 kg am 17.08. und am 20.08., zweimal die Schwelle getroffen ohne Erhöhung. Knie links: Füße etwas höher auf die Platte." },
     { name:"Beinbeuger", muskel:"Hamstrings (Isolation)", typ:"isolation",
-      saetze:3, repzone:"12", aktuell:"3×8–11 @ 60 kg", zielgewicht:60, ziel:"60 kg festigen → 3×12",
-      schritte:["Oberschenkel fest auf Polsterung – nicht abheben!","Ferse zur Gesäßfalte, oben 1–2 Sek halten","3–4 Sek langsam strecken – Absenkphase ist entscheidend"],
-      tipp:"50 → 60 kg im Juli, zuletzt 11/10/8. Nicht erhöhen, erst 3×12 @ 60 kg. Langsame Absenkphase bringt mehr Reiz als die Aufwärtsbewegung." },
-    { name:"Hip Abduction", muskel:"Gluteus medius/minimus (seitliches Gesäß)", typ:"isolation",
-      saetze:3, repzone:"15–20", aktuell:"3×15 @ 80 kg", zielgewicht:82.5, ziel:"→ 82,5 kg",
-      schritte:["Aufrecht sitzen, Core angespannt","Beine langsam nach außen – Endpunkt 1–2 Sek halten","Kontrolliert zurück – nicht einfedern","Direkt weiter zur Adduktion, ohne Pause"],
-      tipp:"Als Superset mit Hip Adduktion ohne Pause dazwischen – Agonist und Antagonist behindern sich nicht, spart 4–5 Min bei gleichem Reiz. Im Juli aus Zeitgründen ausgefallen." },
-    { name:"Hip Adduktion", muskel:"Adduktoren (Innenseite Oberschenkel)", typ:"isolation",
-      saetze:3, repzone:"15–20", aktuell:"3×20 @ 80 kg", zielgewicht:85, ziel:"→ 85 kg",
-      schritte:["Aufrecht sitzen, Beine außen in die Polster","Beine kontrolliert nach innen zusammenführen","Am engsten Punkt 1–2 Sek halten","Langsam öffnen – nicht einfedern lassen"],
-      tipp:"Zweiter Teil des Supersets mit Hip Abduction. Pause erst nach beiden Übungen. Wichtig für Kniestabilität." },
+      saetze:3, repzone:"10–12", aktuell:"3×8–12 @ 60 kg", zielgewicht:60, ziel:"Summe ≥32 Wdh → 65 kg",
+      progression:{ schwelle:32, schritt:5 }, pause:{ secs:120, label:"120 Sek" },
+      schritte:["Oberschenkel fest auf Polsterung – nicht abheben!","Ferse zur Gesäßfalte, oben 1–2 Sek halten","3–4 Sek langsam strecken – Absenkphase ist entscheidend","Pause 120 Sek – bewusst länger als sonst bei Isolation"],
+      tipp:"KERNBLOCK – läuft auch an kurzen Tagen. Grund: Die Beinpresse deckt den Quadrizeps mit ab, die Hamstrings hat sonst nichts. Zuletzt am 13.08., davor nur 4 Einheiten in 4 Wochen – die halbe Frequenz erklärt den Stillstand mit. Satz 1 stieg von 10 auf 12, Satz 3 fiel auf 8: Erholungsproblem, deshalb 120 Sek Pause." },
     { name:"Wadenheben (HSR)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
-      saetze:4, repzone:"6–8", aktuell:"3×8 @ 90 kg (Heavy Slow Resistance)", zielgewicht:90, ziel:"90 kg festigen, 4×8 – Steuerung über Morgensteifigkeit",
+      saetze:4, repzone:"6–8", aktuell:"3×8 @ 90 kg (Heavy Slow Resistance)", zielgewicht:90, ziel:"90 kg halten – Steuerung über Morgensteifigkeit",
+      progression:{ gesperrt:true, grund:"Steuerung läuft über den 7-Tage-Schnitt der Morgensteifigkeit im Werte-Tab. Erst mehrere Tage unter 2 darf die Last hoch." },
       schritte:["Nur Vorderfuß auf der Platte – Ferse hängt frei","3 Sek kontrolliert runter bis zur vollen Dehnung","Am tiefsten Punkt NICHT halten – direkt umkehren, ohne Abfedern","3 Sek hoch bis zur vollen Streckung","Volle ROM (Midportion-Tendinopathie – keine Einschränkung nötig)"],
-      tipp:"Umstellung 01.08. wegen Achillessehnen-Tendinopathie (Midportion). Statt 3×20 @ 130 kg jetzt 3–4×6–8 @ 90 kg mit 3/3-Tempo – Sehnen adaptieren auf Zeit unter Spannung und Last, nicht auf Wiederholungszahl. 3×/Woche: am Legs-Tag plus als kurzer Block am Ende der Push+Pull-Einheiten. Steuerung: Morgensteifigkeit täglich in Minuten im Gewicht-Tab eintragen. Gleich oder fallend = Last passt. Steigend = letzte Einheit zurücknehmen. Unter 10 Min über mehrere Tage = Last darf hoch. Rückkehr zu höherem Volumen erst nach 4–6 Wochen stabiler Werte – und dann über Last, nicht über Wiederholungen." },
+      tipp:"KERNBLOCK – läuft auch an kurzen Tagen. Der 7-Tage-Schnitt der Morgensteifigkeit fällt seit Anfang August monoton: 3,6 → 3,3 → 2,9 → 2,6. Die Last passt, aber noch nicht dauerhaft unter 2 – 90 kg bleiben. Reassessment-Fenster 10.09. bis 24.09.; fällt der Schnitt weiter, entfällt die Sonographie-Frage." },
+    { name:"Rückenstrecker", muskel:"Erector spinae (unterer Rücken)", typ:"isolation",
+      saetze:3, repzone:"12–15", aktuell:"3×15 @ 10 kg", zielgewicht:10, ziel:"Summe ≥43 Wdh → 15 kg",
+      progression:{ schritt:5 },
+      schritte:["Aufrecht in die Maschine, Rücken flach anlegen","Langsam nach vorne beugen – volle Dehnung spüren","Kontrolliert zurückstrecken bis zur aufrechten Position","Keine Überstreckung am Ende – Spannung halten"],
+      tipp:"ZUSATZBLOCK. Wenn Zeit ist: erste Position der Einheit, Warm-up für die Wirbelsäule." },
+    { name:"Hip Thrust", muskel:"Gluteus maximus (großer Gesäßmuskel)", typ:"compound",
+      saetze:3, repzone:"10–12", aktuell:"3×10 @ 100 kg", zielgewicht:100, ziel:"Summe ≥34 Wdh → 105 kg",
+      progression:{ schritt:5 },
+      schritte:["Rücken gegen Polsterung, Füße schulterbreit auf dem Boden","Hüfte nach oben drücken bis Körper eine Linie bildet","Oben 1–2 Sek halten – Gesäß maximal anspannen","Kontrolliert runter – Gesäß berührt nicht den Boden"],
+      tipp:"ZUSATZBLOCK. Stärkste Progression im Log: 75 → 85 → 90 → 100 kg seit Juli. Bei 100 kg erst 3×10 – hier sauber ausbauen, bevor der nächste Sprung kommt." },
+    { name:"Beinstrecker", muskel:"Quadrizeps (Isolation)", typ:"isolation",
+      saetze:3, repzone:"10–12", aktuell:"3×12 @ 72 kg", zielgewicht:72, ziel:"Schwelle erreicht → 78 kg",
+      progression:{ schritt:6 },
+      schritte:["Langsam strecken, oben 1–2 Sek halten und Quad anspannen","3–4 Sek zurück – nie fallen lassen"],
+      tipp:"ZUSATZBLOCK – der Quadrizeps wird an kurzen Tagen von der Beinpresse mitgetragen, deshalb ist das hier die verzichtbare Übung. 3×12 @ 72 kg am 13.08. erreicht, seitdem nicht mehr geloggt. Max 113 kg = viel Potenzial." },
+    { name:"Hip Abduction", muskel:"Gluteus medius/minimus (seitliches Gesäß)", typ:"isolation",
+      saetze:3, repzone:"15–20", aktuell:"3×15 @ 80 kg", zielgewicht:80, ziel:"Summe ≥58 Wdh → 82,5 kg",
+      progression:{ schritt:2.5 },
+      schritte:["Aufrecht sitzen, Core angespannt","Beine langsam nach außen – Endpunkt 1–2 Sek halten","Kontrolliert zurück – nicht einfedern","Direkt weiter zur Adduktion, ohne Pause"],
+      tipp:"ZUSATZBLOCK. Als Superset mit Hip Adduktion ohne Pause dazwischen – Agonist und Antagonist behindern sich nicht, spart 4–5 Min bei gleichem Reiz. Seit 15.06. nicht mehr geloggt." },
+    { name:"Hip Adduktion", muskel:"Adduktoren (Innenseite Oberschenkel)", typ:"isolation",
+      saetze:3, repzone:"15–20", aktuell:"3×15–20 @ 80 kg", zielgewicht:80, ziel:"Summe ≥58 Wdh → 85 kg",
+      progression:{ schritt:5 },
+      schritte:["Aufrecht sitzen, Beine außen in die Polster","Beine kontrolliert nach innen zusammenführen","Am engsten Punkt 1–2 Sek halten","Langsam öffnen – nicht einfedern lassen"],
+      tipp:"ZUSATZBLOCK. Zweiter Teil des Supersets mit Hip Abduction. Pause erst nach beiden Übungen. Wichtig für Kniestabilität." },
     { name:"Bauch gerade", muskel:"Rectus abdominis", typ:"core",
-      saetze:3, repzone:"15–20", aktuell:"3×13–20 @ 53 kg (Reps schwanken)", zielgewicht:55, ziel:"3×15–20 @ 53 kg festigen → 55 kg",
+      saetze:3, repzone:"15–20", aktuell:"3×17–20 @ 55 kg", zielgewicht:55, ziel:"Summe ≥58 Wdh → 57 kg",
+      progression:{ schritt:2 },
       schritte:["Bauchmuskeln aktiv zusammenziehen – nicht mit dem Rücken drücken","Langsam, kontrolliert, oben 1 Sek halten"],
-      tipp:"Reps schwanken noch – erst 3×15–20 @ 53 kg festigen, dann 55 kg. Max ist 70 kg." },
-    { name:"Reverse Crunches", muskel:"Untere Bauchmuskeln", typ:"core",
-      saetze:3, repzone:"15–20", aktuell:"3×15–20 @ Bodyweight", zielgewicht:null, ziel:"3×20 gefestigt – ggf. leichte Zusatzlast",
-      schritte:["Captain's Chair: Unterarme auf die Polster, Rücken an die Rücklehne","Beine hängen lassen – Knie leicht gebeugt","Knie kontrolliert zur Brust ziehen – Hüfte rollt leicht nach oben","Langsam absenken – volle Streckung, Spannung halten"],
-      tipp:"Captain's Chair seit 30.07. wieder freigegeben – Boden oder Captain's Chair, freie Wahl. Am Captain's Chair Unterarme belasten, nicht die Hände (De Quervain). Kein Schwung – Bewegung kommt aus dem Bauch." },
-    { name:"Bauch seitlich", muskel:"Obliques", typ:"core",
-      saetze:3, repzone:"20–24", aktuell:"Ersetzt durch Oblique Crunch (Hammer Strength)", zielgewicht:null, ziel:"Nur noch als Fallback, wenn HS-Maschine belegt",
-      schritte:["Abwechselnd links/rechts – 4 Sek pro Seite","Bewegung aus dem Rumpf, nicht aus den Schultern"],
-      tipp:"Seit Juli durch die Hammer-Strength-Maschine ersetzt – dort ist Progression über das Maschinenmaximum hinaus möglich. Nur noch Fallback." },
+      tipp:"ZUSATZBLOCK. 53 → 55 kg am 17.08., direkt 20/18/17. Max ist 70 kg." },
     { name:"Oblique Crunch (Hammer Strength)", muskel:"Obliques · Rectus abdominis", typ:"core",
-      saetze:3, repzone:"12–15", aktuell:"3×15–20 @ 12,5 kg", zielgewicht:15, ziel:"→ 15 kg",
+      saetze:3, repzone:"12–15", aktuell:"3×15 je Seite @ 15 kg", zielgewicht:15, ziel:"Schwelle erreicht → 17,5 kg",
+      progression:{ schritt:2.5 },
       schritte:["Seitlich einstellen – Schulterpolster fest anlegen","Rumpf diagonal einrollen – Schulter Richtung gegenüberliegender Hüfte","Am tiefsten Punkt 1 Sek halten, Obliques aktiv anspannen","Langsam zurück – Spannung halten, nicht zurückfallen lassen","Seite wechseln – beide Seiten gleiche Wiederholungszahl"],
-      tipp:"Plate-loaded = Progression über Stufe 12 hinaus möglich. Kraft kommt aus dem Rumpf, nicht aus den Armen – Hände nur locker anlegen, Handgelenk neutral halten (De Quervain). Links mit weniger Gewicht starten, falls nötig." }
+      tipp:"ZUSATZBLOCK. Am 20.08. selbst mit „↑ Erhöhen\" markiert und danach nicht erhöht – genau die Lücke, die das automatische Signal ab jetzt schließt. Kraft kommt aus dem Rumpf, nicht aus den Armen – Handgelenk neutral (De Quervain)." },
+    { name:"Reverse Crunches", muskel:"Untere Bauchmuskeln", typ:"core",
+      saetze:3, repzone:"15–20", aktuell:"3×18 @ Bodyweight", zielgewicht:null, ziel:"3×20 gefestigt – ggf. leichte Zusatzlast",
+      progression:{ gesperrt:true, grund:"Bodyweight – Progression läuft über Tempo und Wiederholungen, nicht über die Last." },
+      schritte:["Captain's Chair: Unterarme auf die Polster, Rücken an die Rücklehne","Beine hängen lassen – Knie leicht gebeugt","Knie kontrolliert zur Brust ziehen – Hüfte rollt leicht nach oben","Langsam absenken – volle Streckung, Spannung halten"],
+      tipp:"ZUSATZBLOCK. Am Captain's Chair Unterarme belasten, nicht die Hände (De Quervain). Kein Schwung – Bewegung kommt aus dem Bauch." },
+    { name:"Bauch seitlich", muskel:"Obliques", typ:"core",
+      saetze:3, repzone:"20–24", aktuell:"Ersetzt durch Oblique Crunch (Hammer Strength)", zielgewicht:null, ziel:"Nur noch Fallback, wenn HS-Maschine belegt",
+      progression:{ gesperrt:true, grund:"Nur noch Fallback. Progression läuft über die Hammer-Strength-Maschine." },
+      schritte:["Abwechselnd links/rechts – 4 Sek pro Seite","Bewegung aus dem Rumpf, nicht aus den Schultern"],
+      tipp:"Maschinenmaximum ist Stufe 12 – dort ist keine Progression mehr möglich. Deshalb nur noch Fallback." }
   ]
 };
 
 // PAUSE bleibt in index.html – hier nur die Plan-Daten.
+// Übungen mit eigenem pause-Feld übersteuern PAUSE[typ] (siehe progress.js).
 
-// Lädt die Zusatzmodule nach (daily.js = Kalorien/Steifigkeit, sync.js = GitHub-Backup).
+// LEGS-ROTATION (03.09.):
+// Kernblock = Beinpresse, Beinbeuger, Wadenheben (HSR). Läuft immer,
+// auch an kurzen Tagen vor der Arbeit – etwa 25–30 Min.
+// Zusatzblock = alles Weitere, nur wenn die lange Einheit passt.
+// Begründung: Der Quadrizeps wird von der Beinpresse mitgetragen, die
+// Hamstrings hatten in der bisherigen Rotation nur ~1×/Woche Reiz.
+
+// Lädt die Zusatzmodule nach (daily.js = Kalorien/Steifigkeit,
+// sync.js = GitHub-Backup, progress.js = Erhöhungs-Signal).
 // Liegt hier, weil GitHub keine Teil-Updates erlaubt und index.html dadurch
 // unangetastet bleibt. async=false erzwingt die Ausführungsreihenfolge –
 // sync.js muss nach daily.js laufen, damit es showView/exportCSV aussen umschliesst.
+// progress.js zuletzt: es umschliesst refreshHint/renderLog/saveEntry.
 // Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
 // und diesen Block entfernen.
-["daily.js", "sync.js"].forEach(function (src) {
+["daily.js", "sync.js", "progress.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;
