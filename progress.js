@@ -1,36 +1,57 @@
 // ═══════════════════════════════════════════════════
-// PROGRESS – Automatisches Erhöhungs-Signal
+// PROGRESS – Erhöhungs-Signal + Pausentimer
 // Stand: 3. September 2026
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
+// Übernimmt zwei Aufgaben:
+//   1. Automatisches Erhöhungs-Signal (Summenkriterium)
+//   2. Pausentimer – eigene Pausenzeiten und Signalton
 //
-// WARUM:
+// ── 1. ERHÖHUNGS-SIGNAL ────────────────────────────
 // Die bisherige Regel "alle Sätze an der Obergrenze"
 // ist ein hartes Tor. Chest Press, Pectoral Fly, Rear
 // Delt Fly und Beinbeuger standen dadurch 6–9 Wochen
 // still, obwohl Satz 1 messbar besser wurde – der
 // Einbruch in Satz 2/3 hat das Signal blockiert.
 //
-// NEUE REGEL:
-// Summe aller Sätze gegen eine Schwelle. Ein schwacher
-// letzter Satz lässt sich durch einen starken ersten
-// ausgleichen. Die Schwelle steht pro Übung in plan.js
-// und wird beim Review angepasst.
+// NEUE REGEL: Summe aller Sätze gegen eine Schwelle.
+// Ein schwacher letzter Satz lässt sich durch einen
+// starken ersten ausgleichen. Die Schwelle steht pro
+// Übung in plan.js und wird beim Review angepasst.
 //
-// Default-Schwelle = Sätze × Obergrenze − (Sätze − 1),
-// also ein Puffer von einer Wiederholung je Zusatzsatz.
+// Default-Schwelle = Sätze × Obergrenze − (Sätze − 1).
 //
-// GERÄTEFILTER:
-// Nur Einträge mit exakt dem Plan-Gewicht zählen. Das
-// filtert Fremdgeräte automatisch heraus – Latzug 50 kg
-// an der LifeFitness, Bizepscurl 55 kg am 21.08. – ohne
-// dass Notizen ausgewertet werden müssen.
+// GERÄTEFILTER: Nur Einträge mit exakt dem Plan-Gewicht
+// zählen. Das filtert Fremdgeräte automatisch heraus –
+// Latzug 50 kg an der LifeFitness, Bizepscurl 55 kg am
+// 21.08. – ohne dass Notizen ausgewertet werden müssen.
 //
-// UNVOLLSTÄNDIGE EINHEITEN:
-// Weniger geloggte Sätze als geplant = zählt nicht.
-// 14/7 aus zwei Sätzen ist keine Vergleichsgröße zu
-// 14/13/11 aus drei. Sonst würde ein Abbruch als
-// Rückschritt gelesen.
+// UNVOLLSTÄNDIGE EINHEITEN: Weniger geloggte Sätze als
+// geplant = zählt nicht. 14/7 aus zwei Sätzen ist keine
+// Vergleichsgröße zu 14/13/11 aus drei.
+//
+// ── 2. TIMER ───────────────────────────────────────
+// setTimerDefaults und startTimer werden ersetzt, damit
+// Übungen eigene Pausenzeiten mitbringen können (Rear
+// Delt Fly und Beinbeuger: 120 Sek).
+//
+// SIGNALTON (NEU 03.09.): Der Ton wird NICHT aus dem
+// Intervall heraus abgespielt. Chrome drosselt Timer in
+// nicht sichtbaren Tabs auf ~1×/Minute – ein Ton von dort
+// käme zu spät oder gar nicht. Stattdessen werden die
+// Oszillatoren beim Start des Timers auf der Web-Audio-Uhr
+// vorgemerkt (osc.start(ctx.currentTime + n)). Diese Uhr
+// läuft in der Audio-Hardware und wird nicht gedrosselt.
+//
+// Der Countdown selbst rechnet jetzt gegen einen Endzeit-
+// stempel statt zu dekrementieren. Ein gedrosselter Tab
+// zeigt nach der Rückkehr sofort den richtigen Wert, statt
+// die verlorenen Sekunden mitzuschleppen.
+//
+// GRENZEN: Verwirft Chrome den Tab komplett (Android bei
+// Speicherdruck), ist auch die Audio-Uhr weg. Dagegen hilft
+// nur ein Service Worker mit Notification – dafür bräuchte
+// die App eine Registrierung, die sie nicht hat.
 // ═══════════════════════════════════════════════════
 
 (function () {
@@ -201,11 +222,63 @@ function injectOverview() {
   </div>`);
 }
 
+// ─── SIGNALTON ───────────────────────────────────
+// Wird beim Start des Timers auf der Web-Audio-Uhr vorgemerkt,
+// nicht beim Ablauf aus JavaScript ausgelöst. Deshalb funktioniert
+// er auch, wenn Chrome den Tab in den Hintergrund schiebt und die
+// Timer drosselt.
+let audioCtx  = null;
+let beepNodes = [];
+
+function ensureAudio() {
+  try {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    // Muss aus einer Nutzergeste heraus passieren – der Tap auf
+    // "Start" ist genau das.
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  } catch (e) { return null; }
+}
+
+function cancelBeep() {
+  beepNodes.forEach(function (n) { try { n.stop(0); } catch (e) {} });
+  beepNodes = [];
+}
+
+function scheduleBeep(secs) {
+  cancelBeep();
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t0 = ctx.currentTime + Math.max(0, secs);
+
+  // Drei kurze Töne, der letzte höher – im Studio auch neben
+  // Musik erkennbar, ohne aufdringlich zu sein.
+  [[0, 880], [0.30, 880], [0.60, 1320]].forEach(function (p) {
+    const off  = p[0];
+    const freq = p[1];
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, t0 + off);
+    gain.gain.setValueAtTime(0.0001, t0 + off);
+    gain.gain.exponentialRampToValueAtTime(0.4, t0 + off + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + off + 0.22);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0 + off);
+    osc.stop(t0 + off + 0.24);
+    beepNodes.push(osc);
+  });
+}
+
 // ─── PAUSE-ÜBERSTEUERUNG ─────────────────────────
 // Rear Delt Fly und Beinbeuger brauchen 120 Sek statt der
 // 60–90 Sek für Isolation. Der Einbruch in Satz 2/3 ist dort
-// ein Erholungs-, kein Kraftproblem. Übersteuert PAUSE[typ],
-// wenn die Übung ein eigenes pause-Feld mitbringt.
+// ein Erholungs-, kein Kraftproblem.
 function pauseVon(name, typ) {
   const ex = findEx(name);
   if (ex && ex.pause && typeof ex.pause.secs === "number") return ex.pause;
@@ -239,6 +312,8 @@ const CSS = `
 .pgo-f { font-size: 11px; color: #4A7A4A; line-height: 1.5; margin-top: 10px; padding-top: 9px; border-top: 1px solid #C8E4C8; }
 `;
 
+let timerEndAt = 0;
+
 function init() {
   const hint = document.getElementById("hint");
   if (!hint || document.getElementById("pg-band")) return;
@@ -269,6 +344,15 @@ function init() {
     window.renderLog = function () { origLog.apply(this, arguments); injectOverview(); };
   }
 
+  // Jede Unterbrechung verwirft den vorgemerkten Ton.
+  // Ein anschließender Start merkt ihn neu vor.
+  ["resetTimer", "toggleTimer", "stopTimer"].forEach(function (fn) {
+    const orig = window[fn];
+    if (typeof orig === "function") {
+      window[fn] = function () { cancelBeep(); return orig.apply(this, arguments); };
+    }
+  });
+
   // Timer: pause-Feld der Übung schlägt PAUSE[typ]
   window.setTimerDefaults = function (typ) {
     if (timerState !== "idle") return;
@@ -285,22 +369,34 @@ function init() {
     const name = sel ? sel.value : "";
     const ex   = findEx(name);
     const p    = pauseVon(name, (ex && ex.typ) || "isolation");
+
     timerTotal = p.secs;
     timerLeft  = p.secs;
     timerState = "running";
+    timerEndAt = Date.now() + p.secs * 1000;
+
+    // Ton jetzt vormerken, solange die Nutzergeste noch zählt
+    scheduleBeep(p.secs);
+
     renderTimer();
     clearInterval(timerIv);
+
+    // Gegen den Endzeitstempel rechnen statt zu dekrementieren:
+    // Ein gedrosselter Tab zeigt nach der Rückkehr sofort den
+    // richtigen Wert, statt verlorene Sekunden mitzuschleppen.
     timerIv = setInterval(function () {
-      timerLeft--;
-      document.getElementById("timer-disp").textContent = fmtTime(timerLeft);
-      if (timerLeft <= 0) {
+      const left = Math.max(0, Math.round((timerEndAt - Date.now()) / 1000));
+      timerLeft = left;
+      const disp = document.getElementById("timer-disp");
+      if (disp) disp.textContent = fmtTime(left);
+      if (left <= 0) {
         clearInterval(timerIv);
         timerState = "done";
         renderTimer();
         if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
         showFlash("Pause vorbei – nächster Satz! 💪");
       }
-    }, 1000);
+    }, 250);
   };
 
   renderBand();
