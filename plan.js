@@ -60,10 +60,10 @@ const PLAN = {
   ],
   Pull: [
     { name:"Latzug", muskel:"Latissimus · Bizeps", typ:"compound",
-      saetze:3, repzone:"8–12", aktuell:"3×12 @ 80 kg", zielgewicht:80, ziel:"Eine reaktionsfreie Einheit mit Zughilfen → 85 kg",
-      progression:{ gesperrt:true, grund:"Zughilfen seit 02.09. neu im Spiel. Erst eine Einheit ohne 24-h-Reaktion rechts, dann 85 kg – sonst ist eine Reaktion nicht zuordenbar." },
+      saetze:3, repzone:"8–12", aktuell:"3×12 @ 80 kg", zielgewicht:80, ziel:"Schwelle erreicht → 85 kg",
+      progression:{ schritt:5 },
       schritte:["Griff breiter als Schultern (Obergriff)","Zughilfen verwenden – Griffkraft ist nicht der Zielmuskel","Stange zur oberen Brust – Ellenbogen nach unten/hinten","Brust nach vorne öffnen – nicht zurückschaukeln!","Latissimus am Ende 1 Sek zusammenziehen"],
-      tipp:"3×12 @ 80 kg in sieben Einheiten seit 25.07. – die Lat-Kraft ist längst für 85 kg da, der Griff war der Begrenzer. Zughilfen seit 02.09. Steuerung weiter über die 24-Stunden-Reaktion, nicht über das Gefühl während der Einheit. Daumen NICHT einschlagen (Vier-Finger-Griff, links De Quervain)." },
+      tipp:"FREIGESCHALTET 03.09.: Die Einheit vom 02.09. mit Zughilfen lief ohne 24-Stunden-Reaktion, beide Handgelenke unauffällig. Damit ist die Vorbedingung erfüllt und 85 kg sind der nächste Schritt. 3×12 @ 80 kg standen seit 25.07. in sieben Einheiten – die Lat-Kraft war längst da, der Griff war der Begrenzer. 85 kg mit Zughilfen ist jetzt der nächste Test: eine Variable, die Last. Steuerung weiter über die 24-Stunden-Reaktion, nicht über das Gefühl während der Einheit. Daumen NICHT einschlagen (Vier-Finger-Griff, links De Quervain)." },
     { name:"Ruderzug", muskel:"Mittlerer Rücken · Trapezius · Bizeps", typ:"compound",
       saetze:3, repzone:"10–12", aktuell:"3×12–13 @ 45 kg", zielgewicht:45, ziel:"Schwelle erreicht → 50 kg",
       progression:{ schritt:5 },
