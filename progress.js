@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════
 // PROGRESS – Erhöhungs-Signal + Pausentimer
-// Stand: 3. September 2026
+// Stand: 4. September 2026
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Übernimmt zwei Aufgaben:
@@ -25,6 +25,19 @@
 // zählen. Das filtert Fremdgeräte automatisch heraus –
 // Latzug 50 kg an der LifeFitness, Bizepscurl 55 kg am
 // 21.08. – ohne dass Notizen ausgewertet werden müssen.
+//
+// ERLEDIGT-ERKENNUNG (NEU 04.09.): Der Gerätefilter allein liest
+// eine bereits ausgeführte Erhöhung als Fremdgerät und verwirft sie.
+// Die Übung blieb dadurch dauerhaft im Signal stehen – Oblique Crunch
+// stand am 04.09. auf "→ 17,5 kg", obwohl am 03.09. schon 3×15 bei
+// 17,5 kg geloggt waren. Liegt die neueste Einheit auf dem Zielgewicht
+// oder darüber, gilt die Erhöhung als umgesetzt und die Übung fällt
+// aus der Box. Das Band im Eintrag-Tab weist dann auf plan.js hin.
+//
+// SORTIERUNG (NEU 04.09.): Ausgewertet wird die neueste Einheit nach
+// DATUM, nicht die zuletzt gespeicherte. Ein nachgetragener alter
+// Eintrag stand vorher am Ende des Arrays und wurde als aktuell
+// gelesen.
 //
 // UNVOLLSTÄNDIGE EINHEITEN: Weniger geloggte Sätze als
 // geplant = zählt nicht. 14/7 aus zwei Sätzen ist keine
@@ -102,6 +115,13 @@ function satzListe(e) {
 
 function kg(n) { return String(n).replace(".", ",") + " kg"; }
 
+// ISO-Datum, lexikografisch vergleichbar. Sort ist stabil, bei
+// gleichem Datum bleibt die Eingabereihenfolge erhalten.
+function nachDatum(a, b) {
+  const x = String(a.date || ""), y = String(b.date || "");
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+
 // ─── STATUS ──────────────────────────────────────
 function status(ex) {
   const p = prog(ex);
@@ -113,12 +133,32 @@ function status(ex) {
   if (sw === null) return { state: "gesperrt", grund: "Keine auswertbare Repzone hinterlegt." };
 
   const alle = (typeof loadEntries === "function" ? loadEntries() : []);
-  const treffer = alle.filter(function (e) {
-    const g = num(e.gewicht);
-    return e.uebung === ex.name && g !== null && Math.abs(g - ex.zielgewicht) < 0.01;
+  const ziel = Math.round((ex.zielgewicht + schrittVon(ex)) * 100) / 100;
+
+  // Alle Einheiten dieser Uebung, chronologisch. Die Sortierung nach
+  // Datum ist noetig, weil das Array in Speicherreihenfolge liegt:
+  // ein nachgetragener alter Eintrag stuende sonst am Ende und wuerde
+  // als "letzte Einheit" gelesen.
+  const eigene = alle.filter(function (e) {
+    return e.uebung === ex.name && num(e.gewicht) !== null;
+  }).sort(nachDatum);
+
+  // ERLEDIGT-ERKENNUNG: Liegt die neueste Einheit bereits auf dem
+  // Zielgewicht oder darueber, ist die Erhoehung ausgefuehrt und nur
+  // der Plan noch nicht nachgezogen. Ohne diese Pruefung bliebe die
+  // Uebung dauerhaft im Erhoehungs-Signal stehen, weil der Geraete-
+  // filter die neue, schwerere Einheit verwirft und damit fuer immer
+  // die alte Treffer-Einheit als "letzte" liest.
+  // Die Pruefung ist bewusst einseitig: Fremdgeraete liegen unter dem
+  // Plangewicht, eine umgesetzte Erhoehung darueber.
+  const neueste = eigene.length ? eigene[eigene.length - 1] : null;
+  if (neueste && num(neueste.gewicht) >= ziel - 0.01)
+    return { state: "erledigt", ist: num(neueste.gewicht), ziel: ziel, date: neueste.date };
+
+  const treffer = eigene.filter(function (e) {
+    return Math.abs(num(e.gewicht) - ex.zielgewicht) < 0.01;
   });
 
-  const ziel = Math.round((ex.zielgewicht + schrittVon(ex)) * 100) / 100;
   if (!treffer.length) return { state: "leer", schwelle: sw, ziel: ziel };
 
   const letzte = treffer[treffer.length - 1];
@@ -142,6 +182,14 @@ function bandHTML(ex) {
       <div class="pgb-l">Progression</div>
       <div class="pgb-v">Ausgesetzt</div>
       ${st.grund ? `<div class="pgb-h">${st.grund}</div>` : ""}
+    </div>`;
+  }
+
+  if (st.state === "erledigt") {
+    return `<div class="pgb done">
+      <div class="pgb-l">Progression</div>
+      <div class="pgb-v">Erhöhung umgesetzt → Plan nachziehen</div>
+      <div class="pgb-h">Am ${fmtDate(st.date)} bereits mit <strong>${kg(st.ist)}</strong> trainiert, im Plan steht noch ${kg(ex.zielgewicht)}. Beim nächsten Review <strong>zielgewicht</strong> in plan.js auf ${kg(st.ist)} setzen – bis dahin zählt hier nichts weiter.</div>
     </div>`;
   }
 
@@ -203,7 +251,9 @@ function faellig() {
 
 function injectOverview() {
   const cont = document.getElementById("entries");
-  if (!cont || document.getElementById("pg-ov")) return;
+  if (!cont) return;
+  const alt = document.getElementById("pg-ov");
+  if (alt) alt.remove();
   const list = faellig();
   if (!list.length) return;
 
@@ -218,7 +268,7 @@ function injectOverview() {
   cont.insertAdjacentHTML("afterbegin", `<div class="pgo" id="pg-ov">
     <div class="pgo-h">Erhöhung fällig · ${list.length}</div>
     ${rows}
-    <div class="pgo-f">Automatisch aus dem Summenkriterium. Fremdgeräte und unvollständige Einheiten sind ausgeschlossen.</div>
+    <div class="pgo-f">Automatisch aus dem Summenkriterium. Fremdgeräte, unvollständige Einheiten und bereits umgesetzte Erhöhungen sind ausgeschlossen.</div>
   </div>`);
 }
 
@@ -291,11 +341,13 @@ const CSS = `
 .pgb.hit  { border-color: #B8DCB8; background: var(--go-bg); }
 .pgb.warn { border-color: #E8C84A; background: #FFF6DC; }
 .pgb.lock { border-style: dashed; }
+.pgb.done { border-color: #B8C8DC; background: #EEF3F9; }
 .pgb-l { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); }
 .pgb-v { font-size: 14px; font-weight: 700; color: var(--text); margin-top: 3px; }
 .pgb.hit .pgb-v  { color: var(--go); }
 .pgb.warn .pgb-v { color: #8A6D00; }
 .pgb.lock .pgb-v { color: var(--muted); }
+.pgb.done .pgb-v { color: #2F5D8A; }
 .pgb-bar { height: 5px; border-radius: 3px; background: var(--border); margin-top: 9px; overflow: hidden; }
 .pgb-bar i { display: block; height: 100%; background: var(--text); border-radius: 3px; transition: width .25s; }
 .pgb.hit .pgb-bar i { background: var(--go); }
