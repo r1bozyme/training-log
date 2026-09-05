@@ -2,9 +2,10 @@
    sync.js — Backup der App-Daten in ein privates GitHub-Repo
              + korrekte CSV-Erzeugung.
 
-   Zweck: Die vier localStorage-Keys (tl-e, tl-w, tl-w0, tl-d)
-   liegen sonst ausschliesslich auf diesem Geraet. Dieses Modul
-   schreibt sie nach jeder Aenderung in ein privates Repo:
+   Zweck: Die localStorage-Keys (tl-e, tl-w, tl-w0, tl-d sowie
+   seit 05.09. tl-f, tl-fp, tl-fg) liegen sonst ausschliesslich
+   auf diesem Geraet. Dieses Modul schreibt sie nach jeder
+   Aenderung in ein privates Repo:
 
      backup.json  vollstaendiger Dump  -> Wiederherstellungspfad
      export.csv   dieselbe Datei wie der Download-Button
@@ -21,12 +22,17 @@
    gross ist, liegt die Korrektur hier statt dort. Beim naechsten
    index.html-Commit nach oben ziehen und die alten Fassungen
    entfernen (Notiz fuer den Review 01.09.).
+
+   05.09.: Ernaehrungsdaten aus tracker.js aufgenommen. Zwei
+   CSV-Bloecke – Tagessummen fuer den Monatsreview, Einzelposten
+   fuer die Nachvollziehbarkeit. Der Posten-Block kann gross
+   werden; das ist gewollt, er ist die Rohdatenebene.
    ───────────────────────────────────────────────────────────── */
 (function () {
 "use strict";
 
 var CFG_KEY   = "tl-sync";
-var DATA_KEYS = ["tl-e", "tl-w", "tl-w0", "tl-d"];
+var DATA_KEYS = ["tl-e", "tl-w", "tl-w0", "tl-d", "tl-f", "tl-fp", "tl-fg"];
 var DEBOUNCE  = 8000;          // ms nach letzter Aenderung
 var STALE_D   = 7;             // Tage bis Warnung
 var API       = "https://api.github.com";
@@ -136,6 +142,59 @@ function buildCSV() {
       });
     }
   }
+
+  /* ─── Ernaehrung (tracker.js) ───────────────────────────
+     Zwei Bloecke. Der Summenblock ist das, was im Monatsreview
+     gelesen wird; der Postenblock erlaubt es, eine auffaellige
+     Tagessumme im Nachhinein aufzuschluesseln. Absolutwert
+     eines Postens = wert * menge / ref (siehe tracker.js). */
+  if (typeof window.loadFood === "function") {
+    var food = window.loadFood();
+    var days = Object.keys(food).sort();
+    if (days.length) {
+      var goal = (typeof window.loadFoodGoal === "function") ? window.loadFoodGoal() : null;
+
+      csv += "\n\n# ERNÄHRUNG – TAGESSUMMEN\n" +
+             csvRow(["Datum", "kcal", "KH (g)", "Fett (g)", "Protein (g)",
+                     "Ziel kcal", "Δ kcal", "Posten"]);
+      days.forEach(function (d) {
+        var items = food[d] || [];
+        var s = { kcal:0, kh:0, f:0, p:0 };
+        items.forEach(function (it) {
+          var r = Number(it.ref) || 1, m = Number(it.menge) || 0;
+          s.kcal += (Number(it.kcal) || 0) * m / r;
+          s.kh   += (Number(it.kh)   || 0) * m / r;
+          s.f    += (Number(it.f)    || 0) * m / r;
+          s.p    += (Number(it.p)    || 0) * m / r;
+        });
+        csv += "\n" + csvRow([
+          window.fmtDate(d),
+          csvNum(s.kcal, 0), csvNum(s.kh, 1), csvNum(s.f, 1), csvNum(s.p, 1),
+          goal ? csvNum(goal.kcal, 0) : "",
+          goal ? csvNum(s.kcal - goal.kcal, 0) : "",
+          items.length
+        ]);
+      });
+
+      csv += "\n\n# ERNÄHRUNG – POSTEN\n" +
+             csvRow(["Datum", "Produkt", "Menge", "Einheit",
+                     "kcal", "KH (g)", "Fett (g)", "Protein (g)"]);
+      days.forEach(function (d) {
+        (food[d] || []).forEach(function (it) {
+          var r = Number(it.ref) || 1, m = Number(it.menge) || 0;
+          csv += "\n" + csvRow([
+            window.fmtDate(d), it.n, csvNum(m, 1),
+            (r === 100 ? (it.unit === "ml" ? "ml" : "g") : it.unit),
+            csvNum((Number(it.kcal) || 0) * m / r, 0),
+            csvNum((Number(it.kh)   || 0) * m / r, 1),
+            csvNum((Number(it.f)    || 0) * m / r, 1),
+            csvNum((Number(it.p)    || 0) * m / r, 1)
+          ]);
+        });
+      });
+    }
+  }
+
   return csv;
 }
 
@@ -239,7 +298,8 @@ function schedule() {
   render();
 }
 
-/* Aenderungen an den Datenkeys abfangen – erfasst auch daily.js */
+/* Aenderungen an den Datenkeys abfangen – erfasst auch daily.js
+   und tracker.js, die beide direkt auf localStorage schreiben. */
 function hookStorage() {
   var setI = localStorage.setItem.bind(localStorage);
   var remI = localStorage.removeItem.bind(localStorage);
@@ -265,6 +325,9 @@ function restore() {
     if (!dump || !dump.keys) throw new Error("Backup unlesbar");
     if (!confirm("Backup vom " + fmtStamp(dump.ts) + " einspielen?")) return;
     DATA_KEYS.forEach(function (k) {
+      // Keys, die im Dump gar nicht vorkommen (aelteres Backup),
+      // bleiben unangetastet statt geloescht zu werden.
+      if (!(k in dump.keys)) return;
       if (dump.keys[k] === null || typeof dump.keys[k] === "undefined") localStorage.removeItem(k);
       else localStorage.setItem(k, dump.keys[k]);
     });
