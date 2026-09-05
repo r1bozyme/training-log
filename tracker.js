@@ -25,14 +25,23 @@
             1 Stück). Absolutwert = wert * menge / ref. Dadurch
             bleibt die Menge nachträglich änderbar.
      tl-fp  eigene Produkte, gleiche Struktur wie PRODUKTE
-     tl-fg  { goal:{kcal,kh,f,p}, basis:[{pid,menge,on}] }
+     tl-fg  { goal, basis, basisV, ovr, rez }
 
-   chk:1 an einem Produkt heißt: Wert geschätzt, einmal gegen das
-   Etikett prüfen. Wird in der Liste mit ? markiert.
+   chk:1 heißt: Wert geschätzt. Der ?-Marker ist antippbar und
+   öffnet den Werte-Editor; korrigierte Werte liegen als Override
+   in tl-fg (c.ovr) und ersetzen die eingebauten Zahlen dauerhaft.
+   Bereits eingetragene Posten behalten ihre Werte – ein Tag von
+   gestern soll sich nicht rückwirkend ändern.
 
-   OFFEN: sync.js sichert nur tl-e/tl-w/tl-w0/tl-d. Die drei Keys
-   oben gehören in DATA_KEYS und in buildCSV – bis dahin liegen
-   die Ernährungsdaten nur auf diesem Gerät.
+   05.09. – zweite Fassung:
+   · Hafermilch auf echte Etikettenwerte (Minor Figures Barista
+     Oat Organic, je 100 ml). Der Platzhalter lag beim Fett fast
+     2 g zu niedrig – Barista-Hafer ist fettangereichert.
+   · FAGE in der Basis auf 250 g: 100 g morgens ins Müsli,
+     150 g nachmittags. Migration über BASIS_V.
+   · REZEPTE: Mittag- und Abendessen bestehen aus immer denselben
+     vier bis sieben Posten. Einzeln eingetippt ist das der Punkt,
+     an dem Tracking im Alltag abbricht – deshalb ein Tap.
    ───────────────────────────────────────────────────────────── */
 (function () {
 "use strict";
@@ -54,7 +63,7 @@ var PRODUKTE = [
   { id:"m615",    n:"Müsli Seitenbacher #615",        g:"Frühstück", ref:100, unit:"g",      kcal:380, kh:51,   f:12,   p:11,   std:100, chk:1 },
   { id:"menergy", n:"Müsli Seitenbacher Energy",      g:"Frühstück", ref:100, unit:"g",      kcal:365, kh:59,   f:9,    p:10,   std:100, chk:1 },
   { id:"mbaer",   n:"Alnatura Knusper Bär",           g:"Frühstück", ref:100, unit:"g",      kcal:400, kh:60,   f:12,   p:9,    std:60,  chk:1 },
-  { id:"hafermi", n:"Hafermilch (Portion Müsli)",     g:"Frühstück", ref:1,   unit:"Port.",  kcal:40,  kh:6,    f:1,    p:0.5,  std:1 },
+  { id:"hafermi", n:"Hafermilch Minor Figures Barista",g:"Frühstück", ref:100, unit:"ml",     kcal:45.5,kh:6.9,  f:1.85, p:0.35, std:150 },
   { id:"haferfl", n:"Haferflocken",                   g:"Frühstück", ref:100, unit:"g",      kcal:372, kh:59,   f:7,    p:13,   std:60 },
   { id:"cappu",   n:"Cappuccino",                     g:"Frühstück", ref:1,   unit:"Tasse",  kcal:60,  kh:4.5,  f:3,    p:4,    std:2,   chk:1 },
 
@@ -87,27 +96,53 @@ var PRODUKTE = [
   { id:"butter",  n:"Butter",                         g:"Fett",      ref:100, unit:"g",      kcal:740, kh:0.6,  f:82,   p:0.7,  std:10 },
   { id:"nuesse",  n:"Nüsse gemischt",                 g:"Fett",      ref:100, unit:"g",      kcal:620, kh:12,   f:55,   p:20,   std:30 },
   { id:"avocado", n:"Avocado",                        g:"Fett",      ref:100, unit:"g",      kcal:160, kh:2,    f:15,   p:2,    std:100 },
+  { id:"sesamoel",n:"Sesamöl",                        g:"Fett",      ref:1,   unit:"TL",     kcal:45,  kh:0,    f:5,    p:0,    std:1 },
 
   // Obst & Gemüse
   { id:"banane",  n:"Banane (~120 g)",                g:"Obst/Gem.", ref:1,   unit:"Stück",  kcal:107, kh:27,   f:0.3,  p:1.3,  std:1 },
   { id:"heidel",  n:"Heidelbeeren TK",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:57,  kh:12,   f:0.3,  p:0.7,  std:70 },
   { id:"gemuese", n:"Gemüse gemischt",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:5,    f:0.3,  p:2,    std:200 },
-  { id:"passata", n:"Passata",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:6,    f:0.2,  p:1.3,  std:200 }
+  { id:"passata", n:"Passata",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:6,    f:0.2,  p:1.3,  std:200 },
+
+  // Würzen
+  { id:"sojasauce",n:"Sojasauce",                     g:"Würzen",    ref:1,   unit:"EL",     kcal:10,  kh:1,    f:0,    p:1,    std:2 }
 ];
 
 /* Fixbasis: die täglich wiederkehrenden Posten. on:false heißt,
    der Posten gehört zur Basis, wird aber aktuell nicht mitgeführt. */
+var BASIS_V = 2;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
   { pid:"m615",    menge:100, on:true },
-  { pid:"hafermi", menge:1,   on:true },
+  { pid:"hafermi", menge:150, on:true },
   { pid:"quark",   menge:100, on:true },
-  { pid:"fage02",  menge:200, on:true },
+  { pid:"fage02",  menge:250, on:true },
   { pid:"nuesse",  menge:30,  on:true },
   { pid:"banane",  menge:1,   on:true },
   { pid:"heidel",  menge:70,  on:true },
   { pid:"cappu",   menge:2,   on:true },
   { pid:"whey",    menge:1,   on:true },
   { pid:"norsan",  menge:1,   on:true }
+];
+
+/* Rezepte aus dem Ernährungsplan plus die drei Abend-Bausteine.
+   items = [{pid, menge}]. Eigene Rezepte liegen in cfg().rez und
+   haben dieselbe Struktur. */
+var REZEPTE = [
+  { id:"r1", n:"Linsen-Bolognese", zeit:"Mittag", items:[
+    {pid:"fusilli",menge:100},{pid:"linsen",menge:70},{pid:"passata",menge:200},
+    {pid:"olivoel",menge:1},{pid:"parmesan",menge:30}] },
+  { id:"r2", n:"Gebratener Reis, Tofu & Edamame", zeit:"Mittag", items:[
+    {pid:"reis",menge:100},{pid:"tofu",menge:180},{pid:"edamame",menge:100},
+    {pid:"ei",menge:2},{pid:"olivoel",menge:1},{pid:"sesamoel",menge:1},{pid:"sojasauce",menge:2}] },
+  { id:"r3", n:"Tempeh-Bowl mit Linsen", zeit:"Mittag", items:[
+    {pid:"tempeh",menge:150},{pid:"linsen",menge:80},{pid:"saaten",menge:2},
+    {pid:"gemuese",menge:200},{pid:"olivoel",menge:1},{pid:"sojasauce",menge:1}] },
+  { id:"a1", n:"Pasta-Abend (fettarm)", zeit:"Abend", items:[
+    {pid:"fusilli",menge:120},{pid:"passata",menge:200},{pid:"parmesan",menge:20}] },
+  { id:"a2", n:"Brot-Abend", zeit:"Abend", items:[
+    {pid:"lieken",menge:3},{pid:"roggkl",menge:2},{pid:"quark",menge:150}] },
+  { id:"a3", n:"Reis & Tofu", zeit:"Abend", items:[
+    {pid:"reis",menge:100},{pid:"tofu",menge:200},{pid:"gemuese",menge:200}] }
 ];
 
 /* ─── Storage ───────────────────────────────────────────── */
@@ -125,13 +160,32 @@ function cfg() {
   var c = readJSON(CFG_KEY, {});
   if (!c.goal)  c.goal  = { kcal:GOAL_ALT.kcal, kh:GOAL_ALT.kh, f:GOAL_ALT.f, p:GOAL_ALT.p };
   if (!c.basis) c.basis = BASIS_DEF.map(function (b) { return { pid:b.pid, menge:b.menge, on:b.on }; });
+  if (!c.ovr)   c.ovr   = {};
+  if (!c.rez)   c.rez   = [];
   return c;
 }
 function saveCfg(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
 
 window.loadFoodGoal = function () { return cfg().goal; };
 
-function allProducts() { return PRODUKTE.concat(ownProducts()); }
+/* Overrides sind korrigierte Etikettenwerte. Sie ersetzen die
+   eingebauten Zahlen und löschen die chk-Markierung – der Wert
+   ist dann geprüft. */
+function applyOvr(p, ovr) {
+  var o = ovr[p.id];
+  if (!o) return p;
+  var q = {};
+  for (var k in p) q[k] = p[k];
+  ["kcal","kh","f","p"].forEach(function (k) {
+    if (typeof o[k] === "number" && isFinite(o[k])) q[k] = o[k];
+  });
+  delete q.chk;
+  return q;
+}
+function allProducts() {
+  var ovr = readJSON(CFG_KEY, {}).ovr || {};
+  return PRODUKTE.concat(ownProducts()).map(function (p) { return applyOvr(p, ovr); });
+}
 function prod(pid) {
   var a = allProducts();
   for (var i = 0; i < a.length; i++) if (a[i].id === pid) return a[i];
@@ -269,6 +323,90 @@ window.foodOwnDel = function (pid) {
   buildFood();
 };
 
+/* ─── Nährwerte korrigieren ─────────────────────────────── */
+window.foodProdEdit = function (pid, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  var pr = prod(pid);
+  if (!pr) return;
+  var einheit = pr.ref === 100 ? ("100 " + (pr.unit === "ml" ? "ml" : "g")) : pr.unit;
+  function ask(lbl, cur) {
+    var r = prompt(lbl + " je " + einheit + ":", cur);
+    if (r === null) return null;
+    var x = Number(String(r).replace(",", "."));
+    return isFinite(x) && x >= 0 ? x : cur;
+  }
+  var kcal = ask("kcal", pr.kcal);      if (kcal === null) return;
+  var kh   = ask("KH (g)", pr.kh);      if (kh === null) return;
+  var f    = ask("Fett (g)", pr.f);     if (f === null) return;
+  var p    = ask("Protein (g)", pr.p);  if (p === null) return;
+  var c = cfg();
+  c.ovr[pid] = { kcal:kcal, kh:kh, f:f, p:p };
+  saveCfg(c); buildFood();
+  showFlash("Werte korrigiert ✓");
+};
+
+/* ─── Rezepte ───────────────────────────────────────────── */
+function allRezepte() { return REZEPTE.concat(cfg().rez || []); }
+
+function rezSum(r) {
+  return sumDay((r.items || []).map(function (x) {
+    var pr = prod(x.pid);
+    return pr ? { menge:x.menge, ref:pr.ref, kcal:pr.kcal, kh:pr.kh, f:pr.f, p:pr.p }
+              : { menge:0, ref:1, kcal:0, kh:0, f:0, p:0 };
+  }));
+}
+
+window.foodRez = function (rid) {
+  var all = allRezepte(), r = null;
+  for (var i = 0; i < all.length; i++) if (all[i].id === rid) r = all[i];
+  if (!r) return;
+  var d = curDate(), arr = dayItems(d).slice(), n = 0;
+  r.items.forEach(function (x) {
+    var pr = prod(x.pid); if (!pr) return;
+    arr.push({
+      id: Date.now() + Math.floor(Math.random() * 100000) + n,
+      pid: pr.id, n: pr.n, menge: x.menge, unit: pr.unit, ref: pr.ref,
+      kcal: pr.kcal, kh: pr.kh, f: pr.f, p: pr.p
+    });
+    n++;
+  });
+  putItems(d, arr);
+  buildFood();
+  showFlash(r.n + " · " + n + " Posten ✓");
+};
+
+/* Speichert die heutigen Posten als Rezept – ohne die Fixbasis,
+   sonst wäre jedes Rezept das halbe Tagesgerüst.
+   Abgezogen wird je Produkt nur so oft, wie es in der Basis steht.
+   Sonst verschwände etwa der Magerquark eines Brot-Abends, bloß
+   weil morgens ebenfalls Magerquark ins Müsli geht. */
+window.foodRezSaveDay = function () {
+  var c = cfg();
+  var rest = {};
+  c.basis.forEach(function (b) { if (b.on) rest[b.pid] = (rest[b.pid] || 0) + 1; });
+  var items = dayItems(curDate()).filter(function (it) {
+    if (rest[it.pid]) { rest[it.pid]--; return false; }
+    return true;
+  });
+  if (!items.length) { showFlash("Keine Posten außerhalb der Basis"); return; }
+  var name = prompt("Name der Mahlzeit:", "");
+  if (name === null || !name.trim()) return;
+  c.rez.push({
+    id: "rz" + Date.now(), n: name.trim(), zeit: "Eigene",
+    items: items.map(function (it) { return { pid: it.pid, menge: it.menge }; })
+  });
+  saveCfg(c); buildFood();
+  showFlash("Mahlzeit gespeichert ✓");
+};
+
+window.foodRezDel = function (rid, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  if (!confirm("Mahlzeit löschen?")) return;
+  var c = cfg();
+  c.rez = (c.rez || []).filter(function (r) { return r.id !== rid; });
+  saveCfg(c); buildFood();
+};
+
 /* ─── Fixbasis bearbeiten ───────────────────────────────── */
 window.foodBasisToggle = function () { fBasisOpen = !fBasisOpen; buildFood(); };
 
@@ -367,7 +505,8 @@ function renderPicker() {
       var open = fOpen === p.id;
       var per = p.ref === 100 ? ("je 100 " + (p.unit === "ml" ? "ml" : "g")) : ("je " + p.unit);
       var head = '<div class="fprow' + (open ? " open" : "") + '" onclick="foodPick(\'' + p.id + '\')">' +
-        '<div class="fpn">' + esc(p.n) + (p.chk ? ' <span class="fchk" title="Wert geschätzt">?</span>' : "") + "</div>" +
+        '<div class="fpn">' + esc(p.n) +
+          (p.chk ? ' <span class="fchk" onclick="foodProdEdit(\'' + p.id + '\',event)">?</span>' : "") + "</div>" +
         '<div class="fpm">' + n0(p.kcal) + " kcal " + per + "</div>" +
         '<span class="fpc">' + (open ? "−" : "+") + "</span></div>";
       if (!open) return head;
@@ -382,6 +521,7 @@ function renderPicker() {
         "</div>" +
         '<div class="fpmacro">Je ' + (p.ref === 100 ? "100 " + (p.unit === "ml" ? "ml" : "g") : p.unit) + ": " +
           n1(p.kh) + " g KH · " + n1(p.f) + " g F · " + n1(p.p) + " g P" +
+          ' <button class="fowndel" onclick="foodProdEdit(\'' + p.id + '\',event)">Werte bearbeiten</button>' +
           (p.g === "Eigene" ? ' <button class="fowndel" onclick="foodOwnDel(\'' + p.id + '\')">löschen</button>' : "") +
         "</div></div>";
     }).join("");
@@ -446,7 +586,7 @@ window.buildFood = function () {
              " frei (" + Math.round(binder.left / binder.goal * 100) + " % des Tagesziels). Das Abendessen daran ausrichten.";
     }
     pensum = '<div class="fpensum ' + pcls + '">' +
-      '<div class="fph">ABENDPENSUM</div>' +
+      '<div class="fph">RESTBUDGET</div>' +
       '<div class="fpgrid">' +
         '<div><div class="fpn2">' + n0(rest.kcal) + '</div><div class="fpl">kcal</div></div>' +
         '<div><div class="fpn2">' + n0(rest.kh)   + '</div><div class="fpl">g KH</div></div>' +
@@ -475,6 +615,31 @@ window.buildFood = function () {
       "</div></div>";
   }
 
+  /* Mahlzeiten. Sortiert nach Fett, weil das die Größe ist, an der
+     die Auswahl am Abend tatsächlich scheitert. Der Rest-Fett-Wert
+     des Tages entscheidet, was noch passt – deshalb steht neben
+     jeder Mahlzeit das Fett und nicht nur die Kalorienzahl. */
+  var rezAll = allRezepte();
+  var rezHtml = ["Mittag", "Abend", "Eigene"].map(function (z) {
+    var rs = rezAll.filter(function (r) { return (r.zeit || "Eigene") === z; });
+    if (!rs.length) return "";
+    rs.sort(function (a, b) { return rezSum(a).f - rezSum(b).f; });
+    return '<div class="fgrp">' + z + "</div>" + rs.map(function (r) {
+      var rs2 = rezSum(r);
+      var passt = items.length && rs2.f <= rest.f && rs2.kcal <= rest.kcal;
+      var eng   = items.length && !passt;
+      return '<div class="frez' + (eng ? " eng" : (passt ? " passt" : "")) + '" onclick="foodRez(\'' + r.id + '\')">' +
+        '<div class="frezn">' + esc(r.n) + "</div>" +
+        '<div class="frezm">' + n0(rs2.kcal) + " kcal · " + n1(rs2.f) + " g F · " + n0(rs2.p) + " g P</div>" +
+        (r.zeit === "Eigene" ? '<button class="fx" onclick="foodRezDel(\'' + r.id + '\',event)">×</button>' : '<span class="frezc">+</span>') +
+        "</div>";
+    }).join("");
+  }).join("");
+
+  var mahlzeiten = '<div class="fsec"><div class="fsub">Mahlzeiten</div>' + rezHtml +
+    '<button class="fbtn2 ghost" style="width:100%;margin-top:12px" onclick="foodRezSaveDay()">Heutige Posten als Mahlzeit sichern</button>' +
+    '<div class="fhint">Ein Tap setzt alle Posten des Rezepts. Mengen danach einzeln über × und Neuzugabe anpassen, wenn du abgewandelt hast. Gesichert wird ohne die Fixbasis – nur was zusätzlich auf dem Tag steht.</div></div>';
+
   /* Fixbasis-Editor */
   var basisSum = sumDay(c.basis.filter(function (b) { return b.on; }).map(function (b) {
     var pr = prod(b.pid);
@@ -492,7 +657,8 @@ window.buildFood = function () {
         var u = pr.ref === 100 ? (pr.unit === "ml" ? "ml" : "g") : pr.unit;
         return '<div class="fbrow' + (b.on ? "" : " off") + '">' +
           '<button class="fbtog" onclick="foodBasisSet(\'' + b.pid + '\',' + (b.on ? "false" : "true") + ')">' + (b.on ? "✓" : "") + "</button>" +
-          '<div class="fbn">' + esc(pr.n) + (pr.chk ? ' <span class="fchk">?</span>' : "") + "</div>" +
+          '<div class="fbn">' + esc(pr.n) +
+            (pr.chk ? ' <span class="fchk" onclick="foodProdEdit(\'' + b.pid + '\',event)">?</span>' : "") + "</div>" +
           '<input class="fbi" type="number" value="' + b.menge + '" inputmode="decimal" step="any" onchange="foodBasisMenge(\'' + b.pid + '\',this.value)">' +
           '<span class="fbu">' + u + "</span>" +
           '<button class="fx" onclick="foodBasisDel(\'' + b.pid + '\')">×</button></div>';
@@ -501,7 +667,7 @@ window.buildFood = function () {
         '<option value="">Posten hinzufügen …</option>' +
         allProducts().map(function (p) { return '<option value="' + p.id + '">' + esc(p.n) + "</option>"; }).join("") +
       '</select><button class="fbtn2" onclick="foodBasisAdd()">OK</button></div>' +
-      (chkCount ? '<div class="fhint">' + chkCount + " Posten der Basis stehen mit geschätzten Werten (<strong>?</strong>). Einmal gegen das Etikett prüfen und hier korrigieren – danach stimmt die Basis dauerhaft.</div>" : "") +
+      (chkCount ? '<div class="fhint">' + chkCount + " Posten der Basis stehen mit geschätzten Werten. Auf das <strong>?</strong> tippen, Etikettenwerte eintragen – die Korrektur gilt danach dauerhaft.</div>" : "") +
       "</div>";
   }
 
@@ -551,7 +717,7 @@ window.buildFood = function () {
     '<button class="fbtn2 ghost" style="width:100%;margin-top:10px" onclick="foodNewToggle()">' + (fNewOpen ? "Abbrechen" : "+ Eigenes Produkt") + "</button>" +
     neu + "</div>";
 
-  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + pensum + liste + basis + picker + ziel +
+  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + pensum + liste + mahlzeiten + basis + picker + ziel +
     '<div class="fnote">Die Zahlen sind ein Steuerungsinstrument, kein Selbstzweck: Ausschlaggebend bleibt der Gewichtstrend im Werte-Tab. Das Tracking beantwortet die Frage, <strong>warum</strong> der Trend liegt, wie er liegt – vor allem, ob der Abend die strukturelle Lücke ist.<br><br>Ballaststoffe sind bewusst nicht enthalten: für zu viele Produkte fehlt der Etikettenwert.</div>';
 
   renderPicker();
@@ -611,6 +777,15 @@ var CSS = [
 ".fqadd { flex:1; padding:12px 6px; border-radius:8px; border:none; background:var(--text); color:#FFF; font-family:var(--fb); font-weight:700; font-size:12.5px; cursor:pointer; }",
 ".fpmacro { font-size:11px; color:var(--muted); margin-top:8px; }",
 ".fowndel { background:none; border:none; color:#B33A3A; font-size:11px; font-weight:700; cursor:pointer; padding:0 0 0 6px; }",
+".frez { display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--border); cursor:pointer; }",
+".frez:last-of-type { border-bottom:none; }",
+".frezn { flex:1; font-size:13.5px; font-weight:600; color:var(--text); min-width:0; }",
+".frezm { font-size:11px; color:var(--muted); flex-shrink:0; }",
+".frezc { font-size:17px; color:var(--dim); width:14px; text-align:center; flex-shrink:0; }",
+".frez.passt .frezm { color:#2A7A2A; font-weight:600; }",
+".frez.eng { opacity:.5; }",
+".frez.eng .frezm { color:#B33A3A; }",
+".fchk { cursor:pointer; }",
 ".fbasisbody { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }",
 ".fbrow { display:flex; align-items:center; gap:8px; padding:6px 0; }",
 ".fbrow.off { opacity:.42; }",
@@ -661,6 +836,23 @@ function init() {
 
   document.getElementById("f-day").value = todayStr();
   fDate = todayStr();
+
+  /* Basis-Migration. Greift nur, wenn tl-fg schon existiert und
+     auf einer älteren Fassung steht – bei einer frischen
+     Installation liefert cfg() ohnehin BASIS_DEF. */
+  try {
+    var raw = localStorage.getItem(CFG_KEY);
+    if (raw) {
+      var c0 = cfg();
+      if (c0.basisV !== BASIS_V) {
+        c0.basis  = BASIS_DEF.map(function (b) { return { pid:b.pid, menge:b.menge, on:b.on }; });
+        c0.basisV = BASIS_V;
+        saveCfg(c0);
+      }
+    } else {
+      var c1 = cfg(); c1.basisV = BASIS_V; saveCfg(c1);
+    }
+  } catch (e) { /* unkritisch */ }
 
   // Nav-Knopf vor "Plan" einhängen
   var nav = document.querySelector(".bnav");
