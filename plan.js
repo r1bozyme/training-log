@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-// PLAN DATA – Letzte Aktualisierung: 4. September 2026
+// PLAN DATA – Letzte Aktualisierung: 5. September 2026
 // typ: compound | isolation | core  → bestimmt Pausenzeit
 // Beim Review: aktuell/ziel/zielgewicht von Claude angepasst
 //
@@ -24,6 +24,9 @@
 // Beinpresse, Beinstrecker und Oblique Crunch waren am 03.09.
 // bereits auf dem neuen Gewicht gefahren, dort steht jetzt der
 // tatsächliche Stand statt des veralteten Plangewichts.
+//
+// 05.09.: Nur der Modul-Loader unten wurde erweitert (tracker.js).
+// An den Plandaten ist nichts geändert.
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "September 2026 (Rev. 04.09.)",
@@ -176,14 +179,17 @@ const PLAN = {
 // Hamstrings hatten in der bisherigen Rotation nur ~1×/Woche Reiz.
 
 // Lädt die Zusatzmodule nach (daily.js = Kalorien/Steifigkeit,
-// sync.js = GitHub-Backup, progress.js = Erhöhungs-Signal).
+// sync.js = GitHub-Backup, progress.js = Erhöhungs-Signal,
+// tracker.js = Makro-Tracking/Abendpensum).
 // Liegt hier, weil GitHub keine Teil-Updates erlaubt und index.html dadurch
 // unangetastet bleibt. async=false erzwingt die Ausführungsreihenfolge –
 // sync.js muss nach daily.js laufen, damit es showView/exportCSV aussen umschliesst.
-// progress.js zuletzt: es umschliesst refreshHint/renderLog/saveEntry.
+// progress.js danach: es umschliesst refreshHint/renderLog/saveEntry.
+// tracker.js zuletzt: es umschliesst showView als aeusserste Schicht und
+// braucht setKcal aus daily.js fuer den Knopf "Tag abschliessen".
 // Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
 // und diesen Block entfernen.
-["daily.js", "sync.js", "progress.js"].forEach(function (src) {
+["daily.js", "sync.js", "progress.js", "tracker.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;
