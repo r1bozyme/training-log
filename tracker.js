@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────────
    tracker.js — Makro-Tracking + Abendpensum
-   Stand: 5. September 2026
+   Stand: 6. September 2026
 
    Zweck: Das Restbudget für die Abendmahlzeit lokal ausrechnen,
    statt den Tag jedes Mal als Fließtext zu verschicken.
@@ -33,6 +33,11 @@
    Bereits eingetragene Posten behalten ihre Werte – ein Tag von
    gestern soll sich nicht rückwirkend ändern.
 
+   06.09. – Ziel auf 3.000 kcal (einmalige Migration über GOAL_V,
+   Datum landet in goalSince). Glycin als Produkt und als
+   abschaltbarer Basisposten für Trainingstage. Basis-Migration
+   von Reset auf additiv umgestellt.
+
    05.09. – zweite Fassung:
    · Hafermilch auf echte Etikettenwerte (Minor Figures Barista
      Oat Organic, je 100 ml). Der Platzhalter lag beim Fett fast
@@ -54,6 +59,15 @@ var LOG_KEY = "tl-f", PROD_KEY = "tl-fp", CFG_KEY = "tl-fg";
    unbemerkt passiert. */
 var GOAL_ALT = { kcal: 2775, kh: 350, f: 82, p: 160 };
 var GOAL_NEU = { kcal: 3000, kh: 405, f: 82, p: 160 };
+
+/* 06.09.: InBody gemacht und gegen die Hauswaage gerechnet. Zwei
+   unabhängige Fenster (04.08., 04.09.) ergeben +0,05 kg/Woche
+   gegen ein Ziel von 0,2 – 2.775 kcal sind Erhaltung. Die
+   Erhöhung ist damit beschlossen; GOAL_V schaltet sie einmalig
+   um und datiert den Schritt über goalSince. Die Knöpfe bleiben:
+   ein späterer Druck auf "2.775 kcal" wird nicht wieder
+   überschrieben, weil GOAL_V dann bereits steht. */
+var GOAL_V = 2;
 
 /* ─── Produktbasis ──────────────────────────────────────────
    Werte je ref-Einheit. Quelle: Etikett, soweit vorhanden.
@@ -105,12 +119,20 @@ var PRODUKTE = [
   { id:"passata", n:"Passata",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:6,    f:0.2,  p:1.3,  std:200 },
 
   // Würzen
-  { id:"sojasauce",n:"Sojasauce",                     g:"Würzen",    ref:1,   unit:"EL",     kcal:10,  kh:1,    f:0,    p:1,    std:2 }
+  { id:"sojasauce",n:"Sojasauce",                     g:"Würzen",    ref:1,   unit:"EL",     kcal:10,  kh:1,    f:0,    p:1,    std:2 },
+
+  /* Glycin zählt mit 4 kcal/g in die Tagesbilanz, aber bewusst
+     NICHT in das Proteinziel: nicht essenziell, kein Beitrag zur
+     Muskelproteinsynthese. Deshalb p:0 - 15 g erscheinen als
+     60 kcal ohne Makrozuordnung. Die Bilanz KCAL vs. KH+F+P geht
+     dadurch um diese 60 kcal auseinander; das ist gewollt und die
+     einzige ehrliche Darstellung. */
+  { id:"glycin",  n:"Glycin (Trainingstag)",          g:"Supplemente", ref:1,  unit:"g",      kcal:4,   kh:0,    f:0,    p:0,    std:15 }
 ];
 
 /* Fixbasis: die täglich wiederkehrenden Posten. on:false heißt,
    der Posten gehört zur Basis, wird aber aktuell nicht mitgeführt. */
-var BASIS_V = 2;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
+var BASIS_V = 3;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
   { pid:"m615",    menge:100, on:true },
   { pid:"hafermi", menge:150, on:true },
@@ -121,7 +143,11 @@ var BASIS_DEF = [
   { pid:"heidel",  menge:70,  on:true },
   { pid:"cappu",   menge:2,   on:true },
   { pid:"whey",    menge:1,   on:true },
-  { pid:"norsan",  menge:1,   on:true }
+  { pid:"norsan",  menge:1,   on:true },
+  /* Steht in der Basis, ist aber standardmäßig aus: Glycin läuft
+     nur an Trainingstagen. Ein Tap auf das Häkchen vor dem
+     Training, statt den Posten jedes Mal zu suchen. */
+  { pid:"glycin",  menge:15,  on:false }
 ];
 
 /* Rezepte aus dem Ernährungsplan plus die drei Abend-Bausteine.
@@ -687,7 +713,7 @@ window.buildFood = function () {
       '<button class="fbtn2' + (isNeu ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">3.000 kcal</button>' +
       '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Frei</button>' +
     "</div>" +
-    '<div class="fhint">Die Erhöhung auf 3.000 kcal (+250 kcal, vollständig als +55 g KH) ist für <strong>nach der InBody am 06.09.</strong> beschlossen. Der Wechsel steht bewusst auf einem Knopf, damit er ein datierter Schritt bleibt und nicht unbemerkt mitläuft.' +
+    '<div class="fhint">Seit dem 06.09. steht das Ziel auf <strong>3.000 kcal</strong>: +225 kcal gegenüber 2.775, vollständig als +55 g KH (350 → 405). Fett und Protein bleiben unverändert. Grundlage ist der Hauswaage-Trend von +0,05 kg/Woche gegen ein Ziel von 0,2 – nicht die InBody-Zahl. Nächste Bewertung nach drei sauberen Wochen ab dem 10.09.' +
     (c.goalSince ? " Zuletzt gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div></div>";
 
   /* Neues Produkt */
@@ -843,14 +869,37 @@ function init() {
   try {
     var raw = localStorage.getItem(CFG_KEY);
     if (raw) {
-      var c0 = cfg();
+      var c0 = cfg(), dirty = false;
+
+      /* Additiv statt Reset: neue Standardposten werden ergänzt,
+         eigene Mengen und Schalter bleiben stehen. Ein voller
+         Reset hätte jede händisch angepasste Menge verworfen. */
       if (c0.basisV !== BASIS_V) {
-        c0.basis  = BASIS_DEF.map(function (b) { return { pid:b.pid, menge:b.menge, on:b.on }; });
+        var have = {};
+        (c0.basis || []).forEach(function (b) { have[b.pid] = true; });
+        BASIS_DEF.forEach(function (b) {
+          if (!have[b.pid]) c0.basis.push({ pid:b.pid, menge:b.menge, on:b.on });
+        });
         c0.basisV = BASIS_V;
-        saveCfg(c0);
+        dirty = true;
       }
+
+      /* Einmalige Zielumstellung auf 3.000 kcal, datiert. */
+      if (c0.goalV !== GOAL_V) {
+        c0.goal = { kcal:GOAL_NEU.kcal, kh:GOAL_NEU.kh, f:GOAL_NEU.f, p:GOAL_NEU.p };
+        c0.goalSince = todayStr();
+        c0.goalV = GOAL_V;
+        dirty = true;
+      }
+
+      if (dirty) saveCfg(c0);
     } else {
-      var c1 = cfg(); c1.basisV = BASIS_V; saveCfg(c1);
+      var c1 = cfg();
+      c1.basisV = BASIS_V;
+      c1.goal   = { kcal:GOAL_NEU.kcal, kh:GOAL_NEU.kh, f:GOAL_NEU.f, p:GOAL_NEU.p };
+      c1.goalSince = todayStr();
+      c1.goalV  = GOAL_V;
+      saveCfg(c1);
     }
   } catch (e) { /* unkritisch */ }
 
