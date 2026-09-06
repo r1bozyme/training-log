@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────────
    tracker.js — Makro-Tracking + Abendpensum
-   Stand: 6. September 2026
+   Stand: 6. September 2026 (Rezeptstand Plan-Rev. 03.09.)
 
    Zweck: Das Restbudget für die Abendmahlzeit lokal ausrechnen,
    statt den Tag jedes Mal als Fließtext zu verschicken.
@@ -14,7 +14,7 @@
 
    Bewusst NICHT enthalten: Ballaststoffe. Für die Hälfte der
    Produkte liegt kein belastbarer Etikettenwert vor, und ein
-   Ziel von 38–42 g, das gegen halb geratene Zahlen läuft, ist
+   Ziel von 45–50 g, das gegen halb geratene Zahlen läuft, ist
    schlechter als gar keins. Nachrüstbar, sobald die Werte im
    Produktreview stehen.
 
@@ -32,6 +32,14 @@
    in tl-fg (c.ovr) und ersetzen die eingebauten Zahlen dauerhaft.
    Bereits eingetragene Posten behalten ihre Werte – ein Tag von
    gestern soll sich nicht rückwirkend ändern.
+
+   06.09. – Abgleich mit Ernährungsplan Rev. 03.09.: Energy-Müsli
+   als Standard, Rosinen und zweite Banane neu, Hafermilch 150 → 85 ml,
+   FAGE 250 → 300 g. Mittagsrezepte auf das Budget 930 kcal / 40 g F /
+   130 g KH neu gerechnet, Tempeh-Bowl durch Ofenkartoffeln ersetzt.
+   Abendessen Brot & Quark bleibt bewusst Rezept statt Fixbasis – das
+   Restbudget soll weiter den ganzen Abend zeigen, nicht nur die
+   Mittagslücke.
 
    06.09. – Ziel auf 3.000 kcal (einmalige Migration über GOAL_V,
    Datum landet in goalSince). Glycin als Produkt und als
@@ -74,32 +82,32 @@ var GOAL_V = 2;
    chk:1 = geschätzt, beim nächsten Einkauf gegenprüfen. */
 var PRODUKTE = [
   // Frühstück
-  { id:"m615",    n:"Müsli Seitenbacher #615",        g:"Frühstück", ref:100, unit:"g",      kcal:380, kh:51,   f:12,   p:11,   std:100, chk:1 },
-  { id:"menergy", n:"Müsli Seitenbacher Energy",      g:"Frühstück", ref:100, unit:"g",      kcal:365, kh:59,   f:9,    p:10,   std:100, chk:1 },
-  { id:"mbaer",   n:"Alnatura Knusper Bär",           g:"Frühstück", ref:100, unit:"g",      kcal:400, kh:60,   f:12,   p:9,    std:60,  chk:1 },
-  { id:"hafermi", n:"Hafermilch Minor Figures Barista",g:"Frühstück", ref:100, unit:"ml",     kcal:45.5,kh:6.9,  f:1.85, p:0.35, std:150 },
+  { id:"menergy", n:"Seitenbacher Energy (Standard)",  g:"Frühstück", ref:100, unit:"g",      kcal:385, kh:59,   f:9,    p:12,   std:100 },
+  /* #615 ist die Ausnahme: +3 g Fett, −8 g KH gegenüber Energy – und
+     die Rosinen sind hier bereits drin, also nicht zusätzlich dosieren. */
+  { id:"m615",    n:"Seitenbacher #615 (Ausnahme)",   g:"Frühstück", ref:100, unit:"g",      kcal:384, kh:51,   f:12,   p:13,   std:100 },
+  { id:"hafermi", n:"Hafermilch Minor Figures Barista",g:"Frühstück", ref:100, unit:"ml",     kcal:45.5,kh:6.9,  f:1.85, p:0.35, std:85 },
   { id:"haferfl", n:"Haferflocken",                   g:"Frühstück", ref:100, unit:"g",      kcal:372, kh:59,   f:7,    p:13,   std:60 },
-  { id:"cappu",   n:"Cappuccino",                     g:"Frühstück", ref:1,   unit:"Tasse",  kcal:60,  kh:4.5,  f:3,    p:4,    std:2,   chk:1 },
+  { id:"cappu",   n:"Cappuccino",                     g:"Frühstück", ref:1,   unit:"Tasse",  kcal:45,  kh:3.5,  f:1.5,  p:3,    std:2,   chk:1 },
 
   // Milchprodukte
   { id:"fage02",  n:"FAGE Total 0,2 %",               g:"Milch",     ref:100, unit:"g",      kcal:55,  kh:3.0,  f:0.2,  p:10.3, std:200 },
   { id:"fage2",   n:"FAGE Total 2 %",                 g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.0,  f:2.0,  p:9.9,  std:200 },
-  { id:"quark",   n:"Magerquark Berchtesgadener",     g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.6,  f:0.6,  p:11.9, std:250 },
+  { id:"quark",   n:"Magerquark Berchtesgadener",     g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.6,  f:0.6,  p:11.9, std:200 },
   { id:"mozza",   n:"Bio Mozzarella (EDEKA)",         g:"Milch",     ref:100, unit:"g",      kcal:243, kh:1.0,  f:18.5, p:18.1, std:60 },
   { id:"parmesan",n:"Parmesan / Pecorino",            g:"Milch",     ref:100, unit:"g",      kcal:402, kh:0,    f:29,   p:32,   std:30 },
 
   // Protein
   { id:"whey",    n:"Whey ON Gold Standard",          g:"Protein",   ref:1,   unit:"Scoop",  kcal:120, kh:3,    f:1,    p:24,   std:1 },
   { id:"tofu",    n:"Berief Bio Tofu Natur",          g:"Protein",   ref:100, unit:"g",      kcal:138, kh:0.7,  f:8.0,  p:15.4, std:200 },
-  { id:"tempeh",  n:"Tempeh",                         g:"Protein",   ref:100, unit:"g",      kcal:177, kh:6,    f:9,    p:21,   std:150 },
   { id:"ei",      n:"Ei (Größe M, ~58 g)",            g:"Protein",   ref:1,   unit:"Stück",  kcal:78,  kh:0.6,  f:5.5,  p:6.5,  std:2 },
-  { id:"linsen",  n:"Rote Linsen (trocken)",          g:"Protein",   ref:100, unit:"g",      kcal:304, kh:45,   f:1.5,  p:23,   std:70 },
+  { id:"linsen",  n:"Rote Linsen (trocken)",          g:"Protein",   ref:100, unit:"g",      kcal:304, kh:50,   f:1.5,  p:23,   std:70 },
+  { id:"kicher",  n:"Kichererbsen (Dose, abgetropft)", g:"Protein",   ref:100, unit:"g",      kcal:115, kh:14,   f:2.5,  p:6.5,  std:200, chk:1 },
   { id:"edamame", n:"Edamame TK",                     g:"Protein",   ref:100, unit:"g",      kcal:125, kh:8,    f:5,    p:11,   std:100 },
 
   // Brot & Beilagen
   { id:"lieken",  n:"Lieken Urkorn",                  g:"Brot/KH",   ref:1,   unit:"Scheibe",kcal:113, kh:21.2, f:0.7,  p:3.1,  std:2 },
-  { id:"saaten",  n:"Saatenbrot (60 g/Scheibe)",      g:"Brot/KH",   ref:1,   unit:"Scheibe",kcal:176, kh:10.8, f:10.8, p:6.6,  std:2 },
-  { id:"roggkl",  n:"Bio Roggenbrot m. Weizenkleie",  g:"Brot/KH",   ref:1,   unit:"Scheibe",kcal:99,  kh:5.6,  f:4.0,  p:8.0,  std:2 },
+  { id:"saaten",  n:"Saatenbrot „Das Pure“ (60 g)",     g:"Brot/KH",   ref:1,   unit:"Scheibe",kcal:176, kh:10.8, f:10.8, p:6.6,  std:2 },
   { id:"fusilli", n:"Protein+ Fusilli (roh)",         g:"Brot/KH",   ref:100, unit:"g",      kcal:354, kh:63,   f:1.7,  p:20,   std:100 },
   { id:"reis",    n:"Basmatireis (roh)",              g:"Brot/KH",   ref:100, unit:"g",      kcal:350, kh:77,   f:1,    p:8,    std:100 },
   { id:"kartof",  n:"Kartoffeln",                     g:"Brot/KH",   ref:100, unit:"g",      kcal:77,  kh:17,   f:0.1,  p:2,    std:300 },
@@ -110,11 +118,16 @@ var PRODUKTE = [
   { id:"butter",  n:"Butter",                         g:"Fett",      ref:100, unit:"g",      kcal:740, kh:0.6,  f:82,   p:0.7,  std:10 },
   { id:"nuesse",  n:"Nüsse gemischt",                 g:"Fett",      ref:100, unit:"g",      kcal:620, kh:12,   f:55,   p:20,   std:30 },
   { id:"avocado", n:"Avocado",                        g:"Fett",      ref:100, unit:"g",      kcal:160, kh:2,    f:15,   p:2,    std:100 },
+  { id:"erdnoel", n:"Erdnussöl (hocherhitzbar)",       g:"Fett",      ref:1,   unit:"EL",     kcal:88,  kh:0,    f:10,   p:0,    std:1 },
   { id:"sesamoel",n:"Sesamöl",                        g:"Fett",      ref:1,   unit:"TL",     kcal:45,  kh:0,    f:5,    p:0,    std:1 },
 
   // Obst & Gemüse
   { id:"banane",  n:"Banane (~120 g)",                g:"Obst/Gem.", ref:1,   unit:"Stück",  kcal:107, kh:27,   f:0.3,  p:1.3,  std:1 },
   { id:"heidel",  n:"Heidelbeeren TK",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:57,  kh:12,   f:0.3,  p:0.7,  std:70 },
+  /* Rosinen sind der fettfreie Träger der Kalorienerhöhung:
+     40 g = 120 kcal und 30 g KH bei 0,2 g Fett. Bewusst morgens,
+     weil das Abendfenster geschont werden soll. */
+  { id:"rosinen", n:"Rosinen",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:300, kh:75,   f:0.5,  p:3,    std:40,  chk:1 },
   { id:"gemuese", n:"Gemüse gemischt",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:5,    f:0.3,  p:2,    std:200 },
   { id:"passata", n:"Passata",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:6,    f:0.2,  p:1.3,  std:200 },
 
@@ -132,15 +145,16 @@ var PRODUKTE = [
 
 /* Fixbasis: die täglich wiederkehrenden Posten. on:false heißt,
    der Posten gehört zur Basis, wird aber aktuell nicht mitgeführt. */
-var BASIS_V = 3;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
+var BASIS_V = 4;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
-  { pid:"m615",    menge:100, on:true },
-  { pid:"hafermi", menge:150, on:true },
-  { pid:"quark",   menge:100, on:true },
-  { pid:"fage02",  menge:250, on:true },
+  { pid:"menergy", menge:100, on:true },
+  { pid:"hafermi", menge:85,  on:true },
+  { pid:"quark",   menge:100, on:true },   // morgens; die 200 g abends stecken in r4
+  { pid:"fage02",  menge:300, on:true },   // 100 g Müsli + 200 g nachmittags
   { pid:"nuesse",  menge:30,  on:true },
-  { pid:"banane",  menge:1,   on:true },
+  { pid:"banane",  menge:2,   on:true },   // 1 im Müsli + 1 zum Nachmittagsshake
   { pid:"heidel",  menge:70,  on:true },
+  { pid:"rosinen", menge:40,  on:true },
   { pid:"cappu",   menge:2,   on:true },
   { pid:"whey",    menge:1,   on:true },
   { pid:"norsan",  menge:1,   on:true },
@@ -150,25 +164,26 @@ var BASIS_DEF = [
   { pid:"glycin",  menge:15,  on:false }
 ];
 
-/* Rezepte aus dem Ernährungsplan plus die drei Abend-Bausteine.
+/* Rezepte nach Ernährungsplan Rev. 03.09. Mittagsbudget laut Plan:
+   ~930 kcal / 40 g Fett / 130 g KH / 28 g Protein.
    items = [{pid, menge}]. Eigene Rezepte liegen in cfg().rez und
    haben dieselbe Struktur. */
 var REZEPTE = [
-  { id:"r1", n:"Linsen-Bolognese", zeit:"Mittag", items:[
-    {pid:"fusilli",menge:100},{pid:"linsen",menge:70},{pid:"passata",menge:200},
-    {pid:"olivoel",menge:1},{pid:"parmesan",menge:30}] },
-  { id:"r2", n:"Gebratener Reis, Tofu & Edamame", zeit:"Mittag", items:[
-    {pid:"reis",menge:100},{pid:"tofu",menge:180},{pid:"edamame",menge:100},
-    {pid:"ei",menge:2},{pid:"olivoel",menge:1},{pid:"sesamoel",menge:1},{pid:"sojasauce",menge:2}] },
-  { id:"r3", n:"Tempeh-Bowl mit Linsen", zeit:"Mittag", items:[
-    {pid:"tempeh",menge:150},{pid:"linsen",menge:80},{pid:"saaten",menge:2},
-    {pid:"gemuese",menge:200},{pid:"olivoel",menge:1},{pid:"sojasauce",menge:1}] },
-  { id:"a1", n:"Pasta-Abend (fettarm)", zeit:"Abend", items:[
-    {pid:"fusilli",menge:120},{pid:"passata",menge:200},{pid:"parmesan",menge:20}] },
-  { id:"a2", n:"Brot-Abend", zeit:"Abend", items:[
-    {pid:"lieken",menge:3},{pid:"roggkl",menge:2},{pid:"quark",menge:150}] },
-  { id:"a3", n:"Reis & Tofu", zeit:"Abend", items:[
-    {pid:"reis",menge:100},{pid:"tofu",menge:200},{pid:"gemuese",menge:200}] }
+  { id:"r1", n:"Linsen-Bolognese mit Protein-Pasta", zeit:"Mittag", items:[
+    {pid:"fusilli",menge:120},{pid:"linsen",menge:50},{pid:"passata",menge:250},
+    {pid:"olivoel",menge:1},{pid:"parmesan",menge:25},{pid:"lieken",menge:1}] },
+  { id:"r2", n:"Reis-Bowl mit Tofu & Edamame", zeit:"Mittag", items:[
+    {pid:"reis",menge:140},{pid:"tofu",menge:150},{pid:"edamame",menge:100},
+    {pid:"erdnoel",menge:1},{pid:"sesamoel",menge:1},{pid:"sojasauce",menge:2}] },
+  { id:"r3", n:"Ofenkartoffeln mit Kichererbsen", zeit:"Mittag", items:[
+    {pid:"kartof",menge:500},{pid:"kicher",menge:200},{pid:"olivoel",menge:1.5},
+    {pid:"quark",menge:100},{pid:"gemuese",menge:200}] },
+  /* Rezept 4 aus dem Plan. Steht als Rezept und nicht in der Fixbasis:
+     das Restbudget soll weiter den ganzen Abend abbilden. Die vier
+     Scheiben sind laut Plan nicht verhandelbar - mit zwei Scheiben
+     müsste das Mittagessen rund 1.400 kcal tragen. */
+  { id:"r4", n:"Brot & Quark (Standard)", zeit:"Abend", items:[
+    {pid:"lieken",menge:4},{pid:"quark",menge:200}] }
 ];
 
 /* ─── Storage ───────────────────────────────────────────── */
@@ -598,7 +613,7 @@ window.buildFood = function () {
   /* Abendpensum */
   var pensum;
   if (!items.length) {
-    pensum = '<div class="fphint">Noch nichts eingetragen. <strong>Fixbasis eintragen</strong> setzt die zehn täglichen Posten in einem Schritt.</div>';
+    pensum = '<div class="fphint">Noch nichts eingetragen. <strong>Fixbasis eintragen</strong> setzt die täglichen Posten in einem Schritt.</div>';
   } else {
     var pcls = rest.kcal < 0 ? "over" : (rest.kcal < 250 ? "tight" : "");
     var line;
@@ -871,15 +886,25 @@ function init() {
     if (raw) {
       var c0 = cfg(), dirty = false;
 
-      /* Additiv statt Reset: neue Standardposten werden ergänzt,
-         eigene Mengen und Schalter bleiben stehen. Ein voller
-         Reset hätte jede händisch angepasste Menge verworfen. */
+      /* Normalfall ist additiv: neue Standardposten werden ergänzt,
+         eigene Mengen und Schalter bleiben stehen.
+
+         V4 ist die Ausnahme und setzt zurück. Die Planrevision vom
+         03.09. hat die Basis nicht erweitert, sondern ausgetauscht -
+         #615 weicht dem Energy-Müsli, Hafermilch geht von 150 auf
+         85 ml, FAGE von 250 auf 300 g, Banane von 1 auf 2. Additiv
+         würden genau diese alten Mengen stehen bleiben, und das
+         Müsli stünde doppelt in der Liste. Selbst hinzugefügte
+         Posten außerhalb von BASIS_DEF bleiben erhalten. */
       if (c0.basisV !== BASIS_V) {
-        var have = {};
-        (c0.basis || []).forEach(function (b) { have[b.pid] = true; });
-        BASIS_DEF.forEach(function (b) {
-          if (!have[b.pid]) c0.basis.push({ pid:b.pid, menge:b.menge, on:b.on });
+        var std = {};
+        BASIS_DEF.forEach(function (b) { std[b.pid] = true; });
+        var eigene = (c0.basis || []).filter(function (b) {
+          return !std[b.pid] && b.pid !== "m615";
         });
+        c0.basis = BASIS_DEF.map(function (b) {
+          return { pid:b.pid, menge:b.menge, on:b.on };
+        }).concat(eigene);
         c0.basisV = BASIS_V;
         dirty = true;
       }
