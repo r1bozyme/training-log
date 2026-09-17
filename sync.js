@@ -127,17 +127,18 @@ function buildCSV() {
   if (typeof window.loadDaily === "function") {
     var lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
     var rows = window.loadDaily().filter(function (d) {
-      return d.kcal || typeof d.rate === "number" || typeof d.stiff === "number";
+      return d.kcal || d.est || typeof d.rate === "number" || typeof d.stiff === "number";
     }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     if (rows.length) {
       csv += "\n\n# TÄGLICH\n" +
-             csvRow(["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)"]);
+             csvRow(["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)", "Geschätzt"]);
       rows.forEach(function (d) {
         csv += "\n" + csvRow([
           window.fmtDate(d.date),
           d.kcal ? lbl[d.kcal] : "",
           typeof d.rate  === "number" ? d.rate  : "",
-          typeof d.stiff === "number" ? d.stiff : ""
+          typeof d.stiff === "number" ? d.stiff : "",
+          d.est ? "ja" : ""
         ]);
       });
     }
