@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════
 // DAILY – Kalorien-Haken + Morgensteifigkeit
-// Stand: 10. August 2026
+// Stand: 17. September 2026
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Injiziert CSS + Markup selbst in den Werte-Tab und
@@ -29,6 +29,12 @@
 // fehlt, und zeigt es oben an. Neu berechnet bei jedem
 // Sichtbarwerden – inkl. Datumswechsel über Nacht.
 //
+// GESCHÄTZT (17.09.): Unabhängiger Haken neben dem Kalorien-
+// ziel. Markiert Tage mit geschätzten Posten (Bäcker, Restaurant).
+// Solche Tage zählen normal für die Ziel-Quote, werden aber im
+// Monatsreview aus der Kalibrierung Kalorien vs. Waage genommen.
+// Export läuft über sync.js (Spalte "Geschätzt").
+//
 // Deep-Links (Abkürzung, nicht mehr tragende Schicht):
 //   ?v=stiff | ?v=weight | ?v=kcal
 // ═══════════════════════════════════════════════════
@@ -51,7 +57,7 @@ function putDay(date, patch) {
   const arr = loadDaily();
   const i = arr.findIndex(d => d.date === date);
   if (i >= 0) arr[i] = Object.assign({}, arr[i], patch);
-  else arr.push(Object.assign({ date: date, kcal: null, rate: null, ratedAt: null, stiff: null }, patch));
+  else arr.push(Object.assign({ date: date, kcal: null, est: false, rate: null, ratedAt: null, stiff: null }, patch));
   arr.sort((a, b) => a.date < b.date ? -1 : 1);
   saveDailyArr(arr);
 }
@@ -64,6 +70,15 @@ window.setKcal = function (state) {
   putDay(date, { kcal: next });
   buildDaily();
   showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
+};
+
+window.toggleEst = function () {
+  const date = dailyDate();
+  const cur  = getDay(date);
+  const next = !(cur && cur.est);
+  putDay(date, { est: next });
+  buildDaily();
+  showFlash(next ? "Als geschätzt markiert ✓" : "Markierung entfernt");
 };
 
 window.setRate = function (v) {
@@ -185,10 +200,13 @@ window.buildDaily = function () {
     if (b) b.className = "dsbtn" + (day && day.kcal === st ? " on-" + st : "");
   });
 
+  const eb = document.getElementById("dc-est");
+  if (eb) eb.className = "destbtn" + (day && day.est ? " on" : "");
+
   const win  = lastNDays(14, date);
   const dots = win.map(d => {
     const e = all.find(x => x.date === d);
-    return `<div class="ddot ${e && e.kcal ? e.kcal : ""}"></div>`;
+    return `<div class="ddot ${e && e.kcal ? e.kcal : ""}${e && e.est ? " est" : ""}"></div>`;
   }).join("");
 
   const logged = win.filter(d => { const e = all.find(x => x.date === d); return e && e.kcal; });
@@ -312,6 +330,9 @@ const CSS = `
 .ddot.under { background: #E8A33D; border-color: #E8A33D; }
 .ddot.hit   { background: #4FA34F; border-color: #4FA34F; }
 .ddot.over  { background: #D96A6A; border-color: #D96A6A; }
+.ddot.est   { border: 2px dashed var(--text); }
+.destbtn { display: block; width: 100%; margin-top: 8px; padding: 9px 0; border-radius: 10px; border: 1.5px dashed var(--border); background: transparent; font-family: var(--fb); font-weight: 600; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; }
+.destbtn.on { border-style: solid; border-color: var(--text); color: var(--text); background: var(--bg); }
 .dhint { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 12px; }
 .dhint strong { color: var(--text); font-weight: 700; }
 .dsrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
@@ -351,6 +372,7 @@ const MARKUP = `
     <button class="dsbtn" id="dc-hit"   onclick="setKcal('hit')">Ziel</button>
     <button class="dsbtn" id="dc-over"  onclick="setKcal('over')">darüber</button>
   </div>
+  <button class="destbtn" id="dc-est" onclick="toggleEst()">Werte teilweise geschätzt</button>
   <div id="dc-cont"></div>
 </div>
 <div class="dsec" id="d-stiffsec">
