@@ -1,6 +1,26 @@
 /* ─────────────────────────────────────────────────────────────
    tracker.js — Makro-Tracking + Abendpensum
-   Stand: 6. September 2026 (Rezeptstand Plan-Rev. 03.09.)
+   Stand: 30. September 2026 (Rezeptstand Plan-Rev. 30.09.)
+
+   30.09. – Oktober-Review:
+   · Gemüse fest in den Rezepten: Brokkoli TK 200 g in Rezept 1
+     und 2, rote Paprika in Rezept 3 (statt "Gemüse gemischt") und
+     zum Brot-Abend. Bisher stand Gemüse nur im Plan, im Tracker
+     tauchte es an keinem Tag auf.
+   · "Heute erfasst": Menge je Posten nachträglich änderbar (✎),
+     statt löschen und neu eintragen.
+   · Schalter "Geschätzt" neben "Tag abschließen" – schreibt in
+     dieselbe Markierung wie der Haken im Werte-Tab.
+   · "Tag abschließen" zweimal gedrückt setzt den Haken nicht mehr
+     zurück (setKcal ist ein Umschalter).
+   · Cappuccino neu: Espresso + ~155 ml Hafermilch = 72 kcal /
+     10,7 KH / 2,9 F / 0,6 P je Tasse (vorher 45 / 3,5 / 1,5 / 3 –
+     Kuhmilch-Niveau). Eine alte Korrektur aus dem Werte-Editor wird
+     einmalig über CAPPU_V entfernt, sonst würde sie den neuen Wert
+     überdecken. Bereits erfasste Tage bleiben unverändert.
+   · Werte-Editor: Schrittanzeige 1/4 … 4/4. Abbrechen verwirft
+     nicht mehr stillschweigend – bereits geänderte Werte können
+     übernommen werden, sonst kommt eine klare Rückmeldung.
 
    Zweck: Das Restbudget für die Abendmahlzeit lokal ausrechnen,
    statt den Tag jedes Mal als Fließtext zu verschicken.
@@ -55,7 +75,7 @@
    · REZEPTE: Mittag- und Abendessen bestehen aus immer denselben
      vier bis sieben Posten. Einzeln eingetippt ist das der Punkt,
      an dem Tracking im Alltag abbricht – deshalb ein Tap.
-   ───────────────────────────────────────────────────────────── */
+   ─────────────────────────────────────────────────────────── */
 (function () {
 "use strict";
 
@@ -88,7 +108,10 @@ var PRODUKTE = [
   { id:"m615",    n:"Seitenbacher #615 (Ausnahme)",   g:"Frühstück", ref:100, unit:"g",      kcal:384, kh:51,   f:12,   p:13,   std:100 },
   { id:"hafermi", n:"Hafermilch Minor Figures Barista",g:"Frühstück", ref:100, unit:"ml",     kcal:45.5,kh:6.9,  f:1.85, p:0.35, std:85 },
   { id:"haferfl", n:"Haferflocken",                   g:"Frühstück", ref:100, unit:"g",      kcal:372, kh:59,   f:7,    p:13,   std:60 },
-  { id:"cappu",   n:"Cappuccino",                     g:"Frühstück", ref:1,   unit:"Tasse",  kcal:45,  kh:3.5,  f:1.5,  p:3,    std:2,   chk:1 },
+  /* 30.09.: Cappuccino = Espresso + ~155 ml Minor Figures Barista Oat
+     Organic (Lieblingstasse 150–160 ml). Der alte Wert (45 kcal / 3 g P)
+     war auf Kuhmilch gerechnet – Hafermilch liefert kaum Protein. */
+  { id:"cappu",   n:"Cappuccino (Hafer, ~155 ml)",    g:"Frühstück", ref:1,   unit:"Tasse",  kcal:72,  kh:10.7, f:2.9,  p:0.6,  std:2 },
 
   // Milchprodukte
   { id:"fage02",  n:"FAGE Total 0,2 %",               g:"Milch",     ref:100, unit:"g",      kcal:55,  kh:3.0,  f:0.2,  p:10.3, std:200 },
@@ -129,6 +152,10 @@ var PRODUKTE = [
      weil das Abendfenster geschont werden soll. */
   { id:"rosinen", n:"Rosinen",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:300, kh:75,   f:0.5,  p:3,    std:40,  chk:1 },
   { id:"gemuese", n:"Gemüse gemischt",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:5,    f:0.3,  p:2,    std:200 },
+  /* 30.09.: Gemüse als eigene Posten, damit es im Tracker sichtbar
+     wird. Werte generisch – beim nächsten Einkauf gegen das Etikett. */
+  { id:"brokkoli",n:"Brokkoli TK",                    g:"Obst/Gem.", ref:100, unit:"g",      kcal:29,  kh:2.7,  f:0.5,  p:3.0,  std:200, chk:1 },
+  { id:"paprika", n:"Paprika rot",                    g:"Obst/Gem.", ref:100, unit:"g",      kcal:31,  kh:6.0,  f:0.3,  p:1.0,  std:150, chk:1 },
   { id:"passata", n:"Passata",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:6,    f:0.2,  p:1.3,  std:200 },
 
   // Würzen
@@ -145,6 +172,7 @@ var PRODUKTE = [
 
 /* Fixbasis: die täglich wiederkehrenden Posten. on:false heißt,
    der Posten gehört zur Basis, wird aber aktuell nicht mitgeführt. */
+var CAPPU_V = 1;   // einmalige Bereinigung einer alten Cappuccino-Korrektur
 var BASIS_V = 4;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
   { pid:"menergy", menge:100, on:true },
@@ -169,21 +197,23 @@ var BASIS_DEF = [
    items = [{pid, menge}]. Eigene Rezepte liegen in cfg().rez und
    haben dieselbe Struktur. */
 var REZEPTE = [
-  { id:"r1", n:"Linsen-Bolognese mit Protein-Pasta", zeit:"Mittag", items:[
+  { id:"r1", n:"Linsen-Bolognese mit Protein-Pasta & Brokkoli", zeit:"Mittag", items:[
     {pid:"fusilli",menge:120},{pid:"linsen",menge:50},{pid:"passata",menge:250},
-    {pid:"olivoel",menge:1},{pid:"parmesan",menge:25},{pid:"lieken",menge:1}] },
-  { id:"r2", n:"Reis-Bowl mit Tofu & Edamame", zeit:"Mittag", items:[
+    {pid:"olivoel",menge:1},{pid:"parmesan",menge:25},{pid:"lieken",menge:1},
+    {pid:"brokkoli",menge:200}] },
+  { id:"r2", n:"Reis-Bowl mit Tofu, Edamame & Brokkoli", zeit:"Mittag", items:[
     {pid:"reis",menge:140},{pid:"tofu",menge:150},{pid:"edamame",menge:100},
-    {pid:"erdnoel",menge:1},{pid:"sesamoel",menge:1},{pid:"sojasauce",menge:2}] },
-  { id:"r3", n:"Ofenkartoffeln mit Kichererbsen", zeit:"Mittag", items:[
+    {pid:"erdnoel",menge:1},{pid:"sesamoel",menge:1},{pid:"sojasauce",menge:2},
+    {pid:"brokkoli",menge:200}] },
+  { id:"r3", n:"Ofenkartoffeln mit Kichererbsen & Paprika", zeit:"Mittag", items:[
     {pid:"kartof",menge:500},{pid:"kicher",menge:200},{pid:"olivoel",menge:1.5},
-    {pid:"quark",menge:100},{pid:"gemuese",menge:200}] },
+    {pid:"quark",menge:100},{pid:"paprika",menge:200}] },
   /* Rezept 4 aus dem Plan. Steht als Rezept und nicht in der Fixbasis:
      das Restbudget soll weiter den ganzen Abend abbilden. Die vier
      Scheiben sind laut Plan nicht verhandelbar - mit zwei Scheiben
      müsste das Mittagessen rund 1.400 kcal tragen. */
-  { id:"r4", n:"Brot & Quark (Standard)", zeit:"Abend", items:[
-    {pid:"lieken",menge:4},{pid:"quark",menge:200}] }
+  { id:"r4", n:"Brot & Quark mit Paprika (Standard)", zeit:"Abend", items:[
+    {pid:"lieken",menge:4},{pid:"quark",menge:200},{pid:"paprika",menge:150}] }
 ];
 
 /* ─── Storage ───────────────────────────────────────────── */
@@ -282,6 +312,48 @@ window.foodAdd = function (pid, menge) {
   showFlash(pr.n + " ✓");
 };
 
+/* Menge eines erfassten Postens ändern. Die Werte je ref bleiben
+   stehen (der Tag soll sich nicht rückwirkend an neue Produktwerte
+   anpassen), nur die Menge ändert sich. */
+window.foodQty = function (id) {
+  var d = curDate(), arr = dayItems(d).slice(), it = null;
+  for (var i = 0; i < arr.length; i++) if (arr[i].id === id) it = arr[i];
+  if (!it) return;
+  var u = it.ref === 100 ? (it.unit === "ml" ? "ml" : "g") : it.unit;
+  var r = prompt(it.n + " – Menge in " + u + ":", String(it.menge).replace(".", ","));
+  if (r === null) return;
+  var m = Number(String(r).replace(",", "."));
+  if (!isFinite(m) || m <= 0) { showFlash("Menge prüfen – nichts geändert"); return; }
+  it.menge = m;
+  putItems(d, arr);
+  buildFood();
+  showFlash(it.n + ": " + n1(m) + " " + u + " ✓");
+};
+
+/* Tag im Werte-Tab (tl-d) nachschlagen */
+function dailyEntry(d) {
+  if (typeof window.loadDaily !== "function") return null;
+  var a = window.loadDaily();
+  for (var i = 0; i < a.length; i++) if (a[i].date === d) return a[i];
+  return null;
+}
+
+/* Mit dem Datumsfeld des Werte-Tabs auf den Tag dieses Tabs zeigen,
+   eine Aktion aus daily.js ausführen und das Feld zurückstellen. */
+function mitDailyDatum(d, fn) {
+  var el = document.getElementById("d-date");
+  var keep = el ? el.value : null;
+  if (el) el.value = d;
+  try { fn(); } finally { if (el && keep !== null) el.value = keep; }
+}
+
+window.foodEst = function () {
+  if (typeof window.toggleEst !== "function") { showFlash("Werte-Tab nicht geladen"); return; }
+  var d = curDate();
+  mitDailyDatum(d, function () { window.toggleEst(); });
+  buildFood();
+};
+
 window.foodDel = function (id) {
   var d = curDate();
   putItems(d, dayItems(d).filter(function (x) { return x.id !== id; }));
@@ -324,13 +396,13 @@ window.foodClose = function () {
   var diff = s.kcal - g.kcal;
   var state = diff < -125 ? "under" : (diff > 125 ? "over" : "hit");
   if (typeof window.setKcal !== "function") { showFlash("Werte-Tab nicht geladen"); return; }
-  var el = document.getElementById("d-date");
-  var keep = el ? el.value : null;
-  if (el) el.value = d;
-  window.setKcal(state);                       // schreibt in tl-d
-  if (el && keep !== null) el.value = keep;
+  /* setKcal ist ein Umschalter: derselbe Wert ein zweites Mal setzt
+     den Haken zurück. Ein zweiter Druck auf "Tag abschließen" soll
+     das Ergebnis bestätigen, nicht löschen. */
+  var cur = dailyEntry(d);
+  if (!(cur && cur.kcal === state)) mitDailyDatum(d, function () { window.setKcal(state); });
   buildFood();
-  showFlash("Als \u201E" + ({under:"darunter",hit:"Ziel",over:"darüber"}[state]) + "\u201C gewertet");
+  showFlash("Als „" + ({under:"darunter",hit:"Ziel",over:"darüber"}[state]) + "“ gewertet");
 };
 
 /* ─── Eigene Produkte ───────────────────────────────────── */
@@ -370,18 +442,32 @@ window.foodProdEdit = function (pid, ev) {
   var pr = prod(pid);
   if (!pr) return;
   var einheit = pr.ref === 100 ? ("100 " + (pr.unit === "ml" ? "ml" : "g")) : pr.unit;
-  function ask(lbl, cur) {
-    var r = prompt(lbl + " je " + einheit + ":", cur);
-    if (r === null) return null;
+  /* Vier Schritte mit Anzeige. Abbrechen verwirft nicht mehr
+     stillschweigend: Wurde vorher schon etwas geändert, wird gefragt,
+     ob das übernommen werden soll – die restlichen Werte bleiben dann
+     wie sie sind. */
+  var felder = [["kcal","kcal"],["kh","KH (g)"],["f","Fett (g)"],["p","Protein (g)"]];
+  var neu = { kcal:pr.kcal, kh:pr.kh, f:pr.f, p:pr.p }, geaendert = [];
+  for (var i = 0; i < felder.length; i++) {
+    var k = felder[i][0], lbl = felder[i][1];
+    var r = prompt("Schritt " + (i + 1) + "/4 · " + pr.n + "\n" + lbl + " je " + einheit + ":",
+                   String(pr[k]).replace(".", ","));
+    if (r === null) {
+      if (!geaendert.length) { showFlash("Abgebrochen – nichts geändert"); return; }
+      if (!confirm("Abgebrochen bei Schritt " + (i + 1) + "/4.\n\nBereits geändert: " + geaendert.join(", ") +
+                   ".\nDiese Änderungen übernehmen? Die übrigen Werte bleiben unverändert.")) {
+        showFlash("Verworfen – nichts geändert"); return;
+      }
+      break;
+    }
     var x = Number(String(r).replace(",", "."));
-    return isFinite(x) && x >= 0 ? x : cur;
+    if (!isFinite(x) || x < 0) { showFlash(lbl + ": ungültig, alter Wert bleibt"); continue; }
+    if (x !== pr[k]) geaendert.push(lbl.replace(" (g)", "") + " " + n1(pr[k]) + " → " + n1(x));
+    neu[k] = x;
   }
-  var kcal = ask("kcal", pr.kcal);      if (kcal === null) return;
-  var kh   = ask("KH (g)", pr.kh);      if (kh === null) return;
-  var f    = ask("Fett (g)", pr.f);     if (f === null) return;
-  var p    = ask("Protein (g)", pr.p);  if (p === null) return;
+  if (!geaendert.length) { showFlash("Keine Änderung"); return; }
   var c = cfg();
-  c.ovr[pid] = { kcal:kcal, kh:kh, f:f, p:p };
+  c.ovr[pid] = neu;
   saveCfg(c); buildFood();
   showFlash("Werte korrigiert ✓");
 };
@@ -638,6 +724,7 @@ window.buildFood = function () {
   }
 
   /* Tagesliste */
+  var de = dailyEntry(d), estOn = !!(de && de.est);
   var liste = "";
   if (items.length) {
     liste = '<div class="fsec"><div class="fsub">Heute erfasst · ' + items.length + " Posten</div>" +
@@ -648,12 +735,16 @@ window.buildFood = function () {
           '<div class="fin"><div class="fitn">' + esc(it.n) + "</div>" +
           '<div class="fitm">' + mu + " · " + n0(abs(it, "kcal")) + " kcal · " +
             n1(abs(it, "kh")) + " KH · " + n1(abs(it, "f")) + " F · " + n1(abs(it, "p")) + " P</div></div>" +
+          '<button class="fx fed" onclick="foodQty(' + it.id + ')" title="Menge ändern">✎</button>' +
           '<button class="fx" onclick="foodDel(' + it.id + ')">×</button></div>';
       }).join("") +
       '<div class="frow2">' +
         '<button class="fbtn2" onclick="foodClose()">Tag abschließen</button>' +
+        '<button class="fbtn2 fest' + (estOn ? " on" : "") + '" onclick="foodEst()">' + (estOn ? "✓ Geschätzt" : "Geschätzt") + "</button>" +
         '<button class="fbtn2 ghost" onclick="foodClear()">Tag leeren</button>' +
-      "</div></div>";
+      "</div>" +
+      (estOn ? '<div class="fhint">Als <strong>geschätzt</strong> markiert – zählt nicht für den Abgleich Kalorien gegen Waage.</div>' : "") +
+      "</div>";
   }
 
   /* Mahlzeiten. Sortiert nach Fett, weil das die Größe ist, an der
@@ -679,7 +770,7 @@ window.buildFood = function () {
 
   var mahlzeiten = '<div class="fsec"><div class="fsub">Mahlzeiten</div>' + rezHtml +
     '<button class="fbtn2 ghost" style="width:100%;margin-top:12px" onclick="foodRezSaveDay()">Heutige Posten als Mahlzeit sichern</button>' +
-    '<div class="fhint">Ein Tap setzt alle Posten des Rezepts. Mengen danach einzeln über × und Neuzugabe anpassen, wenn du abgewandelt hast. Gesichert wird ohne die Fixbasis – nur was zusätzlich auf dem Tag steht.</div></div>';
+    '<div class="fhint">Ein Tap setzt alle Posten des Rezepts. Mengen danach in „Heute erfasst“ über ✎ anpassen, wenn du abgewandelt hast. Gesichert wird ohne die Fixbasis – nur was zusätzlich auf dem Tag steht.</div></div>';
 
   /* Fixbasis-Editor */
   var basisSum = sumDay(c.basis.filter(function (b) { return b.on; }).map(function (b) {
@@ -728,7 +819,7 @@ window.buildFood = function () {
       '<button class="fbtn2' + (isNeu ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">3.000 kcal</button>' +
       '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Frei</button>' +
     "</div>" +
-    '<div class="fhint">Seit dem 06.09. steht das Ziel auf <strong>3.000 kcal</strong>: +225 kcal gegenüber 2.775, vollständig als +55 g KH (350 → 405). Fett und Protein bleiben unverändert. Grundlage ist der Hauswaage-Trend von +0,05 kg/Woche gegen ein Ziel von 0,2 – nicht die InBody-Zahl. Nächste Bewertung nach drei sauberen Wochen ab dem 10.09.' +
+    '<div class="fhint">Seit dem 06.09. steht das Ziel auf <strong>3.000 kcal</strong>: +225 kcal gegenüber 2.775, vollständig als +55 g KH (350 → 405). Fett und Protein bleiben unverändert. Grundlage ist der Hauswaage-Trend, nicht die InBody-Zahl. <strong>Oktober ist der erste saubere Testmonat</strong> (ab 01.10.): Eine Woche zählt, wenn mindestens 6 von 7 Tagen erfasst sind. Liegt der Trend nach 3–4 sauberen Wochen unter +0,1 kg/Woche, folgen +200 kcal als KH.' +
     (c.goalSince ? " Zuletzt gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div></div>";
 
   /* Neues Produkt */
@@ -795,6 +886,8 @@ var CSS = [
 ".fitn { font-size:13.5px; font-weight:600; color:var(--text); }",
 ".fitm { font-size:11px; color:var(--muted); margin-top:2px; }",
 ".fx { background:none; border:none; color:var(--dim); font-size:19px; cursor:pointer; padding:0 3px; line-height:1; flex-shrink:0; }",
+".fx.fed { font-size:15px; }",
+".fbtn2.fest.on { border-color:var(--text); color:var(--text); border-style:dashed; }",
 ".frow2 { display:flex; gap:8px; margin-top:12px; }",
 ".fbtn2 { flex:1; padding:12px 8px; border-radius:10px; border:2px solid var(--border); background:transparent; font-family:var(--fb); font-weight:700; font-size:12.5px; color:var(--muted); cursor:pointer; }",
 ".fbtn2.prim { background:var(--text); border-color:var(--text); color:#FFF; }",
@@ -917,6 +1010,14 @@ function init() {
         dirty = true;
       }
 
+      /* Cappuccino-Werte vom 30.09. sollen greifen: eine früher im
+         Werte-Editor gesetzte Korrektur einmalig entfernen. */
+      if (c0.cappuV !== CAPPU_V) {
+        if (c0.ovr && c0.ovr.cappu) delete c0.ovr.cappu;
+        c0.cappuV = CAPPU_V;
+        dirty = true;
+      }
+
       if (dirty) saveCfg(c0);
     } else {
       var c1 = cfg();
@@ -924,6 +1025,7 @@ function init() {
       c1.goal   = { kcal:GOAL_NEU.kcal, kh:GOAL_NEU.kh, f:GOAL_NEU.f, p:GOAL_NEU.p };
       c1.goalSince = todayStr();
       c1.goalV  = GOAL_V;
+      c1.cappuV = CAPPU_V;
       saveCfg(c1);
     }
   } catch (e) { /* unkritisch */ }
