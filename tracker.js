@@ -18,6 +18,9 @@
      Kuhmilch-Niveau). Eine alte Korrektur aus dem Werte-Editor wird
      einmalig über CAPPU_V entfernt, sonst würde sie den neuen Wert
      überdecken. Bereits erfasste Tage bleiben unverändert.
+   · Schalter "Reise" neben "Geschätzt" (30.09., zweiter Schritt):
+     trennt Reisetage von einzelnen Ausnahmen zu Hause. Schreibt in
+     die Markierung "trip" im Werte-Tab.
    · Werte-Editor: Schrittanzeige 1/4 … 4/4. Abbrechen verwirft
      nicht mehr stillschweigend – bereits geänderte Werte können
      übernommen werden, sonst kommt eine klare Rückmeldung.
@@ -351,6 +354,13 @@ window.foodEst = function () {
   if (typeof window.toggleEst !== "function") { showFlash("Werte-Tab nicht geladen"); return; }
   var d = curDate();
   mitDailyDatum(d, function () { window.toggleEst(); });
+  buildFood();
+};
+
+window.foodTrip = function () {
+  if (typeof window.toggleTrip !== "function") { showFlash("Werte-Tab nicht geladen"); return; }
+  var d = curDate();
+  mitDailyDatum(d, function () { window.toggleTrip(); });
   buildFood();
 };
 
@@ -724,7 +734,7 @@ window.buildFood = function () {
   }
 
   /* Tagesliste */
-  var de = dailyEntry(d), estOn = !!(de && de.est);
+  var de = dailyEntry(d), estOn = !!(de && de.est), tripOn = !!(de && de.trip);
   var liste = "";
   if (items.length) {
     liste = '<div class="fsec"><div class="fsub">Heute erfasst · ' + items.length + " Posten</div>" +
@@ -741,9 +751,11 @@ window.buildFood = function () {
       '<div class="frow2">' +
         '<button class="fbtn2" onclick="foodClose()">Tag abschließen</button>' +
         '<button class="fbtn2 fest' + (estOn ? " on" : "") + '" onclick="foodEst()">' + (estOn ? "✓ Geschätzt" : "Geschätzt") + "</button>" +
-        '<button class="fbtn2 ghost" onclick="foodClear()">Tag leeren</button>' +
+        '<button class="fbtn2 ftrip' + (tripOn ? " on" : "") + '" onclick="foodTrip()">' + (tripOn ? "✓ Reise" : "Reise") + "</button>" +
       "</div>" +
-      (estOn ? '<div class="fhint">Als <strong>geschätzt</strong> markiert – zählt nicht für den Abgleich Kalorien gegen Waage.</div>' : "") +
+      '<div class="frow2"><button class="fbtn2 ghost" onclick="foodClear()">Tag leeren</button></div>' +
+      (tripOn ? '<div class="fhint">Als <strong>Reisetag</strong> markiert – zählt nicht für den Abgleich Kalorien gegen Waage und wird im Review getrennt von einzelnen Ausnahmen ausgewertet.</div>'
+       : (estOn ? '<div class="fhint">Als <strong>geschätzt</strong> markiert – zählt nicht für den Abgleich Kalorien gegen Waage.</div>' : "")) +
       "</div>";
   }
 
@@ -888,6 +900,7 @@ var CSS = [
 ".fx { background:none; border:none; color:var(--dim); font-size:19px; cursor:pointer; padding:0 3px; line-height:1; flex-shrink:0; }",
 ".fx.fed { font-size:15px; }",
 ".fbtn2.fest.on { border-color:var(--text); color:var(--text); border-style:dashed; }",
+".fbtn2.ftrip.on { border-color:#2F5D8A; color:#2F5D8A; background:#EEF3F9; }",
 ".frow2 { display:flex; gap:8px; margin-top:12px; }",
 ".fbtn2 { flex:1; padding:12px 8px; border-radius:10px; border:2px solid var(--border); background:transparent; font-family:var(--fb); font-weight:700; font-size:12.5px; color:var(--muted); cursor:pointer; }",
 ".fbtn2.prim { background:var(--text); border-color:var(--text); color:#FFF; }",

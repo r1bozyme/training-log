@@ -35,6 +35,13 @@
 // Monatsreview aus der Kalibrierung Kalorien vs. Waage genommen.
 // Export läuft über sync.js (Spalte "Geschätzt").
 //
+// REISE (30.09.): Eigener Haken, unabhängig von "Geschätzt".
+// Trennt schlechte Ernährung unterwegs von einzelnen Ausnahmen
+// zu Hause (Bäcker, Einladung). Beides fällt aus der Kalibrierung
+// Kalorien vs. Waage, wird aber getrennt ausgewertet. Regel für
+// den Review: ab 2 Reise- oder geschätzten Tagen fällt die Woche
+// aus der Wertung. Export: Spalte "Reise" in sync.js.
+//
 // Deep-Links (Abkürzung, nicht mehr tragende Schicht):
 //   ?v=stiff | ?v=weight | ?v=kcal
 // ═══════════════════════════════════════════════════
@@ -57,7 +64,7 @@ function putDay(date, patch) {
   const arr = loadDaily();
   const i = arr.findIndex(d => d.date === date);
   if (i >= 0) arr[i] = Object.assign({}, arr[i], patch);
-  else arr.push(Object.assign({ date: date, kcal: null, est: false, rate: null, ratedAt: null, stiff: null }, patch));
+  else arr.push(Object.assign({ date: date, kcal: null, est: false, trip: false, rate: null, ratedAt: null, stiff: null }, patch));
   arr.sort((a, b) => a.date < b.date ? -1 : 1);
   saveDailyArr(arr);
 }
@@ -79,6 +86,15 @@ window.toggleEst = function () {
   putDay(date, { est: next });
   buildDaily();
   showFlash(next ? "Als geschätzt markiert ✓" : "Markierung entfernt");
+};
+
+window.toggleTrip = function () {
+  const date = dailyDate();
+  const cur  = getDay(date);
+  const next = !(cur && cur.trip);
+  putDay(date, { trip: next });
+  buildDaily();
+  showFlash(next ? "Als Reisetag markiert ✓" : "Reise-Markierung entfernt");
 };
 
 window.setRate = function (v) {
@@ -202,12 +218,16 @@ window.buildDaily = function () {
 
   const eb = document.getElementById("dc-est");
   if (eb) eb.className = "destbtn" + (day && day.est ? " on" : "");
+  const tb = document.getElementById("dc-trip");
+  if (tb) tb.className = "destbtn trip" + (day && day.trip ? " on" : "");
 
   const win  = lastNDays(14, date);
   const dots = win.map(d => {
     const e = all.find(x => x.date === d);
-    return `<div class="ddot ${e && e.kcal ? e.kcal : ""}${e && e.est ? " est" : ""}"></div>`;
+    return `<div class="ddot ${e && e.kcal ? e.kcal : ""}${e && e.est ? " est" : ""}${e && e.trip ? " trip" : ""}"></div>`;
   }).join("");
+  const mitMarke = win.some(d => { const e = all.find(x => x.date === d); return e && (e.est || e.trip); });
+  const legende  = mitMarke ? `<div class="dleg">gestrichelt = geschätzt · blauer Rahmen = Reise</div>` : "";
 
   const logged = win.filter(d => { const e = all.find(x => x.date === d); return e && e.kcal; });
   const nHit   = logged.filter(d => all.find(x => x.date === d).kcal === "hit").length;
@@ -222,7 +242,7 @@ window.buildDaily = function () {
   }
 
   const dcc = document.getElementById("dc-cont");
-  if (dcc) dcc.innerHTML = `<div class="ddots">${dots}</div><div class="dhint">${kHint}</div>`;
+  if (dcc) dcc.innerHTML = `<div class="ddots">${dots}</div>${legende}<div class="dhint">${kHint}</div>`;
 
   // ── Morgensteifigkeit: Bewertung 0–10 (Primärgröße) ──
   for (let v = 0; v <= 10; v++) {
@@ -331,6 +351,9 @@ const CSS = `
 .ddot.hit   { background: #4FA34F; border-color: #4FA34F; }
 .ddot.over  { background: #D96A6A; border-color: #D96A6A; }
 .ddot.est   { border: 2px dashed var(--text); }
+.ddot.trip  { box-shadow: 0 0 0 2px #2F5D8A; }
+.dleg { font-size: 10.5px; color: var(--muted); margin-top: 6px; }
+.destbtn.trip.on { border-color: #2F5D8A; color: #2F5D8A; background: #EEF3F9; }
 .destbtn { display: block; width: 100%; margin-top: 8px; padding: 9px 0; border-radius: 10px; border: 1.5px dashed var(--border); background: transparent; font-family: var(--fb); font-weight: 600; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; }
 .destbtn.on { border-style: solid; border-color: var(--text); color: var(--text); background: var(--bg); }
 .dhint { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 12px; }
@@ -373,6 +396,7 @@ const MARKUP = `
     <button class="dsbtn" id="dc-over"  onclick="setKcal('over')">darüber</button>
   </div>
   <button class="destbtn" id="dc-est" onclick="toggleEst()">Werte teilweise geschätzt</button>
+  <button class="destbtn trip" id="dc-trip" onclick="toggleTrip()">Reisetag</button>
   <div id="dc-cont"></div>
 </div>
 <div class="dsec" id="d-stiffsec">
