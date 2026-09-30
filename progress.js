@@ -1,6 +1,23 @@
 // ═══════════════════════════════════════════════════
-// PROGRESS – Erhöhungs-Signal + Pausentimer
-// Stand: 4. September 2026
+// PROGRESS – Erhöhungs-Signal + Pausentimer + Übungsverlauf
+// Stand: 30. September 2026
+//
+// NEU 30.09. (Oktober-Review):
+//   · ZEITFENSTER: Nur Einträge der letzten 8 Wochen zählen für das
+//     Signal. Ein Treffer von vor drei Monaten sagt nichts mehr über
+//     den heutigen Stand.
+//   · WIEDEREINSTIEG: progression.ab = "JJJJ-MM-TT" in plan.js blendet
+//     alles davor aus (Latzug/Ruderzug nach der Pause).
+//   · MANUELLE MARKIERUNGEN: "↑ Erhöhen" steht jetzt mit im grünen
+//     Kasten, gekennzeichnet als auto / manuell / auto + manuell.
+//     Maßgeblich ist der neueste Eintrag der Übung nach DATUM – die
+//     alte Liste nahm den zuletzt gespeicherten.
+//   · ÜBUNGSVERLAUF im Log-Tab: Auswahl oben, Gewichtskurve und
+//     alle Einheiten der Übung.
+//   · TIMER: Screen Wake Lock, solange die Pause läuft. Bei
+//     ausgeschaltetem Bildschirm setzt Android den Audio-Kontext aus –
+//     der vorgemerkte Ton kam dann nicht. Jetzt bleibt der Bildschirm
+//     an, und nach der Rückkehr in den Tab wird der Ton neu vorgemerkt.
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Übernimmt zwei Aufgaben:
@@ -70,6 +87,16 @@
 (function () {
 
 const DEF_SCHRITT = 2.5;
+const FENSTER_TAGE = 56;   // 8 Wochen
+
+// Lokales ISO-Datum vor n Tagen (nicht toISOString – das ist UTC
+// und kippt nach Mitternacht um einen Tag).
+function isoVor(n) {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() - n);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 
 // ─── ZUGRIFF AUF PLAN ────────────────────────────
 function findEx(name) {
@@ -134,13 +161,15 @@ function status(ex) {
 
   const alle = (typeof loadEntries === "function" ? loadEntries() : []);
   const ziel = Math.round((ex.zielgewicht + schrittVon(ex)) * 100) / 100;
+  const ab   = p.ab ? String(p.ab) : "";
 
   // Alle Einheiten dieser Uebung, chronologisch. Die Sortierung nach
   // Datum ist noetig, weil das Array in Speicherreihenfolge liegt:
   // ein nachgetragener alter Eintrag stuende sonst am Ende und wuerde
   // als "letzte Einheit" gelesen.
   const eigene = alle.filter(function (e) {
-    return e.uebung === ex.name && num(e.gewicht) !== null;
+    return e.uebung === ex.name && num(e.gewicht) !== null &&
+           (!ab || String(e.date || "") >= ab);
   }).sort(nachDatum);
 
   // ERLEDIGT-ERKENNUNG: Liegt die neueste Einheit bereits auf dem
@@ -155,11 +184,17 @@ function status(ex) {
   if (neueste && num(neueste.gewicht) >= ziel - 0.01)
     return { state: "erledigt", ist: num(neueste.gewicht), ziel: ziel, date: neueste.date };
 
-  const treffer = eigene.filter(function (e) {
+  const trefferAlle = eigene.filter(function (e) {
     return Math.abs(num(e.gewicht) - ex.zielgewicht) < 0.01;
   });
+  const grenze  = isoVor(FENSTER_TAGE);
+  const treffer = trefferAlle.filter(function (e) { return String(e.date || "") >= grenze; });
 
-  if (!treffer.length) return { state: "leer", schwelle: sw, ziel: ziel };
+  if (!treffer.length) {
+    if (trefferAlle.length)
+      return { state: "alt", schwelle: sw, ziel: ziel, date: trefferAlle[trefferAlle.length - 1].date };
+    return { state: "leer", schwelle: sw, ziel: ziel, ab: ab };
+  }
 
   const letzte = treffer[treffer.length - 1];
   const s      = satzListe(letzte);
@@ -197,7 +232,15 @@ function bandHTML(ex) {
     return `<div class="pgb">
       <div class="pgb-l">Progression</div>
       <div class="pgb-v">Schwelle ${st.schwelle} Wdh</div>
-      <div class="pgb-h">Noch kein Eintrag bei ${kg(ex.zielgewicht)}. Ab dem ersten vollständigen Satzblock läuft der Zähler.</div>
+      <div class="pgb-h">${st.ab ? `Wiedereinstieg ab ${fmtDate(st.ab)} – ältere Einträge zählen bewusst nicht. ` : ""}Noch kein Eintrag bei ${kg(ex.zielgewicht)}. Ab dem ersten vollständigen Satzblock läuft der Zähler.</div>
+    </div>`;
+  }
+
+  if (st.state === "alt") {
+    return `<div class="pgb">
+      <div class="pgb-l">Progression</div>
+      <div class="pgb-v">Schwelle ${st.schwelle} Wdh</div>
+      <div class="pgb-h">Der letzte Eintrag bei ${kg(ex.zielgewicht)} (${fmtDate(st.date)}) liegt über 8 Wochen zurück und zählt nicht mehr. Die nächste vollständige Einheit setzt den Zähler neu.</div>
     </div>`;
   }
 
@@ -235,6 +278,24 @@ function renderBand() {
   el.innerHTML = ex ? bandHTML(ex) : "";
 }
 
+// ─── MANUELLE MARKIERUNGEN ───────────────────────
+// Pro Übung der neueste Eintrag nach DATUM (bei gleichem Datum der
+// zuletzt gespeicherte). Zählt nur, wenn er "↑ Erhöhen" trägt, im
+// 8-Wochen-Fenster liegt und nicht vor einem Wiedereinstiegsdatum.
+function manuell() {
+  const alle = (typeof loadEntries === "function" ? loadEntries() : []);
+  const latest = {};
+  alle.slice().sort(nachDatum).forEach(function (e) { latest[e.uebung] = e; });
+  const grenze = isoVor(FENSTER_TAGE);
+  return Object.keys(latest).map(function (k) { return latest[k]; }).filter(function (e) {
+    if (!e.erhoehen) return false;
+    if (String(e.date || "") < grenze) return false;
+    const ex = findEx(e.uebung);
+    const ab = ex && prog(ex).ab;
+    return !(ab && String(e.date || "") < String(ab));
+  });
+}
+
 // ─── ÜBERSICHT IM LOG-TAB ────────────────────────
 function faellig() {
   const out = [];
@@ -243,8 +304,20 @@ function faellig() {
       if (out.some(function (o) { return o.name === ex.name; })) return;
       const st = status(ex);
       if (st.state === "treffer")
-        out.push({ name: ex.name, ein: ein, ziel: st.ziel, summe: st.summe, schwelle: st.schwelle });
+        out.push({ name: ex.name, ein: ein, ziel: st.ziel,
+                   meta: st.summe + " / " + st.schwelle + " Wdh", auto: true, man: false });
     });
+  });
+  manuell().forEach(function (e) {
+    const o = out.find(function (x) { return x.name === e.uebung; });
+    if (o) { o.man = true; return; }
+    const ex = findEx(e.uebung);
+    const g  = num(e.gewicht);
+    const ziel = (ex && g !== null) ? Math.round((g + schrittVon(ex)) * 100) / 100 : null;
+    const sets = satzListe(e).join("/");
+    out.push({ name: e.uebung, ein: e.einheit, ziel: ziel,
+               meta: (g !== null ? kg(g) : "") + (sets ? " · " + sets : "") + " · " + fmtDate(e.date),
+               auto: false, man: true });
   });
   return out;
 }
@@ -258,17 +331,18 @@ function injectOverview() {
   if (!list.length) return;
 
   const rows = list.map(function (o) {
+    const tag = o.auto && o.man ? "auto + manuell" : (o.auto ? "auto" : "manuell");
     return `<div class="pgo-row">
-      <span class="ebdg badge-${o.ein}">${o.ein.toUpperCase()}</span>
-      <div class="pgo-i"><div class="pgo-n">${o.name}</div><div class="pgo-m">${o.summe} / ${o.schwelle} Wdh</div></div>
-      <span class="pgo-z">→ ${kg(o.ziel)}</span>
+      <span class="ebdg badge-${o.ein}">${String(o.ein || "").toUpperCase()}</span>
+      <div class="pgo-i"><div class="pgo-n">${o.name}</div><div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
+      <span class="pgo-z">${o.ziel !== null ? "→ " + kg(o.ziel) : "↑"}</span>
     </div>`;
   }).join("");
 
   cont.insertAdjacentHTML("afterbegin", `<div class="pgo" id="pg-ov">
     <div class="pgo-h">Erhöhung fällig · ${list.length}</div>
     ${rows}
-    <div class="pgo-f">Automatisch aus dem Summenkriterium. Fremdgeräte, unvollständige Einheiten und bereits umgesetzte Erhöhungen sind ausgeschlossen.</div>
+    <div class="pgo-f"><strong>auto</strong> = Summenkriterium erreicht · <strong>manuell</strong> = selbst mit ↑ markiert. Gezählt werden nur die letzten 8 Wochen. Fremdgeräte, unvollständige Einheiten und bereits umgesetzte Erhöhungen sind ausgeschlossen.</div>
   </div>`);
 }
 
@@ -325,6 +399,129 @@ function scheduleBeep(secs) {
   });
 }
 
+// ─── ÜBUNGSVERLAUF IM LOG-TAB ────────────────────
+let histEx = "";
+
+function escA(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// Reihenfolge wie im Plan, danach Übungen, die nur im Log stehen
+function uebungsNamen() {
+  const imLog = {};
+  loadEntries().forEach(function (e) { if (e.uebung) imLog[e.uebung] = true; });
+  const out = [];
+  ["Push", "Pull", "Legs"].forEach(function (ein) {
+    PLAN[ein].forEach(function (ex) {
+      if (imLog[ex.name] && out.indexOf(ex.name) === -1) out.push(ex.name);
+    });
+  });
+  Object.keys(imLog).sort().forEach(function (n) { if (out.indexOf(n) === -1) out.push(n); });
+  return out;
+}
+
+function injectHistPicker() {
+  const view = document.getElementById("view-log");
+  const frow = view && view.querySelector(".frow");
+  if (!frow) return;
+  let wrap = document.getElementById("pg-hs");
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.id = "pg-hs";
+    wrap.className = "pgh-sel";
+    frow.parentNode.insertBefore(wrap, frow.nextSibling);
+  }
+  const opts = uebungsNamen().map(function (n) {
+    return `<option value="${escA(n)}"${n === histEx ? " selected" : ""}>${escA(n)}</option>`;
+  }).join("");
+  wrap.innerHTML = `<select id="pg-hs-s" onchange="pgHist(this.value)">
+      <option value="">Übung: Verlauf anzeigen …</option>${opts}
+    </select>${histEx ? '<button class="pgh-x" onclick="pgHist(\'\')">×</button>' : ""}`;
+}
+
+function kurve(pts) {
+  // pts: [{date, w}] chronologisch
+  if (pts.length < 2) return "";
+  const W = 320, H = 96, L = 34, R = 8, T = 10, B = 18;
+  const ws = pts.map(function (p) { return p.w; });
+  let lo = Math.min.apply(null, ws), hi = Math.max.apply(null, ws);
+  if (hi - lo < 1) { hi += 1; lo -= 1; }
+  const x = function (i) { return L + (W - L - R) * i / (pts.length - 1); };
+  const y = function (w) { return T + (H - T - B) * (1 - (w - lo) / (hi - lo)); };
+  const line = pts.map(function (p, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p.w).toFixed(1); }).join(" ");
+  const dots = pts.map(function (p, i) { return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.w).toFixed(1)}" r="2.6"/>`; }).join("");
+  const d0 = fmtDate(pts[0].date).slice(0, 6), d1 = fmtDate(pts[pts.length - 1].date).slice(0, 6);
+  return `<svg class="pgh-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewichtsverlauf">
+    <line class="ax" x1="${L}" y1="${T}" x2="${L}" y2="${H - B}"/>
+    <line class="ax" x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}"/>
+    <text x="${L - 4}" y="${y(hi) + 4}" text-anchor="end">${String(hi).replace(".", ",")}</text>
+    <text x="${L - 4}" y="${y(lo) + 4}" text-anchor="end">${String(lo).replace(".", ",")}</text>
+    <text x="${L}" y="${H - 4}">${d0}</text>
+    <text x="${W - R}" y="${H - 4}" text-anchor="end">${d1}</text>
+    <path class="ln" d="${line}"/><g class="dt">${dots}</g>
+  </svg>`;
+}
+
+function renderHist() {
+  const cont = document.getElementById("entries");
+  if (!cont) return;
+  const es = loadEntries().filter(function (e) { return e.uebung === histEx; }).sort(nachDatum);
+  if (!es.length) { histEx = ""; return; }
+  const mitGew = es.filter(function (e) { return num(e.gewicht) !== null && num(e.gewicht) > 0; });
+  const pts = mitGew.map(function (e) { return { date: e.date, w: num(e.gewicht) }; });
+  const ex = findEx(histEx);
+  const erst = mitGew[0], letzt = mitGew[mitGew.length - 1];
+  let kopf = es.length + " Einheiten";
+  if (erst && letzt) {
+    const dW = Math.round((num(letzt.gewicht) - num(erst.gewicht)) * 100) / 100;
+    kopf += ` · ${kg(num(erst.gewicht))} → ${kg(num(letzt.gewicht))} (${dW >= 0 ? "+" : ""}${String(dW).replace(".", ",")}) seit ${fmtDate(erst.date)}`;
+  }
+  const rows = es.slice().reverse().map(function (e) {
+    const s = satzListe(e);
+    const sum = s.reduce(function (a, b) { return a + b; }, 0);
+    return `<div class="pgh-row">
+      <div class="pgh-d">${fmtDate(e.date).slice(0, 6)}</div>
+      <div class="pgh-w">${e.gewicht ? String(e.gewicht).replace(".", ",") + " kg" : "–"}</div>
+      <div class="pgh-s">${s.join(" / ") || "–"}${s.length ? ` <span>Σ ${sum}</span>` : ""}${e.notiz ? `<div class="pgh-n">${escA(e.notiz)}</div>` : ""}</div>
+      ${e.erhoehen ? '<span class="ubdg">↑</span>' : ""}
+      <button class="dbtn" onclick="startEdit(${e.id})" style="font-size:15px">✎</button>
+    </div>`;
+  }).join("");
+  cont.innerHTML = `<div class="pgh">
+    <div class="pgh-h">${escA(histEx)}</div>
+    <div class="pgh-m">${kopf}</div>
+    ${ex && ex.ziel ? `<div class="pgh-m">Plan: ${escA(ex.ziel)}</div>` : ""}
+    ${kurve(pts)}
+    <div class="pgh-list">${rows}</div>
+  </div>`;
+}
+
+window.pgHist = function (name) {
+  histEx = name || "";
+  if (typeof renderLog === "function") renderLog();
+};
+
+// ─── WAKE LOCK ───────────────────────────────────
+// Hält den Bildschirm an, solange die Pause läuft. Ohne das setzt
+// Android bei ausgeschaltetem Bildschirm den Audio-Kontext aus, und
+// der vorgemerkte Ton fällt aus.
+let wakeLock = null;
+
+function lockOn() {
+  try {
+    if (!("wakeLock" in navigator) || wakeLock) return;
+    navigator.wakeLock.request("screen").then(function (l) {
+      wakeLock = l;
+      l.addEventListener("release", function () { wakeLock = null; });
+    }).catch(function () {});
+  } catch (e) {}
+}
+
+function lockOff() {
+  try { if (wakeLock) wakeLock.release(); } catch (e) {}
+  wakeLock = null;
+}
+
 // ─── PAUSE-ÜBERSTEUERUNG ─────────────────────────
 // Rear Delt Fly und Beinbeuger brauchen 120 Sek statt der
 // 60–90 Sek für Isolation. Der Einbruch in Satz 2/3 ist dort
@@ -362,6 +559,27 @@ const CSS = `
 .pgo-m { font-size: 11px; color: #4A7A4A; margin-top: 1px; }
 .pgo-z { font-size: 13px; font-weight: 700; color: var(--go); flex-shrink: 0; }
 .pgo-f { font-size: 11px; color: #4A7A4A; line-height: 1.5; margin-top: 10px; padding-top: 9px; border-top: 1px solid #C8E4C8; }
+.pgo-f strong { color: var(--go); }
+.pgo-t { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; border: 1px solid #B8DCB8; color: var(--go); margin-left: 4px; }
+.pgo-t.m { border-color: var(--text); color: var(--text); }
+.pgh-sel { display: flex; gap: 8px; align-items: center; margin: 10px 20px 0; }
+.pgh-sel select { flex: 1; margin-bottom: 0 !important; font-size: 13px !important; padding: 11px 12px !important; }
+.pgh-x { flex: 0 0 40px; height: 40px; border-radius: 8px; border: 1.5px solid var(--border); background: transparent; font-size: 18px; color: var(--muted); cursor: pointer; }
+.pgh { margin: 14px 20px 0; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.pgh-h { font-family: var(--fd); font-size: 17px; letter-spacing: 1.5px; color: var(--text); }
+.pgh-m { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+.pgh-svg { width: 100%; height: auto; margin-top: 10px; display: block; }
+.pgh-svg .ax { stroke: var(--border); stroke-width: 1; }
+.pgh-svg .ln { fill: none; stroke: var(--text); stroke-width: 2; stroke-linejoin: round; }
+.pgh-svg .dt circle { fill: var(--text); }
+.pgh-svg text { font-size: 9px; fill: var(--muted); font-family: var(--fb); }
+.pgh-list { margin-top: 10px; }
+.pgh-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.pgh-d { flex: 0 0 44px; font-size: 12px; font-weight: 700; color: var(--muted); padding-top: 2px; }
+.pgh-w { flex: 0 0 64px; font-size: 13px; font-weight: 700; color: var(--text); padding-top: 1px; }
+.pgh-s { flex: 1; min-width: 0; font-size: 13px; color: var(--text); }
+.pgh-s span { font-size: 11px; color: var(--muted); font-weight: 700; margin-left: 4px; }
+.pgh-n { font-size: 11px; color: var(--muted); margin-top: 2px; }
 `;
 
 let timerEndAt = 0;
@@ -390,10 +608,43 @@ function init() {
     window.saveEntry = function () { origSave.apply(this, arguments); renderBand(); };
   }
 
-  // renderLog erweitern – Übersicht oben im Log
+  // "↑ Erhöhen"-Liste (Zähler + Filter im Log): neuester Eintrag nach
+  // DATUM statt nach Speicherreihenfolge, gleiche Regeln wie der Kasten.
+  window.erhoehenList = function () { return manuell(); };
+
+  // "Letzter Eintrag" im Eintrag-Tab: ebenfalls nach Datum.
+  const origLast = window.showLastEntry;
+  if (typeof origLast === "function") {
+    window.showLastEntry = function (uebung) {
+      const all = loadEntries().filter(function (e) { return e.uebung === uebung; }).sort(nachDatum);
+      const el = document.getElementById("last-entry");
+      if (!el) return;
+      const last = all.length ? all[all.length - 1] : null;
+      if (!last) { el.classList.remove("show"); return; }
+      el.classList.add("show");
+      const sets = [last.s1, last.s2, last.s3, last.s4].filter(Boolean).join(" / ");
+      document.getElementById("last-date").textContent = fmtDate(last.date);
+      const dataEl = document.getElementById("last-data");
+      dataEl.textContent = (last.gewicht ? last.gewicht + " kg" : "") + (sets ? "  ·  " + sets + " Wdh" : "");
+      if (last.erhoehen) dataEl.innerHTML += ' <span class="last-up">↑ erhöhen!</span>';
+    };
+  }
+
+  // renderLog erweitern – Übersicht bzw. Übungsverlauf oben im Log
   const origLog = window.renderLog;
   if (typeof origLog === "function") {
-    window.renderLog = function () { origLog.apply(this, arguments); injectOverview(); };
+    window.renderLog = function () {
+      origLog.apply(this, arguments);
+      if (histEx) renderHist();   // setzt histEx zurück, wenn die Übung leer ist
+      if (!histEx) injectOverview();
+      injectHistPicker();
+    };
+  }
+
+  // Ein Filter-Tap (Alle/Push/Pull/Legs/↑) verlässt den Übungsverlauf
+  const origFilter = window.setFilter;
+  if (typeof origFilter === "function") {
+    window.setFilter = function () { histEx = ""; return origFilter.apply(this, arguments); };
   }
 
   // Jede Unterbrechung verwirft den vorgemerkten Ton.
@@ -401,7 +652,7 @@ function init() {
   ["resetTimer", "toggleTimer", "stopTimer"].forEach(function (fn) {
     const orig = window[fn];
     if (typeof orig === "function") {
-      window[fn] = function () { cancelBeep(); return orig.apply(this, arguments); };
+      window[fn] = function () { cancelBeep(); lockOff(); return orig.apply(this, arguments); };
     }
   });
 
@@ -429,6 +680,7 @@ function init() {
 
     // Ton jetzt vormerken, solange die Nutzergeste noch zählt
     scheduleBeep(p.secs);
+    lockOn();
 
     renderTimer();
     clearInterval(timerIv);
@@ -444,12 +696,23 @@ function init() {
       if (left <= 0) {
         clearInterval(timerIv);
         timerState = "done";
+        lockOff();
         renderTimer();
         if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
         showFlash("Pause vorbei – nächster Satz! 💪");
       }
     }, 250);
   };
+
+  // Rückkehr in den Tab: Audio fortsetzen, Wake Lock erneuern (wird
+  // beim Verstecken automatisch freigegeben) und den Ton auf die
+  // Restzeit neu vormerken – die Audio-Uhr stand eventuell still.
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible") return;
+    if (timerState !== "running") return;
+    const left = (timerEndAt - Date.now()) / 1000;
+    if (left > 0.3) { scheduleBeep(left); lockOn(); }
+  });
 
   renderBand();
 }
