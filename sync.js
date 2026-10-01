@@ -294,7 +294,13 @@ function guardShrink(manual) {
     if (remote === 0 || local >= remote * 0.5) return;
     var msg = "Gesperrt: Geraet hat " + local + " Datensaetze, Backup " + remote +
               ". Erst \u2193 Wiederherstellen.";
-    if (manual && confirm(msg + "\n\nTrotzdem das Backup mit dem Stand dieses Geraets ueberschreiben?")) return;
+    if (manual) {
+      var a = prompt("ACHTUNG: Das Backup enthaelt " + remote + " Datensaetze, dieses Geraet nur " + local +
+                     ".\nSichern wuerde das Backup durch diesen Stand ersetzen.\n\n" +
+                     "Normalerweise ist jetzt \u2193 Wiederherstellen richtig.\n" +
+                     "Nur wenn du das Backup wirklich ersetzen willst, tippe UEBERSCHREIBEN:", "");
+      if (a !== null && a.trim().toUpperCase() === "UEBERSCHREIBEN") return;
+    }
     throw new Error(msg);
   });
 }
@@ -417,7 +423,14 @@ function settings() {
   delete c.lastErr;
   saveCfg(c);
   render();
-  if (configured()) sync(true);
+  if (!configured()) return;
+  // Nie mit Override sichern: Ein frisch eingerichtetes Geraet ist
+  // typischerweise leer. Greift die Sperre, direkt Wiederherstellen anbieten.
+  sync(false).then(function (ok) {
+    var e = cfg().lastErr || "";
+    if (!ok && e.indexOf("Gesperrt") === 0) restore();
+    else if (ok) flash("Gesichert");
+  });
 }
 
 function mount() {
