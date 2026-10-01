@@ -262,6 +262,43 @@ function buildJSON() {
   return JSON.stringify({ v: 1, ts: new Date().toISOString(), keys: keys }, null, 1);
 }
 
+/* ─── Schutz gegen Ueberschreiben ───────────────────────────
+   01.10.: Nach "Website-Daten loeschen" hat ein leeres Geraet beim
+   Eintragen des Tokens sofort gesichert und das volle Backup durch
+   einen leeren Stand ersetzt. Deshalb vor jedem Upload: Hat das
+   Geraet deutlich weniger Daten als das Backup, wird nicht gesichert.
+   Manuell ("Jetzt sichern") laesst es sich nach Rueckfrage erzwingen. */
+var GUARD_KEYS = ["tl-e", "tl-w", "tl-d", "tl-f"];
+function countKeys(get) {
+  var n = 0;
+  GUARD_KEYS.forEach(function (k) {
+    try {
+      var v = JSON.parse(get(k) || "null");
+      if (Array.isArray(v)) n += v.length;
+      else if (v && typeof v === "object") n += Object.keys(v).length;
+    } catch (e) { /* unlesbar = 0 */ }
+  });
+  return n;
+}
+function guardShrink(manual) {
+  return gh("backup.json").then(function (r) {
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error("GET backup.json: HTTP " + r.status);
+    return r.json();
+  }).then(function (j) {
+    if (!j || !j.content) return;             // kein Backup oder > 1 MB
+    var dump = JSON.parse(unb64(j.content));
+    if (!dump || !dump.keys) return;
+    var remote = countKeys(function (k) { return dump.keys[k]; });
+    var local  = countKeys(function (k) { return localStorage.getItem(k); });
+    if (remote === 0 || local >= remote * 0.5) return;
+    var msg = "Gesperrt: Geraet hat " + local + " Datensaetze, Backup " + remote +
+              ". Erst \u2193 Wiederherstellen.";
+    if (manual && confirm(msg + "\n\nTrotzdem das Backup mit dem Stand dieses Geraets ueberschreiben?")) return;
+    throw new Error(msg);
+  });
+}
+
 /* ─── Sync ──────────────────────────────────────────────── */
 function sync(manual) {
   if (running || !configured()) return Promise.resolve(false);
@@ -272,7 +309,8 @@ function sync(manual) {
   var stamp = new Date().toISOString();
   // backup.json zuerst – der Wiederherstellungspfad ist das
   // Wichtigere und darf nicht an einem CSV-Fehler scheitern.
-  return putFile("backup.json", buildJSON(), "backup " + stamp)
+  return guardShrink(manual)
+    .then(function () { return putFile("backup.json", buildJSON(), "backup " + stamp); })
     .then(function () {
       var csv;
       try { csv = buildCSV(); }
