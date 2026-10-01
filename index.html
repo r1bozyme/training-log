@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Training Log">
@@ -47,7 +47,7 @@
 html, body { background: var(--bg); color: var(--text); font-family: var(--fb); min-height: 100vh; overscroll-behavior: none; }
 #app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(72px + var(--sb)); }
 
-.hdr { padding: 52px 20px 0; display: flex; justify-content: space-between; align-items: flex-end; }
+.hdr { padding: max(52px, calc(env(safe-area-inset-top, 0px) + 16px)) 20px 0; display: flex; justify-content: space-between; align-items: flex-end; }
 .hdr-title { font-family: var(--fd); font-size: 36px; letter-spacing: 3px; line-height: 1; color: var(--text); }
 .hdr-sub { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
 
@@ -57,6 +57,9 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--fb); 
   border-top: 1px solid var(--border);
   display: flex; padding: 8px 8px calc(8px + var(--sb)); gap: 3px; z-index: 100;
 }
+/* Statusleiste: Inhalt läuft dahinter, ein leicht milchiger Schleier hält Uhrzeit und Akku lesbar */
+.sbar { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 150; pointer-events: none;
+  background: rgba(245, 245, 243, .72); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
 .nbtn { flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 11px; letter-spacing: -0.2px; transition: all .15s; background: transparent; color: var(--muted); }
 .nbtn.active { background: var(--neutral); color: #FFFFFF; }
 
@@ -259,6 +262,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 </style>
 </head>
 <body>
+<div class="sbar" aria-hidden="true"></div>
 <div id="app">
 
   <div class="hdr">
