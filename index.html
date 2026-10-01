@@ -58,7 +58,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--fb); 
   display: flex; padding: 8px 8px calc(8px + var(--sb)); gap: 3px; z-index: 100;
 }
 /* Statusleiste: Inhalt läuft dahinter, ein leicht milchiger Schleier hält Uhrzeit und Akku lesbar */
-.sbar { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 150; pointer-events: none;
+.status-scrim { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 150; pointer-events: none;
   background: rgba(245, 245, 243, .72); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
 .nbtn { flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 11px; letter-spacing: -0.2px; transition: all .15s; background: transparent; color: var(--muted); }
 .nbtn.active { background: var(--neutral); color: #FFFFFF; }
@@ -262,7 +262,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 </style>
 </head>
 <body>
-<div class="sbar" aria-hidden="true"></div>
+<div class="status-scrim" aria-hidden="true"></div>
 <div id="app">
 
   <div class="hdr">
