@@ -17,6 +17,12 @@
 self.addEventListener("install", function () { self.skipWaiting(); });
 self.addEventListener("activate", function (e) { e.waitUntil(self.clients.claim()); });
 
+/* Grosses Bild rechts in der Meldung zeigt, worum es geht. Links setzt
+   Android ohnehin das App-Icon – ohne eigenes Bild fuellt Chrome den
+   Platz mit dem Anfangsbuchstaben der Adresse ("R"). */
+var ICONS = { stiff: "n-stiff.png", weight: "n-weight.png", food: "n-close.png",
+              yfood: "n-yday.png", yday: "n-yday.png", sync: "n-sync.png" };
+
 self.addEventListener("push", function (e) {
   var d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
@@ -26,7 +32,7 @@ self.addEventListener("push", function (e) {
     renotify: !d.silent,          // Nachfass-Meldung ersetzt die stille und klingelt
     silent: !!d.silent,
     data: { go: d.go || "" },
-    icon: "icon-192.png",    // PNG: SVG zeigt Android in Meldungen nicht an
+    icon: ICONS[d.go] || "n-bell.png",
     badge: "badge-96.png",   // Statusleiste, nur Alphakanal
     lang: "de"
   };

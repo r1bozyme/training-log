@@ -98,7 +98,7 @@ function test() {
     return reg.showNotification("Test: Morgensteifigkeit", {
       body: "So sehen die Erinnerungen aus. Tippen springt zur Steifigkeit.",
       tag: "tl-test", data: { go: "stiff" }, lang: "de",
-      icon: "icon-192.png", badge: "badge-96.png"
+      icon: "n-stiff.png", badge: "badge-96.png"
     });
   });
 }
