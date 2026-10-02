@@ -200,9 +200,10 @@ const PLAN = {
 // progress.js danach: es umschliesst refreshHint/renderLog/saveEntry.
 // tracker.js zuletzt: es umschliesst showView als aeusserste Schicht und
 // braucht setKcal aus daily.js fuer den Knopf "Tag abschliessen".
+// push.js ganz zuletzt (02.10.): Erinnerungen, nutzt tlSync und showView("food").
 // Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
 // und diesen Block entfernen.
-["daily.js", "sync.js", "progress.js", "tracker.js"].forEach(function (src) {
+["daily.js", "sync.js", "progress.js", "tracker.js", "push.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;

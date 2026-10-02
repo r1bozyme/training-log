@@ -37,7 +37,7 @@ var DEBOUNCE  = 8000;          // ms nach letzter Aenderung
 var STALE_D   = 7;             // Tage bis Warnung
 var API       = "https://api.github.com";
 
-var timer = null, running = false;
+var timer = null, running = false, seq = 0;   // seq: Aenderungszaehler
 
 /* ─── Konfiguration ─────────────────────────────────────── */
 function cfg() {
@@ -313,6 +313,7 @@ function sync(manual) {
   render();
 
   var stamp = new Date().toISOString();
+  var seqAtStart = seq;
   // backup.json zuerst – der Wiederherstellungspfad ist das
   // Wichtigere und darf nicht an einem CSV-Fehler scheitern.
   return guardShrink(manual)
@@ -324,7 +325,10 @@ function sync(manual) {
       return putFile("export.csv", csv, "export " + stamp);
     })
     .then(function () {
-      var c = cfg(); c.lastOk = stamp; c.dirty = false; delete c.lastErr; saveCfg(c);
+      /* Nur "sauber" melden, wenn waehrend des Sicherns nichts Neues kam.
+         Sonst bliebe eine Aenderung ohne dirty-Flag liegen und der
+         Flush beim Verlassen der App wuerde sie uebergehen. */
+      var c = cfg(); c.lastOk = stamp; c.dirty = (seq !== seqAtStart); delete c.lastErr; saveCfg(c);
       if (manual) flash("Gesichert");
       return true;
     })
@@ -338,6 +342,7 @@ function sync(manual) {
 }
 
 function schedule() {
+  seq++;
   var c = cfg(); c.dirty = true; saveCfg(c);
   clearTimeout(timer);
   timer = setTimeout(function () { sync(false); }, DEBOUNCE);
@@ -465,8 +470,14 @@ function init() {
   }
 
   window.addEventListener("online", function () { if (cfg().dirty) sync(false); });
+  /* Beim Verlassen sofort sichern statt die 8 s abzuwarten – die
+     Erinnerungen (push.js) lesen den Stand aus dem Backup. Laeuft
+     gerade ein Sync, holt der Nachlauf unten den Rest. */
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden" && cfg().dirty) sync(false);
+    if (document.visibilityState !== "hidden" || !cfg().dirty) return;
+    clearTimeout(timer);
+    if (running) { timer = setTimeout(function () { sync(false); }, 1500); return; }
+    sync(false);
   });
 
   // Offener Rest aus der letzten Sitzung
@@ -476,6 +487,7 @@ function init() {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();
 
-window.tlSync = { run: sync, restore: restore, settings: settings, csv: buildCSV };
+window.tlSync = { run: sync, restore: restore, settings: settings, csv: buildCSV,
+                   put: putFile, ready: configured, get: gh };
 
 })();
