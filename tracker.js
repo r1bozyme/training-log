@@ -323,14 +323,25 @@ window.foodQty = function (id) {
   for (var i = 0; i < arr.length; i++) if (arr[i].id === id) it = arr[i];
   if (!it) return;
   var u = it.ref === 100 ? (it.unit === "ml" ? "ml" : "g") : it.unit;
-  var r = prompt(it.n + " – Menge in " + u + ":", String(it.menge).replace(".", ","));
-  if (r === null) return;
-  var m = Number(String(r).replace(",", "."));
-  if (!isFinite(m) || m <= 0) { showFlash("Menge prüfen – nichts geändert"); return; }
-  it.menge = m;
-  putItems(d, arr);
-  buildFood();
-  showFlash(it.n + ": " + n1(m) + " " + u + " ✓");
+  tlAsk.form({
+    title: it.n, ok: "Übernehmen",
+    fields: [{ key: "m", label: "Menge", type: "num", value: it.menge, suffix: u,
+               step: it.ref === 100 ? 10 : 1, min: 0 }]
+  }).then(function (r) {
+    if (!r) return;
+    var m = r.m;
+    if (!isFinite(m) || m <= 0) { showFlash("Menge prüfen – nichts geändert"); return; }
+    if (m === it.menge) return;
+    /* Tagesstand neu lesen – zwischen Öffnen und Speichern kann sich
+       die Liste geändert haben (z. B. Sync, zweiter Tab). */
+    var arr2 = dayItems(d).slice(), hit = null;
+    for (var j = 0; j < arr2.length; j++) if (arr2[j].id === id) hit = arr2[j];
+    if (!hit) return;
+    hit.menge = m;
+    putItems(d, arr2);
+    buildFood();
+    showFlash(it.n + ": " + n1(m) + " " + u + " ✓");
+  });
 };
 
 /* Tag im Werte-Tab (tl-d) nachschlagen */
@@ -393,9 +404,12 @@ window.foodBasis = function () {
 window.foodClear = function () {
   var d = curDate();
   if (!dayItems(d).length) return;
-  if (!confirm("Alle Einträge vom " + fmtDate(d) + " löschen?")) return;
-  putItems(d, []);
-  buildFood();
+  tlAsk.confirm({ title: "Tag leeren?", text: "Alle Einträge vom " + fmtDate(d) + " löschen?",
+                  ok: "Löschen", danger: true }).then(function (yes) {
+    if (!yes) return;
+    putItems(d, []);
+    buildFood();
+  });
 };
 
 /* Ergebnis in den Kalorien-Haken von daily.js zurückschreiben.
@@ -441,9 +455,12 @@ window.foodNewSave = function () {
 };
 
 window.foodOwnDel = function (pid) {
-  if (!confirm("Produkt aus der eigenen Liste entfernen?\n\nBereits eingetragene Tage bleiben unverändert.")) return;
-  saveOwn(ownProducts().filter(function (x) { return x.id !== pid; }));
-  buildFood();
+  tlAsk.confirm({ title: "Produkt entfernen?", text: "Bereits eingetragene Tage bleiben unverändert.",
+                  ok: "Entfernen", danger: true }).then(function (yes) {
+    if (!yes) return;
+    saveOwn(ownProducts().filter(function (x) { return x.id !== pid; }));
+    buildFood();
+  });
 };
 
 /* ─── Nährwerte korrigieren ─────────────────────────────── */
@@ -452,34 +469,26 @@ window.foodProdEdit = function (pid, ev) {
   var pr = prod(pid);
   if (!pr) return;
   var einheit = pr.ref === 100 ? ("100 " + (pr.unit === "ml" ? "ml" : "g")) : pr.unit;
-  /* Vier Schritte mit Anzeige. Abbrechen verwirft nicht mehr
-     stillschweigend: Wurde vorher schon etwas geändert, wird gefragt,
-     ob das übernommen werden soll – die restlichen Werte bleiben dann
-     wie sie sind. */
-  var felder = [["kcal","kcal"],["kh","KH (g)"],["f","Fett (g)"],["p","Protein (g)"]];
-  var neu = { kcal:pr.kcal, kh:pr.kh, f:pr.f, p:pr.p }, geaendert = [];
-  for (var i = 0; i < felder.length; i++) {
-    var k = felder[i][0], lbl = felder[i][1];
-    var r = prompt("Schritt " + (i + 1) + "/4 · " + pr.n + "\n" + lbl + " je " + einheit + ":",
-                   String(pr[k]).replace(".", ","));
-    if (r === null) {
-      if (!geaendert.length) { showFlash("Abgebrochen – nichts geändert"); return; }
-      if (!confirm("Abgebrochen bei Schritt " + (i + 1) + "/4.\n\nBereits geändert: " + geaendert.join(", ") +
-                   ".\nDiese Änderungen übernehmen? Die übrigen Werte bleiben unverändert.")) {
-        showFlash("Verworfen – nichts geändert"); return;
-      }
-      break;
-    }
-    var x = Number(String(r).replace(",", "."));
-    if (!isFinite(x) || x < 0) { showFlash(lbl + ": ungültig, alter Wert bleibt"); continue; }
-    if (x !== pr[k]) geaendert.push(lbl.replace(" (g)", "") + " " + n1(pr[k]) + " → " + n1(x));
-    neu[k] = x;
-  }
-  if (!geaendert.length) { showFlash("Keine Änderung"); return; }
-  var c = cfg();
-  c.ovr[pid] = neu;
-  saveCfg(c); buildFood();
-  showFlash("Werte korrigiert ✓");
+  /* Ein Formular statt vier prompt()-Schritten (02.10.): alle Werte
+     auf einen Blick, Abbrechen verwirft ohne Rückfrage. Leere oder
+     ungültige Felder behalten den alten Wert. */
+  var felder = [["kcal","Kalorien","kcal"],["kh","Kohlenhydrate","g"],["f","Fett","g"],["p","Protein","g"]];
+  tlAsk.form({
+    title: pr.n, text: "Nährwerte je " + einheit, ok: "Speichern",
+    fields: felder.map(function (f) { return { key: f[0], label: f[1], type: "num", value: pr[f[0]], suffix: f[2] }; })
+  }).then(function (r) {
+    if (!r) return;
+    var neu = { kcal:pr.kcal, kh:pr.kh, f:pr.f, p:pr.p }, n = 0;
+    felder.forEach(function (f) {
+      var x = r[f[0]];
+      if (isFinite(x) && x >= 0 && x !== pr[f[0]]) { neu[f[0]] = x; n++; }
+    });
+    if (!n) { showFlash("Keine Änderung"); return; }
+    var c = cfg();
+    c.ovr[pid] = neu;
+    saveCfg(c); buildFood();
+    showFlash("Werte korrigiert ✓");
+  });
 };
 
 /* ─── Rezepte ───────────────────────────────────────────── */
@@ -526,22 +535,31 @@ window.foodRezSaveDay = function () {
     return true;
   });
   if (!items.length) { showFlash("Keine Posten außerhalb der Basis"); return; }
-  var name = prompt("Name der Mahlzeit:", "");
-  if (name === null || !name.trim()) return;
-  c.rez.push({
-    id: "rz" + Date.now(), n: name.trim(), zeit: "Eigene",
-    items: items.map(function (it) { return { pid: it.pid, menge: it.menge }; })
+  tlAsk.form({
+    title: "Als Mahlzeit speichern", text: items.length + " Posten außerhalb der Basis", ok: "Speichern",
+    fields: [{ key: "n", label: "Name", type: "text", placeholder: "z. B. Brot & Quark" }]
+  }).then(function (r) {
+    var name = r && String(r.n || "").trim();
+    if (!name) return;
+    var c2 = cfg();                     // frisch lesen, der Dialog war offen
+    c2.rez = c2.rez || [];
+    c2.rez.push({
+      id: "rz" + Date.now(), n: name, zeit: "Eigene",
+      items: items.map(function (it) { return { pid: it.pid, menge: it.menge }; })
+    });
+    saveCfg(c2); buildFood();
+    showFlash("Mahlzeit gespeichert ✓");
   });
-  saveCfg(c); buildFood();
-  showFlash("Mahlzeit gespeichert ✓");
 };
 
 window.foodRezDel = function (rid, ev) {
   if (ev && ev.stopPropagation) ev.stopPropagation();
-  if (!confirm("Mahlzeit löschen?")) return;
-  var c = cfg();
-  c.rez = (c.rez || []).filter(function (r) { return r.id !== rid; });
-  saveCfg(c); buildFood();
+  tlAsk.confirm({ title: "Mahlzeit löschen?", ok: "Löschen", danger: true }).then(function (yes) {
+    if (!yes) return;
+    var c = cfg();
+    c.rez = (c.rez || []).filter(function (r) { return r.id !== rid; });
+    saveCfg(c); buildFood();
+  });
 };
 
 /* ─── Fixbasis bearbeiten ───────────────────────────────── */
@@ -584,21 +602,26 @@ window.foodGoalSet = function (which) {
   showFlash("Ziel auf " + g.kcal + " kcal");
 };
 window.foodGoalEdit = function () {
-  var c = cfg();
-  function ask(lbl, cur) {
-    var r = prompt(lbl, cur);
-    if (r === null) return null;
-    var x = Number(String(r).replace(",", "."));
-    return isFinite(x) && x > 0 ? x : cur;
-  }
-  var k = ask("Kalorienziel (kcal):", c.goal.kcal); if (k === null) return;
-  var kh = ask("Kohlenhydrate (g):", c.goal.kh);    if (kh === null) return;
-  var f = ask("Fett (g):", c.goal.f);               if (f === null) return;
-  var p = ask("Protein (g):", c.goal.p);            if (p === null) return;
-  c.goal = { kcal:k, kh:kh, f:f, p:p };
-  c.goalSince = todayStr();
-  saveCfg(c); buildFood();
-  showFlash("Ziel gespeichert ✓");
+  var g0 = cfg().goal;
+  tlAsk.form({
+    title: "Tagesziel", ok: "Speichern",
+    fields: [
+      { key: "kcal", label: "Kalorien",      type: "num", value: g0.kcal, suffix: "kcal" },
+      { key: "kh",   label: "Kohlenhydrate", type: "num", value: g0.kh,   suffix: "g" },
+      { key: "f",    label: "Fett",          type: "num", value: g0.f,    suffix: "g" },
+      { key: "p",    label: "Protein",       type: "num", value: g0.p,    suffix: "g" }
+    ]
+  }).then(function (r) {
+    if (!r) return;
+    var c = cfg(), g = c.goal;
+    function pick(x, cur) { return isFinite(x) && x > 0 ? x : cur; }
+    var neu = { kcal: pick(r.kcal, g.kcal), kh: pick(r.kh, g.kh), f: pick(r.f, g.f), p: pick(r.p, g.p) };
+    if (neu.kcal === g.kcal && neu.kh === g.kh && neu.f === g.f && neu.p === g.p) { showFlash("Keine Änderung"); return; }
+    c.goal = neu;
+    c.goalSince = todayStr();
+    saveCfg(c); buildFood();
+    showFlash("Ziel gespeichert ✓");
+  });
 };
 
 /* ─── Suche / Auswahl ───────────────────────────────────── */

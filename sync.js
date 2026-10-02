@@ -294,14 +294,14 @@ function guardShrink(manual) {
     if (remote === 0 || local >= remote * 0.5) return;
     var msg = "Gesperrt: Geraet hat " + local + " Datensaetze, Backup " + remote +
               ". Erst \u2193 Wiederherstellen.";
-    if (manual) {
-      var a = prompt("ACHTUNG: Das Backup enthaelt " + remote + " Datensaetze, dieses Geraet nur " + local +
-                     ".\nSichern wuerde das Backup durch diesen Stand ersetzen.\n\n" +
-                     "Normalerweise ist jetzt \u2193 Wiederherstellen richtig.\n" +
-                     "Nur wenn du das Backup wirklich ersetzen willst, tippe UEBERSCHREIBEN:", "");
-      if (a !== null && a.trim().toUpperCase() === "UEBERSCHREIBEN") return;
-    }
-    throw new Error(msg);
+    if (!manual) throw new Error(msg);
+    return window.tlAsk.typed({
+      title: "Backup überschreiben?",
+      text: "Das Backup enthält " + remote + " Datensätze, dieses Gerät nur " + local + ".\n" +
+            "Sichern würde das Backup durch diesen Stand ersetzen.\n\n" +
+            "Normalerweise ist jetzt \u2193 Wiederherstellen richtig.",
+      word: "UEBERSCHREIBEN", ok: "Überschreiben"
+    }).then(function (yes) { if (!yes) throw new Error(msg); });
   });
 }
 
@@ -367,14 +367,24 @@ function hookStorage() {
 /* ─── Wiederherstellung ─────────────────────────────────── */
 function restore() {
   if (!configured()) return;
-  if (!confirm("Backup aus GitHub laden?\n\nAlle Daten auf diesem Geraet werden dabei ueberschrieben.")) return;
-  gh("backup.json").then(function (r) {
+  var ABBRUCH = {};
+  window.tlAsk.confirm({
+    title: "Backup laden?", text: "Alle Daten auf diesem Gerät werden dabei überschrieben.",
+    ok: "Weiter", danger: true
+  }).then(function (yes) {
+    if (!yes) throw ABBRUCH;
+    return gh("backup.json");
+  }).then(function (r) {
     if (!r.ok) throw new Error("HTTP " + r.status);
     return r.json();
   }).then(function (j) {
     var dump = JSON.parse(unb64(j.content));
     if (!dump || !dump.keys) throw new Error("Backup unlesbar");
-    if (!confirm("Backup vom " + fmtStamp(dump.ts) + " einspielen?")) return;
+    return window.tlAsk.confirm({
+      title: "Einspielen?", text: "Backup vom " + fmtStamp(dump.ts) + " einspielen?",
+      ok: "Einspielen", danger: true
+    }).then(function (yes) { if (!yes) throw ABBRUCH; return dump; });
+  }).then(function (dump) {
     DATA_KEYS.forEach(function (k) {
       // Keys, die im Dump gar nicht vorkommen (aelteres Backup),
       // bleiben unangetastet statt geloescht zu werden.
@@ -384,7 +394,8 @@ function restore() {
     });
     location.reload();
   }).catch(function (e) {
-    alert("Wiederherstellung fehlgeschlagen: " + e.message);
+    if (e === ABBRUCH) return;
+    window.tlAsk.alert({ title: "Wiederherstellung fehlgeschlagen", text: e.message });
   });
 }
 
@@ -414,13 +425,20 @@ function render() {
 }
 
 function settings() {
+  var c0 = cfg();
+  return window.tlAsk.form({
+    title: "Backup-Einstellungen", ok: "Speichern",
+    fields: [
+      { key: "owner", label: "GitHub-Benutzer", type: "text", value: c0.owner || "r1bozyme" },
+      { key: "repo",  label: "Privates Daten-Repo", type: "text", value: c0.repo || "training-log-data" },
+      { key: "token", label: "Fine-grained Token", type: "password",
+        placeholder: c0.token ? "leer lassen = unverändert" : "github_pat_…" }
+    ]
+  }).then(function (r) { if (r) applySettings(r.owner, r.repo, r.token); });
+}
+
+function applySettings(owner, repo, token) {
   var c = cfg();
-  var owner = prompt("GitHub-Benutzer (Owner):", c.owner || "r1bozyme");
-  if (owner === null) return;
-  var repo = prompt("Privates Daten-Repo:", c.repo || "training-log-data");
-  if (repo === null) return;
-  var token = prompt("Fine-grained Token (leer lassen = unveraendert):", "");
-  if (token === null) return;
   c.owner = owner.trim();
   c.repo  = repo.trim();
   c.branch = c.branch || "main";

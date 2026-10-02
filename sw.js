@@ -26,6 +26,8 @@ self.addEventListener("push", function (e) {
     renotify: !d.silent,          // Nachfass-Meldung ersetzt die stille und klingelt
     silent: !!d.silent,
     data: { go: d.go || "" },
+    icon: "icon-192.png",    // PNG: SVG zeigt Android in Meldungen nicht an
+    badge: "badge-96.png",   // Statusleiste, nur Alphakanal
     lang: "de"
   };
   e.waitUntil(self.registration.showNotification(d.title || "Training Log", opts));
