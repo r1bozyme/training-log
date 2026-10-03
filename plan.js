@@ -201,10 +201,11 @@ const PLAN = {
 // tracker.js zuletzt: es umschliesst showView als aeusserste Schicht und
 // braucht setKcal aus daily.js fuer den Knopf "Tag abschliessen".
 // dialog.js zuerst (02.10.): tlAsk ersetzt confirm/prompt/alert in tracker.js und sync.js.
-// push.js ganz zuletzt (02.10.): Erinnerungen, nutzt tlSync und showView("food").
+// push.js (02.10.): Erinnerungen, nutzt tlSync und showView("food").
+// header.js ganz zuletzt (03.10.): Status-Chip oben rechts, äußerste showView-Schicht.
 // Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
 // und diesen Block entfernen.
-["dialog.js", "daily.js", "sync.js", "progress.js", "tracker.js", "push.js"].forEach(function (src) {
+["dialog.js", "daily.js", "sync.js", "progress.js", "tracker.js", "push.js", "header.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;

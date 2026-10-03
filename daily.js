@@ -193,6 +193,8 @@ function openItems() {
   return out;
 }
 
+window.dailyOpenItems = openItems;   // header.js: Chip im Werte-Tab
+
 window.jumpOpen = function () {
   const items = openItems();
   if (!items.length) return;

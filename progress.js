@@ -322,6 +322,8 @@ function faellig() {
   return out;
 }
 
+window.pgFaellig = faellig;   // header.js: Chip im Log-Tab
+
 function injectOverview() {
   const cont = document.getElementById("entries");
   if (!cont) return;
