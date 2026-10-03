@@ -335,7 +335,7 @@ function n0(x) { return Math.round(x); }
 function n1(x) { return (Math.round(x * 10) / 10).toString().replace(".", ","); }
 
 /* ─── Tageszustand ──────────────────────────────────────── */
-var fDate = null, fSearch = "", fOpen = null, fBasisOpen = false, fNewOpen = false;
+var fDate = null, fSearch = "", fOpen = null, fOpenSec = "",  fBasisOpen = false, fNewOpen = false;
 
 function curDate() {
   var el = document.getElementById("f-day");
@@ -695,8 +695,10 @@ window.foodSearch = function (v) {
   fSearch = v || "";
   renderPicker();
 };
-window.foodPick = function (pid) {
-  fOpen = (fOpen === pid) ? null : pid;
+window.foodPick = function (pid, sec) {
+  sec = sec || "c";
+  var zu = fOpen === pid && fOpenSec === sec;
+  fOpen = zu ? null : pid; fOpenSec = zu ? "" : sec;
   renderPicker();
 };
 window.foodPickAdd = function (pid) {
@@ -727,11 +729,51 @@ function renderPicker() {
   list.forEach(function (p) { (groups[p.g || "Sonstiges"] = groups[p.g || "Sonstiges"] || []).push(p); });
   var order = function (g) { var i = CATS.indexOf(g); return i === -1 ? CATS.length : i; };
 
-  box.innerHTML = Object.keys(groups).sort(function (a, b) { return order(a) - order(b); }).map(function (g) {
-    return '<div class="fgrp">' + g + "</div>" + groups[g].map(function (p) {
-      var open = fOpen === p.id;
+  /* 03.10.: Innerhalb der Kategorie alphabetisch, oben "Häufig" (nur ohne Suche).
+     sec trennt die beiden Fundstellen eines Produkts: offen ist immer nur eine
+     Zeile, damit es das Mengenfeld fq-<id> nur einmal gibt. */
+  var alpha = function (a, b) { return a.n.localeCompare(b.n, "de", { sensitivity: "base", numeric: true }); };
+  var html = "";
+  if (!q) {
+    var oft = haeufig();
+    if (oft.length) html += '<div class="fgrp">Häufig</div>' + oft.map(function (p) { return row(p, "h"); }).join("");
+  }
+  html += Object.keys(groups).sort(function (a, b) { return order(a) - order(b); }).map(function (g) {
+    return '<div class="fgrp">' + g + "</div>" + groups[g].slice().sort(alpha).map(function (p) { return row(p, "c"); }).join("");
+  }).join("");
+  box.innerHTML = html;
+}
+
+/* Die 6 in den letzten 30 Tagen am häufigsten EINZELN eingetragenen Produkte
+   (mind. 2×). Fixbasis zählt nicht: Je Tag fällt pro aktivem Basis-Produkt
+   ein Eintrag weg – Magerquark morgens (Basis) bleibt draußen, der Quark am
+   Abend zählt. Gleichstand → alphabetisch. */
+function haeufig() {
+  var log = loadFood(), t = curDate();
+  var basis = cfg().basis.filter(function (b) { return b.on; }).map(function (b) { return b.pid; });
+  var ab = new Date(t + "T12:00:00"); ab.setDate(ab.getDate() - 30);
+  var abS = ab.toISOString().split("T")[0];
+  var n = {};
+  Object.keys(log).forEach(function (d) {
+    if (d < abS || d > t) return;
+    var rest = basis.slice();
+    (log[d] || []).forEach(function (it) {
+      var i = rest.indexOf(it.pid);
+      if (i !== -1) { rest.splice(i, 1); return; }
+      n[it.pid] = (n[it.pid] || 0) + 1;
+    });
+  });
+  return Object.keys(n).filter(function (pid) { return n[pid] >= 2; })
+    .map(function (pid) { return prod(pid); })
+    .filter(Boolean)
+    .sort(function (a, b) { return (n[b.id] - n[a.id]) || a.n.localeCompare(b.n, "de", { sensitivity: "base" }); })
+    .slice(0, 6);
+}
+
+function row(p, sec) {
+      var open = fOpen === p.id && fOpenSec === sec;
       var per = p.ref === 100 ? ("je 100 " + (p.unit === "ml" ? "ml" : "g")) : ("je " + p.unit);
-      var head = '<div class="fprow' + (open ? " open" : "") + '" onclick="foodPick(\'' + p.id + '\')">' +
+      var head = '<div class="fprow' + (open ? " open" : "") + '" onclick="foodPick(\'' + p.id + '\',\'' + sec + '\')">' +
         '<div class="fpn">' + esc(p.n) +
           (isOwn(p) ? ' <span class="fown">eigen</span>' : "") +
           (p.chk ? ' <span class="fchk" onclick="foodProdEdit(\'' + p.id + '\',event)">?</span>' : "") + "</div>" +
@@ -755,8 +797,6 @@ function renderPicker() {
         (isOwn(p) ? '<div class="fcatrow"><label>Kategorie</label><select onchange="foodOwnCat(\'' + p.id + '\',this.value)">' +
           catOptions(p.g) + "</select></div>" : "") +
         "</div>";
-    }).join("");
-  }).join("");
 }
 
 function catOptions(sel) {
