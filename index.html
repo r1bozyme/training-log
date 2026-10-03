@@ -434,7 +434,8 @@ document.addEventListener("DOMContentLoaded", () => {
   fillUebung("Push");
   refreshHint();
   buildPlan();
-  if (loadEntries().length > 0) showView("log");
+  // Start immer im Eintrag-Tab (frueher: Log, sobald Eintraege vorhanden).
+  // Spruenge aus Benachrichtigungen setzt push.js danach separat.
 });
 
 // ─── STORAGE ─────────────────────────────────────────
