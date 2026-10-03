@@ -7,9 +7,11 @@
 //   Log      Anzahl fälliger Erhöhungen      → Tap: grüner Kasten
 //   Stats    nächster Messtermin (TERMINE unten, beim Review pflegen)
 //   Werte    offene Pflichteinträge          → Tap: erster offener Punkt
-//            sonst Ø Morgensteifigkeit der letzten 7 Tage
-//   Essen    kcal heute gegen das Ziel
-//   Plan     Plan-Revision und nächster Review
+//            sonst Ø Morgensteifigkeit 7 Tage → Tap: Steifigkeit
+//   Essen    kcal heute gegen das Ziel       → Tap: Rest kcal + Protein
+//   Plan     Plan-Revision und nächster Review → Tap: Trainingsplan-Doc
+//   Eintrag-Tap: fällige Einheit wählen, am PP-Tag Push ↔ Pull
+//   Stats-Tap: Messbedingungen als Hinweis
 // Farbe: gelb = offen, grün = Erhöhung fällig, Einheitsfarbe am
 // Eintrag-Tab, sonst neutral. Nichts zu sagen → Chip verschwindet.
 //
@@ -26,6 +28,10 @@ var TERMINE = [
 ];
 // Nächster Monatsreview (Kalender: Export-Termin am 1.). null → Monat aus PLAN.version.
 var REVIEW = "2026-11-01";
+// Aktueller Trainingsplan (Google Doc) – Tap auf den Plan-Chip. Beim Review aktualisieren.
+var PLAN_DOC = "https://docs.google.com/document/d/1LkPcVWu4MIzyl2kzKh8RPNFOWUZ1I2CViR1LCJSCbF4/edit";
+// Kurzfassung der Messbedingungen – Tap auf den InBody-Chip.
+var INBODY_HINWEIS = "07:00 nüchtern, vor dem Trinken · Ruhetag am Vortag";
 
 var MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli",
               "August","September","Oktober","November","Dezember"];
@@ -60,6 +66,11 @@ function today() { return typeof todayStr === "function" ? todayStr() : new Date
 function dayDiff(a, b) { return Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 86400000); }
 function fmtInt(n) { return Math.round(n).toLocaleString("de-DE"); }
 function fmt1(n) { return (Math.round(n * 10) / 10).toFixed(1).replace(".", ","); }
+function flash(msg) { if (typeof showFlash === "function") showFlash(msg); }
+function scrollTo(id) {
+  var el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
 function entries() { try { return typeof loadEntries === "function" ? loadEntries() : []; } catch (e) { return []; } }
 
 // ─── EINTRAG: ROTATION ───────────────────────────
@@ -82,7 +93,14 @@ function chipEintrag() {
 
   if (byDate[t]) {
     var heute = tagTyp(byDate[t]);
-    return { cls: heute, html: name(heute) + ' <span class="hc-m">· heute</span>' };
+    // Tap: Einheit von heute wählen; am Push+Pull-Tag zwischen Push und Pull wechseln
+    var pickHeute = function () {
+      if (typeof selEinheit !== "function") return;
+      if (heute === "Legs") { selEinheit("Legs"); return; }
+      var akt = typeof curEinheit !== "undefined" ? curEinheit : "";
+      selEinheit(akt === "Push" ? "Pull" : "Push");
+    };
+    return { cls: heute, html: name(heute) + ' <span class="hc-m">· heute</span>', tap: pickHeute };
   }
   var last = tage[tage.length - 1];
   var next = tagTyp(byDate[last]) === "Legs" ? "Push" : "Legs";
@@ -122,7 +140,9 @@ function chipStats() {
       var d = dayDiff(t, x.date);
       if (d < 0) continue;
       var wann = d === 0 ? "heute" : d === 1 ? "morgen" : "in " + d + " T.";
-      return { cls: "", html: esc(x.label) + ' <span class="hc-m">' + wann + "</span>" };
+      var hinweis = x.label === "InBody" ? INBODY_HINWEIS : (x.hinweis || "");
+      return { cls: "", html: esc(x.label) + ' <span class="hc-m">' + wann + "</span>",
+               tap: hinweis ? function () { flash(hinweis); } : null };
     }
     if (x.bis && t <= x.bis) return { cls: "", html: esc(x.label) + ' <span class="hc-m">' + esc(x.text) + "</span>" };
   }
@@ -146,7 +166,8 @@ function chipWerte() {
   });
   if (!vals.length) return null;
   var avg = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
-  return { cls: "", html: '<span class="hc-m">Steifigkeit Ø</span> ' + fmt1(avg) };
+  return { cls: "", html: '<span class="hc-m">Steifigkeit Ø</span> ' + fmt1(avg),
+           tap: function () { scrollTo("d-stiffsec"); } };
 }
 
 // ─── ESSEN: KCAL HEUTE ───────────────────────────
@@ -155,7 +176,15 @@ function chipEssen() {
   var s = window.foodDaySum(today());
   var goal = typeof window.loadFoodGoal === "function" ? window.loadFoodGoal() : null;
   if (!s || !s.kcal) return null;
-  return { cls: "", html: fmtInt(s.kcal) + (goal && goal.kcal ? ' <span class="hc-m">/ ' + fmtInt(goal.kcal) + "</span>" : "") };
+  var rest = function () {
+    if (!goal || !goal.kcal) return;
+    var dk = goal.kcal - s.kcal, dp = (goal.p || 0) - s.p;
+    var k = dk >= 0 ? "Noch " + fmtInt(dk) + " kcal" : fmtInt(-dk) + " kcal über Ziel";
+    var pr = goal.p ? (dp > 0 ? " · " + fmtInt(dp) + " g Protein offen" : " · Protein erreicht") : "";
+    flash(k + pr);
+  };
+  return { cls: "", html: fmtInt(s.kcal) + (goal && goal.kcal ? ' <span class="hc-m">/ ' + fmtInt(goal.kcal) + "</span>" : ""),
+           tap: rest };
 }
 
 // ─── PLAN: REVISION + REVIEW ─────────────────────
@@ -172,7 +201,8 @@ function chipPlan() {
       "Review " + (d === 0 ? "heute" : d === 1 ? "morgen" : REVIEW.slice(8, 10) + "." + REVIEW.slice(5, 7) + ".");
   }
   if (!rev && !review) return null;
-  return { cls: "", html: (rev ? "Rev. " + esc(rev.replace(/\.$/, "") + ".") : "") +
+  return { tap: PLAN_DOC ? function () { window.open(PLAN_DOC, "_blank", "noopener"); } : null,
+           cls: "", html: (rev ? "Rev. " + esc(rev.replace(/\.$/, "") + ".") : "") +
                          (rev && review ? ' <span class="hc-m">· ' + review + "</span>" : review) };
 }
 
