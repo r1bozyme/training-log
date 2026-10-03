@@ -22,8 +22,10 @@
 // Beim Monatsreview pflegen. date als "JJJJ-MM-TT", sobald fest;
 // bis dahin steht text bis einschließlich "bis".
 var TERMINE = [
-  { label: "InBody", date: null, text: "Ende Okt.", bis: "2026-10-31" }
+  { label: "InBody", date: "2026-10-31" }   // Kalender: Sa 07:00, nüchtern
 ];
+// Nächster Monatsreview (Kalender: Export-Termin am 1.). null → Monat aus PLAN.version.
+var REVIEW = "2026-11-01";
 
 var MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli",
               "August","September","Oktober","November","Dezember"];
@@ -164,6 +166,11 @@ function chipPlan() {
   var m = -1;
   MONATE.forEach(function (name, i) { if (v.indexOf(name) === 0) m = i; });
   var review = m >= 0 ? "Review " + MON_KURZ[(m + 1) % 12] : "";
+  if (REVIEW) {
+    var d = dayDiff(today(), REVIEW);
+    review = d < 0 ? "" :   // Review vorbei, neue Revision steht aus
+      "Review " + (d === 0 ? "heute" : d === 1 ? "morgen" : REVIEW.slice(8, 10) + "." + REVIEW.slice(5, 7) + ".");
+  }
   if (!rev && !review) return null;
   return { cls: "", html: (rev ? "Rev. " + esc(rev.replace(/\.$/, "") + ".") : "") +
                          (rev && review ? ' <span class="hc-m">· ' + review + "</span>" : review) };
