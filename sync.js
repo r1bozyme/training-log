@@ -127,11 +127,11 @@ function buildCSV() {
   if (typeof window.loadDaily === "function") {
     var lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
     var rows = window.loadDaily().filter(function (d) {
-      return d.kcal || d.est || d.trip || typeof d.rate === "number" || typeof d.stiff === "number";
+      return d.kcal || d.est || d.trip || d.sup || typeof d.rate === "number" || typeof d.stiff === "number";
     }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     if (rows.length) {
       csv += "\n\n# TÄGLICH\n" +
-             csvRow(["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)", "Geschätzt", "Reise"]);
+             csvRow(["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)", "Geschätzt", "Reise", "Einnahme"]);
       rows.forEach(function (d) {
         csv += "\n" + csvRow([
           window.fmtDate(d.date),
@@ -139,7 +139,8 @@ function buildCSV() {
           typeof d.rate  === "number" ? d.rate  : "",
           typeof d.stiff === "number" ? d.stiff : "",
           d.est ? "ja" : "",
-          d.trip ? "ja" : ""
+          d.trip ? "ja" : "",
+          d.sup ? (d.sup === "manual" ? "ja" : "ja " + new Date(d.sup).toTimeString().slice(0, 5)) : ""
         ]);
       });
     }

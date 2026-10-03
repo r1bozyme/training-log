@@ -10,6 +10,7 @@
       was noch offen ist:
         ~05:50 still  – Steifigkeit, Wiegen (Di/Fr), Gestern offen
         ~08:30 Ton    – Nachfass, nur wenn noch offen
+        ~10:00 Ton    – Supplements & Medikamente, wenn nicht abgehakt (03.10.)
         ~21:30        – Tag abschliessen, Backup veraltet (> 3 Tage)
    4. Tippen auf die Meldung springt per ?go= bzw. Nachricht des
       Service Workers an die passende Stelle.
@@ -131,7 +132,7 @@ function pulse(id) {
 function go(where) {
   if (typeof window.showView !== "function") return;
   var today = typeof window.todayStr === "function" ? window.todayStr() : localDate(0);
-  if (where === "stiff" || where === "weight" || where === "yday") {
+  if (where === "stiff" || where === "weight" || where === "yday" || where === "supps") {
     window.showView("weight");
     var dd = document.getElementById("d-date");
     if (dd && where !== "yday" && dd.value !== today) {
@@ -144,7 +145,7 @@ function go(where) {
       setTimeout(function () { window.scrollTo({ top: 0, behavior: "smooth" }); }, 150);
       return;
     }
-    setTimeout(function () { pulse(where === "stiff" ? "d-stiffsec" : "d-weightsec"); }, 150);
+    setTimeout(function () { pulse({ stiff: "d-stiffsec", supps: "d-supsec" }[where] || "d-weightsec"); }, 150);
   } else if (where === "food" || where === "yfood") {
     window.showView("food");
     var fd = document.getElementById("f-day");
@@ -170,7 +171,7 @@ function statusHTML() {
     return "Erinnerungen: <b style='color:#B3261E'>blockiert</b> – in den App-Einstellungen von Android wieder erlauben.";
   if (s.err) return "Erinnerungen: <b style='color:#B3261E'>Fehler</b> – " + s.err;
   if (s.on) return "Erinnerungen: <b style='color:var(--text)'>an</b>" + (s.since ? " seit " + s.since.split("-").reverse().join(".") : "") +
-                   "<br>Morgens ~05:50 still, Nachfass ~08:30, abends ~21:30 – nur wenn etwas offen ist.";
+                   "<br>Morgens ~05:50 still, Nachfass ~08:30, Einnahme ~10:00, abends ~21:30 – nur wenn etwas offen ist.";
   if (!syncReady()) return "Erinnerungen: aus. Brauchen das Backup – erst oben ⚙︎ Einstellungen.";
   return "Erinnerungen: aus.";
 }

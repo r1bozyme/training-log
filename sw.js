@@ -11,7 +11,7 @@
    offen ist – hier wird nur angezeigt.
 
    Payload: { title, body, tag, silent, go }
-     go = stiff | weight | food | yday | sync   (Sprungziel)
+     go = stiff | weight | supps | food | yday | sync   (Sprungziel)
    ═══════════════════════════════════════════════════ */
 
 self.addEventListener("install", function () { self.skipWaiting(); });
@@ -21,7 +21,8 @@ self.addEventListener("activate", function (e) { e.waitUntil(self.clients.claim(
    Android ohnehin das App-Icon – ohne eigenes Bild fuellt Chrome den
    Platz mit dem Anfangsbuchstaben der Adresse ("R"). */
 var ICONS = { stiff: "n-stiff.png", weight: "n-weight.png", food: "n-close.png",
-              yfood: "n-yday.png", yday: "n-yday.png", sync: "n-sync.png" };
+              yfood: "n-yday.png", yday: "n-yday.png", sync: "n-sync.png",
+              supps: "n-pill.png" };
 
 self.addEventListener("push", function (e) {
   var d = {};

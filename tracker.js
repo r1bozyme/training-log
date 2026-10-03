@@ -25,6 +25,15 @@
      nicht mehr stillschweigend – bereits geänderte Werte können
      übernommen werden, sonst kommt eine klare Rückmeldung.
 
+   03.10. – Eigene Produkte in den Kategorien:
+   · Beim Anlegen wird eine Kategorie gewählt (Vorschlag nach Name),
+     das Produkt steht dann in seiner Gruppe statt unter "Eigene".
+     Neue Gruppen für Sachen ohne Platz in der Basis: Getränke,
+     Süßes & Snacks, Gerichte / Unterwegs.
+   · Bestehende "Eigene" werden einmalig einsortiert (OWN_CAT bzw.
+     Namensregel), Kategorie nachträglich im aufgeklappten Produkt
+     änderbar. Kennzeichen own:1 + kleines "eigen" in der Liste.
+
    Zweck: Das Restbudget für die Abendmahlzeit lokal ausrechnen,
    statt den Tag jedes Mal als Fließtext zu verschicken.
 
@@ -176,6 +185,47 @@ var PRODUKTE = [
 /* Fixbasis: die täglich wiederkehrenden Posten. on:false heißt,
    der Posten gehört zur Basis, wird aber aktuell nicht mitgeführt. */
 var CAPPU_V = 1;   // einmalige Bereinigung einer alten Cappuccino-Korrektur
+/* ─── Kategorien (03.10.) ──────────────────────────────────
+   Reihenfolge der Gruppen im Picker. Eigene Produkte bekommen
+   eine dieser Kategorien statt "Eigene". */
+var CATS = ["Frühstück", "Milch", "Protein", "Brot/KH", "Fett", "Obst/Gem.", "Würzen",
+            "Getränke", "Süßes & Snacks", "Gerichte / Unterwegs", "Supplemente", "Sonstiges"];
+
+/* Einmalige Zuordnung der bis 03.10. angelegten Produkte */
+var OWN_CAT = {
+  own1788643766198: "Brot/KH",              // Laugencroissant
+  own1788708575369: "Gerichte / Unterwegs", // Pommes
+  own1789753240404: "Gerichte / Unterwegs", // Pizza Margherita
+  own1789817947267: "Gerichte / Unterwegs", // Plant Based Long Chicken
+  own1789909878891: "Getränke",             // alkoholfreies Helles
+  own1789909936354: "Getränke",             // alkoholfreies Weißbier
+  own1790538269082: "Süßes & Snacks",       // Kuchen
+  own1790786250913: "Gerichte / Unterwegs", // Egg Fried Rice
+  own1790936905912: "Obst/Gem.",            // Iglo Rahmspinat
+  own1791016527033: "Brot/KH",              // Pfister Roggen-Vollkorn
+  own1791017247717: "Milch"                 // Limburger
+};
+
+/* Vorschlag nach Name – nur Voreinstellung im Formular bzw. für
+   unbekannte Altbestände, die Auswahl bleibt frei. */
+var CAT_RULES = [
+  ["Getränke",             /bier|helles|weißbier|weissbier|radler|saft|schorle|limo|cola|wein|sekt|kaffee|latte|tee\b|smoothie|drink/i],
+  ["Milch",                /käse|kaese|quark|joghurt|jogurt|skyr|milch(?!reis)|mozzarella|feta|halloumi|ricotta|frischkäse|parmesan|pecorino|kefir|butterm/i],
+  ["Süßes & Snacks",       /kuchen|keks|schoko|riegel|\beis\b|gummi|chips|(?<!laugen)croissant|plätzchen|waffel|muffin|donut|brownie|praline|süß/i],
+  ["Gerichte / Unterwegs", /pizza|burger|pommes|döner|doener|wrap|bowl|curry|pfanne|fried|sushi|chicken|nuggets|lasagne|menü|restaurant|kantine/i],
+  ["Brot/KH",              /brot|brötchen|roggen|vollkorn|dinkel|semmel|breze|brezel|laugen|toast|nudel|pasta|reis|kartoffel|gnocchi|couscous|bulgur|quinoa|knäcke|tortilla/i],
+  ["Protein",              /tofu|tempeh|hummus|seitan|linsen|bohnen|erbsen|kichererb|edamame|protein|whey|soja|\bei\b|eier/i],
+  ["Obst/Gem.",            /apfel|birne|beere|banane|orange|mango|traube|kiwi|obst|spinat|brokkoli|paprika|tomate|gurke|salat|gemüse|gemuese|möhre|karotte|zucchini|pilz/i],
+  ["Fett",                 /öl\b|oel\b|nuss|nüsse|mandel|butter|avocado|erdnuss|tahin|samen|kerne/i],
+  ["Würzen",               /sauce|soße|ketchup|senf|mayo|pesto|dressing|gewürz|brühe/i],
+  ["Supplemente",          /kapsel|tablette|vitamin|creatin|kreatin|glycin|omega/i]
+];
+function guessCat(name) {
+  for (var i = 0; i < CAT_RULES.length; i++) if (CAT_RULES[i][1].test(name || "")) return CAT_RULES[i][0];
+  return "Sonstiges";
+}
+function isOwn(p) { return !!(p && (p.own || String(p.id).indexOf("own") === 0)); }
+
 var BASIS_V = 4;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
   { pid:"menergy", menge:100, on:true },
@@ -439,9 +489,10 @@ window.foodNewSave = function () {
   if (!name) { showFlash("Name fehlt"); return; }
   var refSel = v("fn-ref");             // "100g" | "100ml" | "1"
   var unit   = v("fn-unit") || "Stück";
+  var cat    = v("fn-cat") || guessCat(name);
   var p = {
     id: "own" + Date.now(),
-    n: name, g: "Eigene",
+    n: name, g: cat, own: 1,
     ref: refSel === "1" ? 1 : 100,
     unit: refSel === "100g" ? "g" : (refSel === "100ml" ? "ml" : unit),
     kcal: num("fn-kcal"), kh: num("fn-kh"), f: num("fn-f"), p: num("fn-p"),
@@ -451,7 +502,22 @@ window.foodNewSave = function () {
   var a = ownProducts(); a.push(p); saveOwn(a);
   fNewOpen = false; fSearch = name;
   buildFood();
-  showFlash("Produkt gespeichert ✓");
+  showFlash("Gespeichert unter „" + cat + "“ ✓");
+};
+
+/* Kategorie-Vorschlag live beim Tippen des Namens – nur solange
+   die Auswahl nicht von Hand geändert wurde. */
+window.foodNewName = function (val) {
+  var sel = document.getElementById("fn-cat");
+  if (sel && !sel.getAttribute("data-man")) sel.value = guessCat(val);
+};
+
+window.foodOwnCat = function (pid, cat) {
+  var a = ownProducts();
+  a.forEach(function (x) { if (x.id === pid) { x.g = cat; x.own = 1; } });
+  saveOwn(a);
+  buildFood();
+  showFlash("Verschoben nach „" + cat + "“");
 };
 
 window.foodOwnDel = function (pid) {
@@ -659,13 +725,15 @@ function renderPicker() {
   }
   var groups = {};
   list.forEach(function (p) { (groups[p.g || "Sonstiges"] = groups[p.g || "Sonstiges"] || []).push(p); });
+  var order = function (g) { var i = CATS.indexOf(g); return i === -1 ? CATS.length : i; };
 
-  box.innerHTML = Object.keys(groups).map(function (g) {
+  box.innerHTML = Object.keys(groups).sort(function (a, b) { return order(a) - order(b); }).map(function (g) {
     return '<div class="fgrp">' + g + "</div>" + groups[g].map(function (p) {
       var open = fOpen === p.id;
       var per = p.ref === 100 ? ("je 100 " + (p.unit === "ml" ? "ml" : "g")) : ("je " + p.unit);
       var head = '<div class="fprow' + (open ? " open" : "") + '" onclick="foodPick(\'' + p.id + '\')">' +
         '<div class="fpn">' + esc(p.n) +
+          (isOwn(p) ? ' <span class="fown">eigen</span>' : "") +
           (p.chk ? ' <span class="fchk" onclick="foodProdEdit(\'' + p.id + '\',event)">?</span>' : "") + "</div>" +
         '<div class="fpm">' + n0(p.kcal) + " kcal " + per + "</div>" +
         '<span class="fpc">' + (open ? "−" : "+") + "</span></div>";
@@ -682,9 +750,18 @@ function renderPicker() {
         '<div class="fpmacro">Je ' + (p.ref === 100 ? "100 " + (p.unit === "ml" ? "ml" : "g") : p.unit) + ": " +
           n1(p.kh) + " g KH · " + n1(p.f) + " g F · " + n1(p.p) + " g P" +
           ' <button class="fowndel" onclick="foodProdEdit(\'' + p.id + '\',event)">Werte bearbeiten</button>' +
-          (p.g === "Eigene" ? ' <button class="fowndel" onclick="foodOwnDel(\'' + p.id + '\')">löschen</button>' : "") +
-        "</div></div>";
+          (isOwn(p) ? ' <button class="fowndel" onclick="foodOwnDel(\'' + p.id + '\')">löschen</button>' : "") +
+        "</div>" +
+        (isOwn(p) ? '<div class="fcatrow"><label>Kategorie</label><select onchange="foodOwnCat(\'' + p.id + '\',this.value)">' +
+          catOptions(p.g) + "</select></div>" : "") +
+        "</div>";
     }).join("");
+  }).join("");
+}
+
+function catOptions(sel) {
+  return CATS.map(function (c) {
+    return '<option' + (c === sel ? " selected" : "") + ">" + esc(c) + "</option>";
   }).join("");
 }
 
@@ -861,7 +938,8 @@ window.buildFood = function () {
   var neu = "";
   if (fNewOpen) {
     neu = '<div class="fnewbox">' +
-      '<input type="text" id="fn-name" placeholder="Produktname (z. B. Hummus Edeka)">' +
+      '<input type="text" id="fn-name" placeholder="Produktname (z. B. Hummus Edeka)" oninput="foodNewName(this.value)">' +
+      '<div class="fnrow"><select id="fn-cat" onchange="this.setAttribute(\'data-man\',\'1\')">' + catOptions("Sonstiges") + "</select></div>" +
       '<div class="fnrow"><select id="fn-ref">' +
         '<option value="100g">Werte je 100 g</option>' +
         '<option value="100ml">Werte je 100 ml</option>' +
@@ -967,6 +1045,10 @@ var CSS = [
 ".fbaddrow { display:flex; gap:8px; align-items:center; margin-top:10px; }",
 ".fbaddrow select { margin-bottom:0 !important; flex:1; font-size:13px !important; padding:11px 12px !important; }",
 ".fbaddrow .fbtn2 { flex:0 0 60px; }",
+".fown { display:inline-block; font-size:9px; font-weight:700; letter-spacing:.5px; color:var(--dim); border:1px solid var(--border); border-radius:4px; padding:0 4px; vertical-align:1px; }",
+".fcatrow { display:flex; align-items:center; gap:8px; margin-top:8px; }",
+".fcatrow label { font-size:10px; color:var(--muted); font-weight:600; letter-spacing:1px; text-transform:uppercase; flex-shrink:0; }",
+".fcatrow select { flex:1; margin-bottom:0 !important; padding:8px !important; font-size:13px !important; }",
 ".fnewbox { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }",
 ".fnrow { display:flex; gap:8px; }",
 ".fnrow > * { flex:1; }",
@@ -1064,6 +1146,17 @@ function init() {
       c1.cappuV = CAPPU_V;
       saveCfg(c1);
     }
+  } catch (e) { /* unkritisch */ }
+
+  /* Eigene Produkte einsortieren (03.10.). Greift nur bei Einträgen,
+     die noch unter "Eigene" stehen – also einmalig je Produkt, auch
+     wenn ein älteres Backup zurückgespielt wird. */
+  try {
+    var own = ownProducts(), moved = 0;
+    own.forEach(function (x) {
+      if (x.g === "Eigene" || !x.g) { x.g = OWN_CAT[x.id] || guessCat(x.n); x.own = 1; moved++; }
+    });
+    if (moved) saveOwn(own);
   } catch (e) { /* unkritisch */ }
 
   // Nav-Knopf vor "Plan" einhängen

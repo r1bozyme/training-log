@@ -42,6 +42,12 @@
 // den Review: ab 2 Reise- oder geschätzten Tagen fällt die Woche
 // aus der Wertung. Export: Spalte "Reise" in sync.js.
 //
+// EINNAHME (03.10.): Ein Haken "Supplements & Medikamente
+// genommen" je Tag (Feld sup = ISO-Zeit bzw. "manual" beim
+// Nachtragen). Die Erinnerung ~10:00 (remind.js im Daten-Repo,
+// Slot "supps") kommt nur, wenn der Haken bis dahin fehlt.
+// Export: Spalte "Einnahme" in sync.js.
+//
 // Deep-Links (Abkürzung, nicht mehr tragende Schicht):
 //   ?v=stiff | ?v=weight | ?v=kcal
 // ═══════════════════════════════════════════════════
@@ -113,6 +119,16 @@ window.setRate = function (v) {
   showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
 };
 
+window.toggleSup = function () {
+  const date = dailyDate();
+  const cur  = getDay(date);
+  // Uhrzeit nur, wenn heute fuer heute abgehakt wird (wie bei der Steifigkeit)
+  const next = (cur && cur.sup) ? null : (date === todayStr() ? new Date().toISOString() : "manual");
+  putDay(date, { sup: next });
+  buildDaily();
+  showFlash(next ? "Einnahme abgehakt ✓" : "Zurückgesetzt");
+};
+
 window.saveStiff = function () {
   const date = dailyDate();
   const raw  = document.getElementById("d-stiff").value;
@@ -172,6 +188,7 @@ function openItems() {
   // Reihenfolge = Tagesablauf: morgens Steifigkeit, dann Wiegen, abends Kalorien
   if (!d || typeof d.rate !== "number") out.push({ label: "Steifigkeit", id: "d-stiffsec" });
   if (weighDue(t) && !hasWeight(t))     out.push({ label: "Wiegen",      id: "d-weightsec" });
+  if (!d || !d.sup)                     out.push({ label: "Einnahme",    id: "d-supsec" });
   if (!d || !d.kcal)                    out.push({ label: "Kalorien",    id: "d-kcalsec" });
   return out;
 }
@@ -220,6 +237,16 @@ window.buildDaily = function () {
   if (eb) eb.className = "destbtn" + (day && day.est ? " on" : "");
   const tb = document.getElementById("dc-trip");
   if (tb) tb.className = "destbtn trip" + (day && day.trip ? " on" : "");
+
+  // ── Einnahme ──
+  const sb = document.getElementById("dsup-btn");
+  if (sb) {
+    const on = !!(day && day.sup);
+    sb.className = "dsupbtn" + (on ? " on" : "");
+    sb.innerHTML = on
+      ? "✓ Eingenommen" + (day.sup === "manual" ? " <span>nachgetragen</span>" : " <span>" + fmtClock(day.sup) + "</span>")
+      : "Noch nicht eingenommen – abhaken";
+  }
 
   const win  = lastNDays(14, date);
   const dots = win.map(d => {
@@ -377,6 +404,9 @@ const CSS = `
 .ddate { display: flex; align-items: center; gap: 12px; margin: 0 20px 12px; }
 .ddate label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
 .ddate input { flex: 1; margin-bottom: 0; }
+.dsupbtn { display: block; width: 100%; padding: 14px 0; border-radius: 10px; border: 2px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; transition: all .15s; }
+.dsupbtn.on { border-color: #4FA34F; color: #2A7A2A; background: #E8F4E8; }
+.dsupbtn span { font-weight: 600; font-size: 11px; opacity: .8; margin-left: 4px; }
 .dflash { animation: dflash 1.5s ease-out; border-radius: 12px; }
 @keyframes dflash { 0%, 55% { box-shadow: 0 0 0 2px var(--text); } 100% { box-shadow: 0 0 0 0 transparent; } }
 `;
@@ -413,6 +443,11 @@ const MARKUP = `
       <button class="dsave" onclick="saveStiff()">OK</button>
     </div>
   </div>
+</div>
+<div class="dsec" id="d-supsec">
+  <div class="dsub">Supplements &amp; Medikamente</div>
+  <button class="dsupbtn" id="dsup-btn" onclick="toggleSup()"></button>
+  <div class="dhint">Ohne Haken kommt gegen 10 Uhr eine Erinnerung.</div>
 </div>
 <div class="dhead"><div class="dhl">GEWICHT</div><div class="dhline"></div></div>
 `;
@@ -509,7 +544,7 @@ function init() {
   // Nur wirksam bei echtem Seitenaufruf. Holt Android ein bestehendes Fenster
   // nach vorn, kommt der Parameter nicht an – dafür ist das Band oben da.
   try {
-    const TARGETS = { stiff: "d-stiffsec", weight: "d-weightsec", kcal: "d-kcalsec" };
+    const TARGETS = { stiff: "d-stiffsec", weight: "d-weightsec", kcal: "d-kcalsec", supps: "d-supsec" };
     const id = TARGETS[new URLSearchParams(location.search).get("v")];
     if (id) {
       if (typeof window.showView === "function") window.showView("weight");
