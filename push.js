@@ -143,13 +143,16 @@ function heal() {
         return sub;
       });
   }).then(function (sub) {
-    s = st(); s.chk = Date.now();
+    s = st(); s.chk = Date.now(); delete s.healErr;
     if (!why) { saveSt(s); render(); return; }
     return upload(sub, why).then(function () {
       s.ep = sub.endpoint; delete s.err; s.fix = Date.now(); s.fixWhy = why; saveSt(s); render();
     });
-  }).catch(function (e) { console.warn("push heal:", e); })
-    .then(function () { healing = false; });
+  }).catch(function (e) {
+    console.warn("push heal:", e);
+    var t = st(); t.healErr = hm(Date.now()) + " " + (why ? "[" + why + "] " : "") + String((e && (e.name + ": " + e.message)) || e).slice(0, 160);
+    saveSt(t); render();
+  }).then(function () { healing = false; });
 }
 
 /* Beim Zurueckkehren in die App erneut pruefen, hoechstens alle 10 Min. */
@@ -210,7 +213,8 @@ function statusHTML() {
   if (s.on) return "Erinnerungen: <b style='color:var(--text)'>an</b>" + (s.since ? " seit " + s.since.split("-").reverse().join(".") : "") +
                    "<br>Morgens ~05:50 still, Nachfass ~08:30, Einnahme ~10:10, abends ~21:30 – nur wenn etwas offen ist." +
                    (s.chk ? "<br><span style='opacity:.7'>Abo geprüft " + hm(s.chk) +
-                     (s.fix ? " · zuletzt erneuert " + dm(s.fix) + " " + hm(s.fix) + " (" + s.fixWhy + ")" : "") + "</span>" : "");
+                     (s.fix ? " · zuletzt erneuert " + dm(s.fix) + " " + hm(s.fix) + " (" + s.fixWhy + ")" : "") + "</span>" : "") +
+                   (s.healErr ? "<br><b style='color:#B3261E'>Prüfung fehlgeschlagen</b> " + s.healErr : "");
   if (!syncReady()) return "Erinnerungen: aus. Brauchen das Backup – erst oben ⚙︎ Einstellungen.";
   return "Erinnerungen: aus.";
 }
