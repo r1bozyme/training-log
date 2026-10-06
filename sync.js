@@ -228,7 +228,7 @@ function gh(path, opts) {
 }
 
 function getSha(path) {
-  return gh(path).then(function (r) {
+  return gh(path, { cache: "no-store" }).then(function (r) {
     if (r.status === 404) return null;
     if (!r.ok) throw new Error("GET " + path + ": HTTP " + r.status);
     return r.json().then(function (j) { return j.sha; });

@@ -112,9 +112,20 @@ function test() {
    und bei Abweichung sofort ein gueltiges Abo hochladen. "why" landet in
    subscription.json: geaendert = Chrome hat getauscht, fehlte = kein lokales Abo,
    tot = vom Push-Dienst abgemeldet, repo = Repo hatte ein anderes/keins. */
+/* Gleicher Medientyp wie getSha() in sync.js und ohne Browser-Cache: ein
+   zwischengespeicherter Roh-Abruf derselben URL lieferte dort sonst keine sha
+   -> PUT 422 "sha wasn't supplied" (06.10.). */
 function repoJSON(p) {
-  return window.tlSync.get(p, { headers: { "Accept": "application/vnd.github.raw+json" } })
-    .then(function (r) { return r.status === 404 ? null : (r.ok ? r.json() : Promise.reject(new Error("GET " + p + ": " + r.status))); });
+  return window.tlSync.get(p, { cache: "no-store" }).then(function (r) {
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error("GET " + p + ": " + r.status);
+    return r.json().then(function (j) {
+      var bin = atob(String(j.content || "").replace(/\s/g, ""));
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return JSON.parse(new TextDecoder().decode(bytes) || "null");
+    });
+  });
 }
 
 function freshSub(reg) {
