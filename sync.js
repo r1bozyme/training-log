@@ -235,7 +235,7 @@ function getSha(path) {
   });
 }
 
-function putFile(path, content, msg) {
+function putFile(path, content, msg, retried) {
   return getSha(path).then(function (sha) {
     var body = { message: msg, content: b64(content), branch: cfg().branch || "main" };
     if (sha) body.sha = sha;
@@ -246,6 +246,10 @@ function putFile(path, content, msg) {
     });
   }).then(function (r) {
     if (r.ok) return true;
+    /* 409/422 = sha fehlt oder veraltet (Cache, paralleler Schreibzugriff): einmal frisch versuchen */
+    if ((r.status === 409 || r.status === 422) && !retried)
+      return new Promise(function (ok) { setTimeout(ok, 800); })
+        .then(function () { return putFile(path, content, msg, true); });
     return r.text().then(function (t) {
       var hint = r.status === 401 ? " – Token ungueltig oder abgelaufen"
                : r.status === 403 ? " – Token hat keine Contents-Schreibrechte"
