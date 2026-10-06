@@ -52,9 +52,9 @@ function registerSW() {
     .then(function () { return navigator.serviceWorker.ready; });
 }
 
-function upload(sub) {
+function upload(sub, why) {
   var body = sub
-    ? { v: 1, on: true, ts: new Date().toISOString(), sub: sub.toJSON() }
+    ? { v: 1, on: true, ts: new Date().toISOString(), why: why || "manuell", sub: sub.toJSON() }
     : { v: 1, on: false, ts: new Date().toISOString() };
   return window.tlSync.put(PATH, JSON.stringify(body, null, 1),
                            sub ? "push: Abo aktiviert" : "push: Abo beendet");
@@ -71,8 +71,8 @@ function enable() {
       return old || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) });
     });
   }).then(function (sub) {
-    return upload(sub).then(function () {
-      saveSt({ on: true, ep: sub.endpoint, since: localDate(0) });
+    return upload(sub, "manuell").then(function () {
+      saveSt({ on: true, ep: sub.endpoint, since: localDate(0), chk: Date.now() });
       flash("Erinnerungen aktiv – Bestätigung kommt gleich");
       render();
     });
@@ -104,21 +104,58 @@ function test() {
   });
 }
 
-/* Beim Start: Abo pruefen. Chrome kann ein Abo erneuern oder verwerfen –
-   dann neu anlegen und hochladen, sonst liefen die Erinnerungen ins Leere. */
+/* Selbstheilung (06.10.): Chrome tauscht das Abo auf diesem Handy immer wieder
+   aus, ohne den Service Worker zu benachrichtigen – Pushes an das alte gehen dann
+   mit 410 ins Leere. Deshalb bei jedem Oeffnen und Zurueckkehren in die App:
+   - lokales Abo gegen das im Daten-Repo pruefen (push/subscription.json),
+   - gegen die Tot-Meldung des Erinnerungsdienstes (push/health.json),
+   und bei Abweichung sofort ein gueltiges Abo hochladen. "why" landet in
+   subscription.json: geaendert = Chrome hat getauscht, fehlte = kein lokales Abo,
+   tot = vom Push-Dienst abgemeldet, repo = Repo hatte ein anderes/keins. */
+function repoJSON(p) {
+  return window.tlSync.get(p, { headers: { "Accept": "application/vnd.github.raw+json" } })
+    .then(function (r) { return r.status === 404 ? null : (r.ok ? r.json() : Promise.reject(new Error("GET " + p + ": " + r.status))); });
+}
+
+function freshSub(reg) {
+  return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) });
+}
+
+var healing = false, lastHeal = 0;
 function heal() {
   var s = st();
-  if (!supported || !s.on) return;
+  if (!supported || !s.on || healing) return;
   if (Notification.permission !== "granted") { render(); return; }
+  if (!syncReady()) return;
+  healing = true; lastHeal = Date.now();
+  var why = "";
   registerSW().then(function (reg) {
-    return reg.pushManager.getSubscription().then(function (sub) {
-      return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) });
-    });
+    return Promise.all([reg.pushManager.getSubscription(), repoJSON(PATH), repoJSON("push/health.json")])
+      .then(function (r) {
+        var sub = r[0], repo = r[1] || {}, health = r[2] || {};
+        if (sub && health.dead === sub.endpoint) {
+          why = "tot";
+          return sub.unsubscribe().catch(function () {}).then(function () { return freshSub(reg); });
+        }
+        if (!sub) { why = "fehlte"; return freshSub(reg); }
+        if (sub.endpoint !== s.ep) why = "geaendert";
+        else if (!repo.on || !repo.sub || repo.sub.endpoint !== sub.endpoint) why = "repo";
+        return sub;
+      });
   }).then(function (sub) {
-    if (sub.endpoint === s.ep || !syncReady()) return;
-    return upload(sub).then(function () { s.ep = sub.endpoint; delete s.err; saveSt(s); render(); });
-  }).catch(function (e) { console.warn("push heal:", e); });
+    s = st(); s.chk = Date.now();
+    if (!why) { saveSt(s); render(); return; }
+    return upload(sub, why).then(function () {
+      s.ep = sub.endpoint; delete s.err; s.fix = Date.now(); s.fixWhy = why; saveSt(s); render();
+    });
+  }).catch(function (e) { console.warn("push heal:", e); })
+    .then(function () { healing = false; });
 }
+
+/* Beim Zurueckkehren in die App erneut pruefen, hoechstens alle 10 Min. */
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "visible" && Date.now() - lastHeal > 10 * 60 * 1000) heal();
+});
 
 /* ─── Sprungziele ───────────────────────────────────────── */
 function pulse(id) {
@@ -171,10 +208,15 @@ function statusHTML() {
     return "Erinnerungen: <b style='color:#B3261E'>blockiert</b> – in den App-Einstellungen von Android wieder erlauben.";
   if (s.err) return "Erinnerungen: <b style='color:#B3261E'>Fehler</b> – " + s.err;
   if (s.on) return "Erinnerungen: <b style='color:var(--text)'>an</b>" + (s.since ? " seit " + s.since.split("-").reverse().join(".") : "") +
-                   "<br>Morgens ~05:50 still, Nachfass ~08:30, Einnahme ~10:00, abends ~21:30 – nur wenn etwas offen ist.";
+                   "<br>Morgens ~05:50 still, Nachfass ~08:30, Einnahme ~10:10, abends ~21:30 – nur wenn etwas offen ist." +
+                   (s.chk ? "<br><span style='opacity:.7'>Abo geprüft " + hm(s.chk) +
+                     (s.fix ? " · zuletzt erneuert " + dm(s.fix) + " " + hm(s.fix) + " (" + s.fixWhy + ")" : "") + "</span>" : "");
   if (!syncReady()) return "Erinnerungen: aus. Brauchen das Backup – erst oben ⚙︎ Einstellungen.";
   return "Erinnerungen: aus.";
 }
+
+function hm(t) { var d = new Date(t); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+function dm(t) { var d = new Date(t); return d.getDate() + "." + (d.getMonth() + 1) + "."; }
 
 function render() {
   var box = document.getElementById("tlr-box");
