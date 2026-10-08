@@ -65,6 +65,12 @@
    Bereits eingetragene Posten behalten ihre Werte – ein Tag von
    gestern soll sich nicht rückwirkend ändern.
 
+   08.10. – Milsani Skyr (Aldi, Etikett) als Produkt und als
+   Basisposten (400 g, zunächst aus). Ersetzt Magerquark 100 g und
+   FAGE 300 g, sobald die Reste aufgebraucht sind. Rezepte bleiben
+   beim Quark – das Abendbrot mit Skyr wird erst getestet.
+   Basis-Migration V5 additiv, eigene Mengen und Schalter bleiben.
+
    06.09. – Abgleich mit Ernährungsplan Rev. 03.09.: Energy-Müsli
    als Standard, Rosinen und zweite Banane neu, Hafermilch 150 → 85 ml,
    FAGE 250 → 300 g. Mittagsrezepte auf das Budget 930 kcal / 40 g F /
@@ -129,6 +135,9 @@ var PRODUKTE = [
   { id:"fage02",  n:"FAGE Total 0,2 %",               g:"Milch",     ref:100, unit:"g",      kcal:55,  kh:3.0,  f:0.2,  p:10.3, std:200 },
   { id:"fage2",   n:"FAGE Total 2 %",                 g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.0,  f:2.0,  p:9.9,  std:200 },
   { id:"quark",   n:"Magerquark Berchtesgadener",     g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.6,  f:0.6,  p:11.9, std:200 },
+  /* 08.10.: Etikett Milsani Skyr Natur 500 g (Aldi). Ersetzt FAGE und
+     Magerquark in der Fixbasis, sobald die Reste aufgebraucht sind. */
+  { id:"skyr",    n:"Skyr Milsani Natur (Aldi)",      g:"Milch",     ref:100, unit:"g",      kcal:64,  kh:4.0,  f:0.2,  p:11,   std:200 },
   { id:"mozza",   n:"Bio Mozzarella (EDEKA)",         g:"Milch",     ref:100, unit:"g",      kcal:243, kh:1.0,  f:18.5, p:18.1, std:60 },
   { id:"parmesan",n:"Parmesan / Pecorino",            g:"Milch",     ref:100, unit:"g",      kcal:402, kh:0,    f:29,   p:32,   std:30 },
 
@@ -226,12 +235,16 @@ function guessCat(name) {
 }
 function isOwn(p) { return !!(p && (p.own || String(p.id).indexOf("own") === 0)); }
 
-var BASIS_V = 4;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
+var BASIS_V = 5;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
   { pid:"menergy", menge:100, on:true },
   { pid:"hafermi", menge:85,  on:true },
   { pid:"quark",   menge:100, on:true },   // morgens; die 200 g abends stecken in r4
   { pid:"fage02",  menge:300, on:true },   // 100 g Müsli + 200 g nachmittags
+  /* 08.10.: Skyr ersetzt Quark 100 + FAGE 300 = 400 g. Steht aus,
+     solange die alten Packungen aufgebraucht werden. Umstellung:
+     Skyr an, Quark und FAGE aus – bei Teilumstellung Mengen anpassen. */
+  { pid:"skyr",    menge:400, on:false },
   { pid:"nuesse",  menge:30,  on:true },
   { pid:"banane",  menge:2,   on:true },   // 1 im Müsli + 1 zum Nachmittagsshake
   { pid:"heidel",  menge:70,  on:true },
@@ -1147,7 +1160,22 @@ function init() {
          würden genau diese alten Mengen stehen bleiben, und das
          Müsli stünde doppelt in der Liste. Selbst hinzugefügte
          Posten außerhalb von BASIS_DEF bleiben erhalten. */
-      if (c0.basisV !== BASIS_V) {
+      if (c0.basisV !== BASIS_V && (c0.basisV || 0) >= 4) {
+        /* V5 (08.10.) ist wieder additiv: Skyr kommt ausgeschaltet
+           hinter FAGE dazu, eigene Mengen und Schalter bleiben. */
+        var hat = {};
+        (c0.basis || []).forEach(function (b) { hat[b.pid] = true; });
+        BASIS_DEF.forEach(function (b, i) {
+          if (hat[b.pid]) return;
+          var neu = { pid:b.pid, menge:b.menge, on:b.on };
+          var vor = i > 0 ? BASIS_DEF[i - 1].pid : null, pos = -1;
+          c0.basis.forEach(function (x, j) { if (x.pid === vor) pos = j; });
+          if (pos >= 0) c0.basis.splice(pos + 1, 0, neu); else c0.basis.push(neu);
+          hat[b.pid] = true;
+        });
+        c0.basisV = BASIS_V;
+        dirty = true;
+      } else if (c0.basisV !== BASIS_V) {
         var std = {};
         BASIS_DEF.forEach(function (b) { std[b.pid] = true; });
         var eigene = (c0.basis || []).filter(function (b) {
