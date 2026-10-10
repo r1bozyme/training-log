@@ -184,7 +184,8 @@ var PRODUKTE = [
 
   // Obst & Gemüse
   { id:"banane",  n:"Banane (~120 g)",                g:"Obst/Gem.", ref:1,   unit:"Stück",  kcal:107, kh:27,   f:0.3,  p:1.3,  std:1 },
-  { id:"heidel",  n:"Heidelbeeren TK",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:57,  kh:12,   f:0.3,  p:0.7,  std:70 },
+  /* 10.10.: Etikett Aldi All Seasons Kultur-Heidelbeeren TK (500 g). */
+  { id:"heidel",  n:"Heidelbeeren TK",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:45,  kh:9.1,  f:0.2,  p:0.9,  std:70 },
   /* Rosinen sind der fettfreie Träger der Kalorienerhöhung:
      40 g = 120 kcal und 30 g KH bei 0,2 g Fett. Bewusst morgens,
      weil das Abendfenster geschont werden soll. */
