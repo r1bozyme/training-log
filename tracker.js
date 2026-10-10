@@ -65,6 +65,11 @@
    Bereits eingetragene Posten behalten ihre Werte – ein Tag von
    gestern soll sich nicht rückwirkend ändern.
 
+   10.10. – Aldi-Umstellung: Bio Basis Müsli, Walnüsse und Mandeln,
+   Bio Sultaninen als Produkte und als Basisposten (zunächst aus).
+   Volles Korn Roggen ersetzt Lieken in r1 und r4. Skyr auf das neue
+   Etikett (62 kcal / 10,7 g P). Basis-Migration V6 additiv.
+
    08.10. – Milsani Skyr (Aldi, Etikett) als Produkt und als
    Basisposten (400 g, zunächst aus). Ersetzt Magerquark 100 g und
    FAGE 300 g, sobald die Reste aufgebraucht sind. Rezepte bleiben
@@ -121,6 +126,10 @@ var GOAL_V = 2;
 var PRODUKTE = [
   // Frühstück
   { id:"menergy", n:"Seitenbacher Energy (Standard)",  g:"Frühstück", ref:100, unit:"g",      kcal:385, kh:59,   f:9,    p:12,   std:100 },
+  /* 10.10.: Aldi Bio Basis Müsli Kornmix (750 g). Reine Vollkornflocken
+     plus Leinsamen und Kerne, ohne Zucker. 110 g ersetzen 100 g Energy
+     kalorisch, bei rund 2 g weniger Fett. */
+  { id:"mbasis",  n:"Bio Basis Müsli Kornmix (Aldi)", g:"Frühstück", ref:100, unit:"g",      kcal:357, kh:56.6, f:6.5,  p:12.2, std:110 },
   /* #615 ist die Ausnahme: +3 g Fett, −8 g KH gegenüber Energy – und
      die Rosinen sind hier bereits drin, also nicht zusätzlich dosieren. */
   { id:"m615",    n:"Seitenbacher #615 (Ausnahme)",   g:"Frühstück", ref:100, unit:"g",      kcal:384, kh:51,   f:12,   p:13,   std:100 },
@@ -135,9 +144,10 @@ var PRODUKTE = [
   { id:"fage02",  n:"FAGE Total 0,2 %",               g:"Milch",     ref:100, unit:"g",      kcal:55,  kh:3.0,  f:0.2,  p:10.3, std:200 },
   { id:"fage2",   n:"FAGE Total 2 %",                 g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.0,  f:2.0,  p:9.9,  std:200 },
   { id:"quark",   n:"Magerquark Berchtesgadener",     g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.6,  f:0.6,  p:11.9, std:200 },
-  /* 08.10.: Etikett Milsani Skyr Natur 500 g (Aldi). Ersetzt FAGE und
-     Magerquark in der Fixbasis, sobald die Reste aufgebraucht sind. */
-  { id:"skyr",    n:"Skyr Milsani Natur (Aldi)",      g:"Milch",     ref:100, unit:"g",      kcal:64,  kh:4.0,  f:0.2,  p:11,   std:200 },
+  /* 08.10.: Milsani Skyr Natur 500 g (Aldi). Ersetzt FAGE und Magerquark
+     in der Fixbasis, sobald die Reste aufgebraucht sind. 10.10.: neues
+     Etikett (schwarze Banderole) – 62 kcal / 10,7 g P statt 64 / 11. */
+  { id:"skyr",    n:"Skyr Milsani Natur (Aldi)",      g:"Milch",     ref:100, unit:"g",      kcal:62,  kh:4.0,  f:0.2,  p:10.7, std:200 },
   { id:"mozza",   n:"Bio Mozzarella (EDEKA)",         g:"Milch",     ref:100, unit:"g",      kcal:243, kh:1.0,  f:18.5, p:18.1, std:60 },
   { id:"parmesan",n:"Parmesan / Pecorino",            g:"Milch",     ref:100, unit:"g",      kcal:402, kh:0,    f:29,   p:32,   std:30 },
 
@@ -151,6 +161,9 @@ var PRODUKTE = [
 
   // Brot & Beilagen
   { id:"lieken",  n:"Lieken Urkorn",                  g:"Brot/KH",   ref:1,   unit:"Scheibe",kcal:113, kh:21.2, f:0.7,  p:3.1,  std:2 },
+  /* 10.10.: Aldi Volles Korn Roggen (500 g, 9 Scheiben à ~55 g), von
+     Lieken hergestellt. Ersetzt Lieken Urkorn in den Rezepten. */
+  { id:"roggen",  n:"Volles Korn Roggen (Aldi)",      g:"Brot/KH",   ref:1,   unit:"Scheibe",kcal:108, kh:20.1, f:0.7,  p:3.1,  std:2 },
   { id:"saaten",  n:"Saatenbrot „Das Pure“ (60 g)",     g:"Brot/KH",   ref:1,   unit:"Scheibe",kcal:176, kh:10.8, f:10.8, p:6.6,  std:2 },
   { id:"fusilli", n:"Protein+ Fusilli (roh)",         g:"Brot/KH",   ref:100, unit:"g",      kcal:354, kh:63,   f:1.7,  p:20,   std:100 },
   { id:"reis",    n:"Basmatireis (roh)",              g:"Brot/KH",   ref:100, unit:"g",      kcal:350, kh:77,   f:1,    p:8,    std:100 },
@@ -161,6 +174,10 @@ var PRODUKTE = [
   { id:"olivoel", n:"Olivenöl",                       g:"Fett",      ref:1,   unit:"EL",     kcal:88,  kh:0,    f:10,   p:0,    std:1 },
   { id:"butter",  n:"Butter",                         g:"Fett",      ref:100, unit:"g",      kcal:740, kh:0.6,  f:82,   p:0.7,  std:10 },
   { id:"nuesse",  n:"Nüsse gemischt",                 g:"Fett",      ref:100, unit:"g",      kcal:620, kh:12,   f:55,   p:20,   std:30 },
+  /* 10.10.: Walnüsse und Mandeln naturbelassen (Aldi Farmer Naturals)
+     ersetzen die Seeberger-Mischung, je 15 g. */
+  { id:"walnuss", n:"Walnusskerne naturbelassen",     g:"Fett",      ref:100, unit:"g",      kcal:733, kh:6.1,  f:70.6, p:16.1, std:15 },
+  { id:"mandel",  n:"Mandeln naturbelassen",          g:"Fett",      ref:100, unit:"g",      kcal:603, kh:5.8,  f:52.2, p:20.5, std:15 },
   { id:"avocado", n:"Avocado",                        g:"Fett",      ref:100, unit:"g",      kcal:160, kh:2,    f:15,   p:2,    std:100 },
   { id:"erdnoel", n:"Erdnussöl (hocherhitzbar)",       g:"Fett",      ref:1,   unit:"EL",     kcal:88,  kh:0,    f:10,   p:0,    std:1 },
   { id:"sesamoel",n:"Sesamöl",                        g:"Fett",      ref:1,   unit:"TL",     kcal:45,  kh:0,    f:5,    p:0,    std:1 },
@@ -172,6 +189,8 @@ var PRODUKTE = [
      40 g = 120 kcal und 30 g KH bei 0,2 g Fett. Bewusst morgens,
      weil das Abendfenster geschont werden soll. */
   { id:"rosinen", n:"Rosinen",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:300, kh:75,   f:0.5,  p:3,    std:40,  chk:1 },
+  /* 10.10.: Aldi Bio Sultaninen aus Südafrika (250 g), Etikett. */
+  { id:"sultan",  n:"Bio Sultaninen (Aldi)",          g:"Obst/Gem.", ref:100, unit:"g",      kcal:311, kh:68,   f:0.6,  p:2.5,  std:40 },
   { id:"gemuese", n:"Gemüse gemischt",                g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:5,    f:0.3,  p:2,    std:200 },
   /* 30.09.: Gemüse als eigene Posten, damit es im Tracker sichtbar
      wird. Werte generisch – beim nächsten Einkauf gegen das Etikett. */
@@ -235,9 +254,12 @@ function guessCat(name) {
 }
 function isOwn(p) { return !!(p && (p.own || String(p.id).indexOf("own") === 0)); }
 
-var BASIS_V = 5;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
+var BASIS_V = 6;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
   { pid:"menergy", menge:100, on:true },
+  /* 10.10.: Aldi-Umstellung. Die neuen Posten stehen aus, bis die
+     alten Packungen leer sind – dann neu an, alt aus. */
+  { pid:"mbasis",  menge:110, on:false },
   { pid:"hafermi", menge:85,  on:true },
   { pid:"quark",   menge:100, on:true },   // morgens; die 200 g abends stecken in r4
   { pid:"fage02",  menge:300, on:true },   // 100 g Müsli + 200 g nachmittags
@@ -246,9 +268,12 @@ var BASIS_DEF = [
      Skyr an, Quark und FAGE aus – bei Teilumstellung Mengen anpassen. */
   { pid:"skyr",    menge:400, on:false },
   { pid:"nuesse",  menge:30,  on:true },
+  { pid:"walnuss", menge:15,  on:false },
+  { pid:"mandel",  menge:15,  on:false },
   { pid:"banane",  menge:2,   on:true },   // 1 im Müsli + 1 zum Nachmittagsshake
   { pid:"heidel",  menge:70,  on:true },
   { pid:"rosinen", menge:40,  on:true },
+  { pid:"sultan",  menge:40,  on:false },
   { pid:"cappu",   menge:2,   on:true },
   { pid:"whey",    menge:1,   on:true },
   { pid:"norsan",  menge:1,   on:true },
@@ -265,7 +290,7 @@ var BASIS_DEF = [
 var REZEPTE = [
   { id:"r1", n:"Linsen-Bolognese mit Protein-Pasta & Brokkoli", zeit:"Mittag", items:[
     {pid:"fusilli",menge:120},{pid:"linsen",menge:50},{pid:"passata",menge:250},
-    {pid:"olivoel",menge:1},{pid:"parmesan",menge:25},{pid:"lieken",menge:1},
+    {pid:"olivoel",menge:1},{pid:"parmesan",menge:25},{pid:"roggen",menge:1},
     {pid:"brokkoli",menge:200}] },
   { id:"r2", n:"Reis-Bowl mit Tofu, Edamame & Brokkoli", zeit:"Mittag", items:[
     {pid:"reis",menge:140},{pid:"tofu",menge:150},{pid:"edamame",menge:100},
@@ -279,7 +304,7 @@ var REZEPTE = [
      Scheiben sind laut Plan nicht verhandelbar - mit zwei Scheiben
      müsste das Mittagessen rund 1.400 kcal tragen. */
   { id:"r4", n:"Brot & Quark mit Paprika (Standard)", zeit:"Abend", items:[
-    {pid:"lieken",menge:4},{pid:"quark",menge:200},{pid:"paprika",menge:150}] }
+    {pid:"roggen",menge:4},{pid:"quark",menge:200},{pid:"paprika",menge:150}] }
 ];
 
 /* ─── Storage ───────────────────────────────────────────── */
@@ -1161,7 +1186,7 @@ function init() {
          Müsli stünde doppelt in der Liste. Selbst hinzugefügte
          Posten außerhalb von BASIS_DEF bleiben erhalten. */
       if (c0.basisV !== BASIS_V && (c0.basisV || 0) >= 4) {
-        /* V5 (08.10.) ist wieder additiv: Skyr kommt ausgeschaltet
+        /* V5 (08.10.) und V6 (10.10.) sind wieder additiv: Skyr kommt ausgeschaltet
            hinter FAGE dazu, eigene Mengen und Schalter bleiben. */
         var hat = {};
         (c0.basis || []).forEach(function (b) { hat[b.pid] = true; });
