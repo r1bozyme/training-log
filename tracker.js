@@ -144,6 +144,9 @@ var PRODUKTE = [
   { id:"fage02",  n:"FAGE Total 0,2 %",               g:"Milch",     ref:100, unit:"g",      kcal:55,  kh:3.0,  f:0.2,  p:10.3, std:200 },
   { id:"fage2",   n:"FAGE Total 2 %",                 g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.0,  f:2.0,  p:9.9,  std:200 },
   { id:"quark",   n:"Magerquark Berchtesgadener",     g:"Milch",     ref:100, unit:"g",      kcal:70,  kh:3.6,  f:0.6,  p:11.9, std:200 },
+  /* 10.10.: Aldi Bio Speisequark Magerstufe (250 g), Etikett. Ersetzt
+     den Berchtesgadener in r3 und r4. */
+  { id:"bquark",  n:"Bio Magerquark (Aldi)",          g:"Milch",     ref:100, unit:"g",      kcal:66,  kh:4.1,  f:0.2,  p:12,   std:200 },
   /* 08.10.: Milsani Skyr Natur 500 g (Aldi). Ersetzt FAGE und Magerquark
      in der Fixbasis, sobald die Reste aufgebraucht sind. 10.10.: neues
      Etikett (schwarze Banderole) – 62 kcal / 10,7 g P statt 64 / 11. */
@@ -299,13 +302,13 @@ var REZEPTE = [
     {pid:"brokkoli",menge:200}] },
   { id:"r3", n:"Ofenkartoffeln mit Kichererbsen & Paprika", zeit:"Mittag", items:[
     {pid:"kartof",menge:500},{pid:"kicher",menge:200},{pid:"olivoel",menge:1.5},
-    {pid:"quark",menge:100},{pid:"paprika",menge:200}] },
+    {pid:"bquark",menge:100},{pid:"paprika",menge:200}] },
   /* Rezept 4 aus dem Plan. Steht als Rezept und nicht in der Fixbasis:
      das Restbudget soll weiter den ganzen Abend abbilden. Die vier
      Scheiben sind laut Plan nicht verhandelbar - mit zwei Scheiben
      müsste das Mittagessen rund 1.400 kcal tragen. */
   { id:"r4", n:"Brot & Quark mit Paprika (Standard)", zeit:"Abend", items:[
-    {pid:"roggen",menge:4},{pid:"quark",menge:200},{pid:"paprika",menge:150}] }
+    {pid:"roggen",menge:4},{pid:"bquark",menge:200},{pid:"paprika",menge:150}] }
 ];
 
 /* ─── Storage ───────────────────────────────────────────── */
