@@ -119,6 +119,19 @@ window.setRate = function (v) {
   showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
 };
 
+// Handgelenk Daumenseite (1. Strecksehnenfach): 0–10 je Seite, morgens.
+// Felder hgL / hgR in tl-d; nochmal tippen = zurücksetzen.
+window.setThumb = function (side, v) {
+  const date = dailyDate();
+  const cur  = getDay(date);
+  const key  = side === "L" ? "hgL" : "hgR";
+  const next = (cur && cur[key] === v) ? null : v;
+  const patch = {}; patch[key] = next;
+  putDay(date, patch);
+  buildDaily();
+  showFlash(next === null ? "Zurückgesetzt" : "Gespeichert ✓");
+};
+
 window.toggleSup = function () {
   const date = dailyDate();
   const cur  = getDay(date);
@@ -187,6 +200,7 @@ function openItems() {
   const out = [];
   // Reihenfolge = Tagesablauf: morgens Steifigkeit, dann Wiegen, abends Kalorien
   if (!d || typeof d.rate !== "number") out.push({ label: "Steifigkeit", id: "d-stiffsec" });
+  if (!d || typeof d.hgL !== "number" || typeof d.hgR !== "number") out.push({ label: "Handgelenk", id: "d-thumbsec" });
   if (weighDue(t) && !hasWeight(t))     out.push({ label: "Wiegen",      id: "d-weightsec" });
   if (!d || !d.sup)                     out.push({ label: "Einnahme",    id: "d-supsec" });
   if (!d || !d.kcal)                    out.push({ label: "Kalorien",    id: "d-kcalsec" });
@@ -348,6 +362,47 @@ window.buildDaily = function () {
 
   const dsc = document.getElementById("ds-cont");
   if (dsc) dsc.innerHTML = sHtml;
+
+  // ── Handgelenk Daumenseite: L/R 0–10, 7-Tage-Trend wie Achilles ──
+  ["L", "R"].forEach(side => {
+    const key = side === "L" ? "hgL" : "hgR";
+    for (let v = 0; v <= 10; v++) {
+      const b = document.getElementById("dh" + side + "-" + v);
+      if (b) b.className = "drbtn" + (day && day[key] === v ? " on" : "");
+    }
+  });
+
+  const hAll = all.filter(d => typeof d.hgL === "number" || typeof d.hgR === "number")
+                  .sort((a, b) => a.date < b.date ? -1 : 1);
+  let hHtml;
+  if (!hAll.length) {
+    hHtml = `<div class="dhint">Morgens, gleiche Zeit wie die Steifigkeit: Daumen gegen leichten Widerstand der anderen Hand strecken und den Schmerz über dem Griffelfortsatz bewerten. Immer derselbe Test. Bewertet wird der 7-Tage-Trend, nicht der einzelne Tag.</div>`;
+  } else {
+    const win = (lo, hi, key) => {
+      const v = hAll.filter(d => typeof d[key] === "number" && dayDiff(d.date, date) >= lo && dayDiff(d.date, date) < hi).map(d => d[key]);
+      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+    };
+    const f = x => x === null ? "–" : fmtNum(x, 1);
+    const cell = (key, lab) => {
+      const a1 = win(0, 7, key), a2 = win(7, 14, key);
+      const dl = (a1 !== null && a2 !== null) ? a1 - a2 : null;
+      const cls = dl === null ? "" : dl <= -0.5 ? "good" : dl >= 0.5 ? "warn" : "";
+      const ds  = dl === null ? "" : ` <span class="dkn-d ${cls}">${dl >= 0 ? "+" : ""}${fmtNum(dl, 1)}</span>`;
+      return `<div class="dkc"><div class="dkn">${f(a1)}${ds}</div><div class="dkl">${lab} Ø 7 T · Vorw. ${f(a2)}</div></div>`;
+    };
+    const anyPrev = win(7, 14, "hgL") !== null || win(7, 14, "hgR") !== null;
+    const recentH = hAll.slice(-7).reverse();
+    const vv = x => typeof x === "number" ? x : "–";
+    hHtml = `<div class="dkpi">${cell("hgL", "Links")}${cell("hgR", "Rechts")}</div>
+    <div class="dhint">${anyPrev
+      ? `Steigt eine Seite um ≥ 0,5 gegenüber der Vorwoche, war die Belastung zu hoch. Dann die zuletzt geänderte Übung zurücknehmen – immer nur eine Variable pro Einheit.`
+      : `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln und keine Übung umstellen.`}</div>
+    <div style="margin-top:12px">${recentH.map(d =>
+      `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">L ${vv(d.hgL)} · R ${vv(d.hgR)}</div></div>`
+    ).join("")}</div>`;
+  }
+  const dhc = document.getElementById("dh-cont");
+  if (dhc) dhc.innerHTML = hHtml;
 };
 
 // ─── CSS ───────────────────────────────────────
@@ -373,6 +428,11 @@ const CSS = `
 .dkn { font-family: var(--fd); font-size: 24px; line-height: 1; color: var(--text); }
 .dkn.good { color: #2A7A2A; }
 .dkn.warn { color: #B33A3A; }
+.dkn-d { font-family: var(--fb); font-size: 12px; font-weight: 700; color: var(--muted); }
+.dkn-d.good { color: #2A7A2A; }
+.dkn-d.warn { color: #B33A3A; }
+.dhside { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin: 10px 0 6px; }
+.dhside:first-of-type { margin-top: 0; }
 .dkl { font-size: 9px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
 .ddots { display: flex; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
 .ddot { width: 20px; height: 20px; border-radius: 5px; background: var(--bg); border: 1px solid var(--border); }
@@ -446,6 +506,19 @@ const MARKUP = `
     </div>
   </div>
 </div>
+<div class="dsec" id="d-thumbsec">
+  <div class="dsub">Handgelenk Daumenseite</div>
+  <div class="dhside">Links</div>
+  <div class="drscale">
+    ${[0,1,2,3,4,5,6,7,8,9,10].map(v => `<button class="drbtn" id="dhL-${v}" onclick="setThumb('L',${v})">${v}</button>`).join("")}
+  </div>
+  <div class="dhside">Rechts</div>
+  <div class="drscale">
+    ${[0,1,2,3,4,5,6,7,8,9,10].map(v => `<button class="drbtn" id="dhR-${v}" onclick="setThumb('R',${v})">${v}</button>`).join("")}
+  </div>
+  <div class="drends"><span>0 = nichts</span><span>10 = maximal</span></div>
+  <div id="dh-cont"></div>
+</div>
 <div class="dsec" id="d-supsec">
   <div class="dsub">Supplements &amp; Medikamente</div>
   <button class="dsupbtn" id="dsup-btn" onclick="toggleSup()"></button>
@@ -498,19 +571,21 @@ function init() {
   if (typeof origExport === "function") {
     window.exportCSV = function () {
       const rows = loadDaily()
-        .filter(d => d.kcal || typeof d.rate === "number" || typeof d.stiff === "number")
+        .filter(d => d.kcal || typeof d.rate === "number" || typeof d.stiff === "number" || typeof d.hgL === "number" || typeof d.hgR === "number")
         .sort((a, b) => a.date < b.date ? -1 : 1);
       if (!rows.length) return origExport();
 
       const lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
       const extra = "\n\n# TÄGLICH\n" + [
-        ["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Uhrzeit", "Steifigkeit (Min)"],
+        ["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Uhrzeit", "Steifigkeit (Min)", "Daumen L (0-10)", "Daumen R (0-10)"],
         ...rows.map(d => [
           fmtDate(d.date),
           d.kcal ? lbl[d.kcal] : "",
           typeof d.rate  === "number" ? d.rate  : "",
           fmtClock(d.ratedAt),
-          typeof d.stiff === "number" ? d.stiff : ""
+          typeof d.stiff === "number" ? d.stiff : "",
+          typeof d.hgL === "number" ? d.hgL : "",
+          typeof d.hgR === "number" ? d.hgR : ""
         ])
       ].map(r => r.join(",")).join("\n");
 
