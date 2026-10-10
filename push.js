@@ -183,7 +183,7 @@ function pulse(id) {
 function go(where) {
   if (typeof window.showView !== "function") return;
   var today = typeof window.todayStr === "function" ? window.todayStr() : localDate(0);
-  if (where === "stiff" || where === "weight" || where === "yday" || where === "supps") {
+  if (where === "stiff" || where === "thumb" || where === "weight" || where === "yday" || where === "supps") {
     window.showView("weight");
     var dd = document.getElementById("d-date");
     if (dd && where !== "yday" && dd.value !== today) {
@@ -196,7 +196,7 @@ function go(where) {
       setTimeout(function () { window.scrollTo({ top: 0, behavior: "smooth" }); }, 150);
       return;
     }
-    setTimeout(function () { pulse({ stiff: "d-stiffsec", supps: "d-supsec" }[where] || "d-weightsec"); }, 150);
+    setTimeout(function () { pulse({ stiff: "d-stiffsec", thumb: "d-thumbsec", supps: "d-supsec" }[where] || "d-weightsec"); }, 150);
   } else if (where === "food" || where === "yfood") {
     window.showView("food");
     var fd = document.getElementById("f-day");

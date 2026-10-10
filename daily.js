@@ -621,7 +621,7 @@ function init() {
   // Nur wirksam bei echtem Seitenaufruf. Holt Android ein bestehendes Fenster
   // nach vorn, kommt der Parameter nicht an – dafür ist das Band oben da.
   try {
-    const TARGETS = { stiff: "d-stiffsec", weight: "d-weightsec", kcal: "d-kcalsec", supps: "d-supsec" };
+    const TARGETS = { stiff: "d-stiffsec", thumb: "d-thumbsec", weight: "d-weightsec", kcal: "d-kcalsec", supps: "d-supsec" };
     const id = TARGETS[new URLSearchParams(location.search).get("v")];
     if (id) {
       if (typeof window.showView === "function") window.showView("weight");
