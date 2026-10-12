@@ -73,13 +73,23 @@ function ensureCSS() {
 }
 
 /* Tastatur: Chrome verkleinert nur den sichtbaren Bereich, fixierte
-   Elemente bleiben unten dahinter – deshalb das Sheet anheben. */
+   Elemente bleiben unten dahinter – deshalb das Sheet anheben.
+   12.10.: Die Hoehe wird mit begrenzt. Vorher behielt das Sheet seine
+   88vh, ragte angehoben oben aus dem sichtbaren Bereich und liess sich
+   dort nicht mehr erreichen. Das fokussierte Feld bleibt sichtbar. */
 function liftForKeyboard() {
   var sh = document.querySelector(".ask-sh");
   var vv = window.visualViewport;
   if (!sh || !vv) return;
-  var hidden = window.innerHeight - vv.height - vv.offsetTop;
-  sh.style.bottom = Math.max(0, hidden) + "px";
+  var hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  sh.style.bottom = hidden + "px";
+  sh.style.maxHeight = Math.round(Math.min(vv.height - 12, window.innerHeight * 0.88)) + "px";
+  var a = document.activeElement;
+  if (hidden > 0 && a && sh.contains(a)) {
+    var r = a.getBoundingClientRect(), sr = sh.getBoundingClientRect();
+    if (r.bottom > sr.bottom - 8) sh.scrollTop += r.bottom - sr.bottom + 16;
+    else if (r.top < sr.top + 8) sh.scrollTop -= sr.top - r.top + 16;
+  }
 }
 
 /* Grundgeruest: baut Overlay + Sheet, liefert Promise. build(sheet, done)
@@ -211,7 +221,7 @@ function formD(o) {
         e.preventDefault();
         if (i < inputs.length - 1) inputs[i + 1].focus(); else submit();
       });
-      inp.addEventListener("focus", function () { setTimeout(function () { inp.select(); }, 0); });
+      inp.addEventListener("focus", function () { setTimeout(function () { inp.select(); liftForKeyboard(); }, 0); });
     });
     sh.querySelector('[data-a="cancel"]').onclick = function () { done(null); };
     sh.querySelector('[data-a="ok"]').onclick = submit;
