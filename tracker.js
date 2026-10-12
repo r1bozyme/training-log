@@ -336,16 +336,18 @@ window.loadFoodGoal = function () { return cfg().goal; };
 
 /* Overrides sind korrigierte Etikettenwerte. Sie ersetzen die
    eingebauten Zahlen und löschen die chk-Markierung – der Wert
-   ist dann geprüft. */
+   ist dann geprüft. Seit 12.10. auch ein korrigierter Name (o.n);
+   eine reine Namensänderung lässt die chk-Markierung stehen. */
 function applyOvr(p, ovr) {
   var o = ovr[p.id];
   if (!o) return p;
-  var q = {};
+  var q = {}, werte = false;
   for (var k in p) q[k] = p[k];
   ["kcal","kh","f","p"].forEach(function (k) {
-    if (typeof o[k] === "number" && isFinite(o[k])) q[k] = o[k];
+    if (typeof o[k] === "number" && isFinite(o[k])) { q[k] = o[k]; werte = true; }
   });
-  delete q.chk;
+  if (typeof o.n === "string" && o.n.trim()) q.n = o.n.trim();
+  if (werte) delete q.chk;
   return q;
 }
 function allProducts() {
@@ -571,7 +573,22 @@ window.foodOwnDel = function (pid) {
   });
 };
 
-/* ─── Nährwerte korrigieren ─────────────────────────────── */
+/* ─── Name und Nährwerte korrigieren ────────────────────── */
+/* Bereits erfasste Posten tragen den Namen als Kopie (it.n), damit
+   Tagesliste und CSV-Export auch ohne Produkt lesbar bleiben. Eine
+   Umbenennung zieht diese Kopien mit, sonst bliebe der Tippfehler
+   in allen alten Tagen stehen. */
+function renameLogged(pid, name) {
+  var log = loadFood(), n = 0;
+  Object.keys(log).forEach(function (d) {
+    (log[d] || []).forEach(function (it) {
+      if (it.pid === pid && it.n !== name) { it.n = name; n++; }
+    });
+  });
+  if (n) saveLog(log);
+  return n;
+}
+
 window.foodProdEdit = function (pid, ev) {
   if (ev && ev.stopPropagation) ev.stopPropagation();
   var pr = prod(pid);
@@ -582,20 +599,49 @@ window.foodProdEdit = function (pid, ev) {
      ungültige Felder behalten den alten Wert. */
   var felder = [["kcal","Kalorien","kcal"],["kh","Kohlenhydrate","g"],["f","Fett","g"],["p","Protein","g"]];
   tlAsk.form({
-    title: pr.n, text: "Nährwerte je " + einheit, ok: "Speichern",
-    fields: felder.map(function (f) { return { key: f[0], label: f[1], type: "num", value: pr[f[0]], suffix: f[2] }; })
+    title: pr.n, text: "Name und Nährwerte je " + einheit, ok: "Speichern",
+    fields: [{ key: "name", label: "Name", type: "text", value: pr.n }].concat(
+      felder.map(function (f) { return { key: f[0], label: f[1], type: "num", value: pr[f[0]], suffix: f[2] }; }))
   }).then(function (r) {
     if (!r) return;
+    var name = String(r.name || "").replace(/\s+/g, " ").trim();
+    var nameNeu = !!name && name !== pr.n;
+    if (nameNeu && allProducts().some(function (x) { return x.id !== pid && x.n.toLowerCase() === name.toLowerCase(); })) {
+      showFlash("„" + name + "“ gibt es schon"); return;
+    }
     var neu = { kcal:pr.kcal, kh:pr.kh, f:pr.f, p:pr.p }, n = 0;
     felder.forEach(function (f) {
       var x = r[f[0]];
       if (isFinite(x) && x >= 0 && x !== pr[f[0]]) { neu[f[0]] = x; n++; }
     });
-    if (!n) { showFlash("Keine Änderung"); return; }
+    if (!n && !nameNeu) { showFlash("Keine Änderung"); return; }
     var c = cfg();
-    c.ovr[pid] = neu;
+    if (n) {
+      var alt = c.ovr[pid] || {};
+      c.ovr[pid] = neu;
+      if (alt.n) c.ovr[pid].n = alt.n;
+    }
+    var tage = 0;
+    if (nameNeu) {
+      if (isOwn(pr)) {
+        var a = ownProducts();
+        a.forEach(function (x) { if (x.id === pid) x.n = name; });
+        saveOwn(a);
+        if (c.ovr[pid]) delete c.ovr[pid].n;
+      } else {
+        var orig = null;
+        PRODUKTE.forEach(function (x) { if (x.id === pid) orig = x.n; });
+        c.ovr[pid] = c.ovr[pid] || {};
+        if (name === orig) delete c.ovr[pid].n; else c.ovr[pid].n = name;
+        if (!Object.keys(c.ovr[pid]).length) delete c.ovr[pid];
+      }
+      tage = renameLogged(pid, name);
+      if (fSearch && pr.n.toLowerCase().indexOf(fSearch.toLowerCase()) !== -1) fSearch = name;
+    }
     saveCfg(c); buildFood();
-    showFlash("Werte korrigiert ✓");
+    showFlash(nameNeu && n ? "Name und Werte geändert ✓"
+            : nameNeu ? "Umbenannt" + (tage ? " · " + tage + " erfasste Posten angepasst" : "") + " ✓"
+            : "Werte korrigiert ✓");
   });
 };
 
@@ -833,7 +879,7 @@ function row(p, sec) {
         "</div>" +
         '<div class="fpmacro">Je ' + (p.ref === 100 ? "100 " + (p.unit === "ml" ? "ml" : "g") : p.unit) + ": " +
           n1(p.kh) + " g KH · " + n1(p.f) + " g F · " + n1(p.p) + " g P" +
-          ' <button class="fowndel" onclick="foodProdEdit(\'' + p.id + '\',event)">Werte bearbeiten</button>' +
+          ' <button class="fowndel" onclick="foodProdEdit(\'' + p.id + '\',event)">bearbeiten</button>' +
           (isOwn(p) ? ' <button class="fowndel" onclick="foodOwnDel(\'' + p.id + '\')">löschen</button>' : "") +
         "</div>" +
         (isOwn(p) ? '<div class="fcatrow"><label>Kategorie</label><select onchange="foodOwnCat(\'' + p.id + '\',this.value)">' +

@@ -170,7 +170,7 @@ function formD(o) {
       h += '<div class="ask-f"><label for="ask-i' + i + '">' + esc(f.label || "") + "</label>" +
            '<div class="ask-row">' +
            (f.step ? '<button type="button" class="ask-st" data-st="-' + i + '" aria-label="weniger">−</button>' : "") +
-           '<input class="ask-in" id="ask-i' + i + '" autocomplete="off" spellcheck="false"' +
+           '<input class="ask-in" id="ask-i' + i + '" autocomplete="off" spellcheck="' + (f.type === "text" ? "true" : "false") + '"' +
            ' type="' + (f.type === "password" ? "password" : "text") + '"' +
            (isNum ? ' inputmode="decimal"' : "") +
            ' placeholder="' + esc(f.placeholder || "") + '" value="' + esc(val) + '">' +
