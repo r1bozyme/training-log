@@ -25,6 +25,17 @@
      · Beim Bearbeiten eines Eintrags zeigt die Auswahl dessen Studio;
        Ändern dort korrigiert nur diesen Eintrag.
 
+   AUTO-ZURÜCK (18.10., abends): Ein fremdes Studio gilt nur für den
+   Tag, an dem es gewählt oder zuletzt damit gespeichert wurde. Am
+   nächsten Tag springt die Auswahl auf das Heimstudio zurück (mit
+   Hinweis). Schützt davor, nach einer Reise das Zurückstellen zu
+   vergessen – dann zählten die Heimeinheiten nicht. Auf mehrtägigen
+   Reisen heißt das: morgens neu wählen.
+
+   AUFRÄUMEN 18.10.: "Altes Studio" ist das Heimstudio. Einträge mit
+   diesem Namen werden Heim, in der Liste steht stattdessen "Unterwegs"
+   (Sammelstudio für Hotel-Gyms, Ort in die Notiz).
+
    STUDIOWECHSEL (später, z. B. MTV): Heimstudio umbenennen genügt
    nicht – die Planwerte gehören zum alten Gerätepark. Dafür kommt
    beim Review ein Neustart der Basislinie pro Übung.
@@ -44,13 +55,23 @@ function cfg() {
   try { c = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { c = null; }
   if (!c || typeof c !== "object") c = {};
   if (typeof c.heim !== "string" || !c.heim.trim()) c.heim = "Heimstudio";
-  if (!Array.isArray(c.andere)) c.andere = ["Altes Studio", "Fitness First"];
+  if (!Array.isArray(c.andere)) c.andere = ["Unterwegs", "Fitness First"];
   if (typeof c.aktiv !== "string") c.aktiv = "";
   return c;
 }
 function saveCfg(c) { localStorage.setItem(KEY, JSON.stringify(c)); }
 
 function clean(s) { return String(s == null ? "" : s).trim(); }
+
+// Lokales Datum JJJJ-MM-TT (nicht toISOString – UTC kippt nachts)
+function heute() {
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function setAktiv(c, wert) {
+  c.aktiv = wert || "";
+  if (c.aktiv) c.aktivTag = heute(); else delete c.aktivTag;
+}
 
 /* Leer oder Heimstudio-Name = Heimstudio */
 function istHeim(e) {
@@ -96,6 +117,36 @@ function migrate() {
   if (c.andere.indexOf("Fitness First") === -1) c.andere.push("Fitness First");
   c.mig1018 = n || true;
   saveCfg(c);
+}
+
+/* "Altes Studio" = Heimstudio → Einträge zurück auf Heim, Liste aufräumen */
+function migrateAlt() {
+  var c = cfg();
+  if (c.migAlt) return;
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem("tl-e") || "[]"); } catch (e) { return; }
+  var n = 0;
+  arr.forEach(function (e) { if (clean(e.studio) === "Altes Studio") { delete e.studio; n++; } });
+  if (n) localStorage.setItem("tl-e", JSON.stringify(arr));
+  c.andere = c.andere.filter(function (s) { return s !== "Altes Studio"; });
+  if (c.andere.indexOf("Unterwegs") === -1) c.andere.unshift("Unterwegs");
+  if (c.aktiv === "Altes Studio") setAktiv(c, "");
+  c.migAlt = true;
+  saveCfg(c);
+}
+
+/* Fremdes Studio nur für den Tag der Wahl bzw. des letzten Eintrags */
+function autoZurueck() {
+  var c = cfg();
+  if (!c.aktiv) return;
+  if (!c.aktivTag) { c.aktivTag = heute(); saveCfg(c); return; }   // Altbestand: ab heute zählen
+  if (c.aktivTag === heute()) return;
+  var war = c.aktiv;
+  setAktiv(c, "");
+  saveCfg(c);
+  if (!bearbeite) fillSelect("");
+  if (typeof window.refreshHint === "function") window.refreshHint();
+  if (typeof window.showFlash === "function") window.showFlash("Studio zurück auf " + c.heim + " (gestern: " + war + ")");
 }
 
 /* ─── Formular ─────────────────────────────────────── */
@@ -158,7 +209,7 @@ function onChange() {
       var c = cfg();
       if (!name) { fillSelect(vorher); return; }
       if (name !== c.heim && c.andere.indexOf(name) === -1) c.andere.push(name);
-      if (!bearbeite) c.aktiv = name === c.heim ? "" : name;
+      if (!bearbeite) setAktiv(c, name === c.heim ? "" : name);
       saveCfg(c);
       fillSelect(name);
       sel.dataset.prev = sel.value;
@@ -166,7 +217,7 @@ function onChange() {
     });
     return;
   }
-  if (!bearbeite) { var c = cfg(); c.aktiv = sel.value; saveCfg(c); }
+  if (!bearbeite) { var c = cfg(); setAktiv(c, sel.value); saveCfg(c); }
   sel.dataset.prev = sel.value;
   markFremd();
   refresh();
@@ -193,7 +244,7 @@ function verwalten() {
     // Text gibt es nicht – Heim wird leer gespeichert.
     c.heim = neu; c.andere = andere;
     if (c.aktiv && c.aktiv !== neu && andere.indexOf(c.aktiv) === -1) andere.push(c.aktiv);
-    if (c.aktiv === neu) c.aktiv = "";
+    if (c.aktiv === neu) setAktiv(c, "");
     saveCfg(c);
     fillSelect(bearbeite ? (document.getElementById("f-studio").dataset.prev || "") : c.aktiv);
     refresh();
@@ -247,6 +298,8 @@ function hook() {
         if (wert) ziel.studio = wert; else delete ziel.studio;
         saveEntries(arr);
       }
+      // Speichern im fremden Studio verlängert dessen Gültigkeit auf heute
+      if (id === null && wert) { var c2 = cfg(); if (c2.aktiv === wert) { c2.aktivTag = heute(); saveCfg(c2); } }
       bearbeite = false;
       fillSelect(cfg().aktiv);
       return res;
@@ -277,8 +330,14 @@ function hook() {
 
 function init() {
   migrate();
+  migrateAlt();
   inject();
   hook();
+  autoZurueck();
+  // App bleibt oft über Nacht offen: beim Zurückholen erneut prüfen
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") autoZurueck();
+  });
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
