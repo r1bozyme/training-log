@@ -701,6 +701,7 @@ function renderLog() {
       const meta = [
         e.gewicht ? e.gewicht + " kg" : null,
         sets      ? sets + " Wdh"     : null,
+        (window.tlStudio && window.tlStudio.label(e)) ? "📍 " + window.tlStudio.label(e) : null,
         e.notiz   || null
       ].filter(Boolean).join("  ·  ");
       const ip = pendingDel === e.id;
@@ -1173,11 +1174,11 @@ function buildWeight() {
 // ─── EXPORT ──────────────────────────────────────────
 function exportCSV() {
   const rows = [
-    ["Datum","Einheit","Übung","Gewicht","S1","S2","S3","S4","Notiz","↑ Erhöhen?"],
+    ["Datum","Einheit","Übung","Gewicht","S1","S2","S3","S4","Notiz","↑ Erhöhen?","Studio"],
     ...loadEntries().map(e => [
       fmtDate(e.date), e.einheit, e.uebung, e.gewicht,
       e.s1, e.s2, e.s3, e.s4 || "", e.notiz || "",
-      e.erhoehen ? "Ja" : "Nein"
+      e.erhoehen ? "Ja" : "Nein", e.studio || ""
     ])
   ].map(r => r.join(",")).join("\n");
 

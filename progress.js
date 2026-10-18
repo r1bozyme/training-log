@@ -19,6 +19,11 @@
 //     der vorgemerkte Ton kam dann nicht. Jetzt bleibt der Bildschirm
 //     an, und nach der Rückkehr in den Tab wird der Ton neu vorgemerkt.
 //
+// NEU 18.10.: STUDIO (studio.js). Nur Einträge aus dem Heimstudio
+//   zählen für Signal, Erledigt-Erkennung, manuelle Markierungen und
+//   Verlaufskurve. Fremde Studios bleiben sichtbar, aber gekennzeichnet.
+//   "Letztes Training" zeigt das gerade gewählte Studio.
+//
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Übernimmt zwei Aufgaben:
 //   1. Automatisches Erhöhungs-Signal (Summenkriterium)
@@ -142,6 +147,13 @@ function satzListe(e) {
 
 function kg(n) { return String(n).replace(".", ",") + " kg"; }
 
+// studio.js: leer/Heimstudio = zählt. Ohne studio.js zählt alles.
+function heimOK(e) { return !window.tlStudio || window.tlStudio.istHeim(e); }
+function studioTag(e) {
+  const l = window.tlStudio ? window.tlStudio.label(e) : "";
+  return l ? ` <span class="st-tag">${escA(l)}</span>` : "";
+}
+
 // ISO-Datum, lexikografisch vergleichbar. Sort ist stabil, bei
 // gleichem Datum bleibt die Eingabereihenfolge erhalten.
 function nachDatum(a, b) {
@@ -168,7 +180,7 @@ function status(ex) {
   // ein nachgetragener alter Eintrag stuende sonst am Ende und wuerde
   // als "letzte Einheit" gelesen.
   const eigene = alle.filter(function (e) {
-    return e.uebung === ex.name && num(e.gewicht) !== null &&
+    return e.uebung === ex.name && num(e.gewicht) !== null && heimOK(e) &&
            (!ab || String(e.date || "") >= ab);
   }).sort(nachDatum);
 
@@ -285,7 +297,7 @@ function renderBand() {
 function manuell() {
   const alle = (typeof loadEntries === "function" ? loadEntries() : []);
   const latest = {};
-  alle.slice().sort(nachDatum).forEach(function (e) { latest[e.uebung] = e; });
+  alle.filter(heimOK).sort(nachDatum).forEach(function (e) { latest[e.uebung] = e; });
   const grenze = isoVor(FENSTER_TAGE);
   return Object.keys(latest).map(function (k) { return latest[k]; }).filter(function (e) {
     if (!e.erhoehen) return false;
@@ -469,7 +481,8 @@ function renderHist() {
   if (!cont) return;
   const es = loadEntries().filter(function (e) { return e.uebung === histEx; }).sort(nachDatum);
   if (!es.length) { histEx = ""; return; }
-  const mitGew = es.filter(function (e) { return num(e.gewicht) !== null && num(e.gewicht) > 0; });
+  // Kurve und Kopfzeile nur aus dem Heimstudio – Fremdgeräte verzerren sonst den Verlauf
+  const mitGew = es.filter(function (e) { return heimOK(e) && num(e.gewicht) !== null && num(e.gewicht) > 0; });
   const pts = mitGew.map(function (e) { return { date: e.date, w: num(e.gewicht) }; });
   const ex = findEx(histEx);
   const erst = mitGew[0], letzt = mitGew[mitGew.length - 1];
@@ -483,7 +496,7 @@ function renderHist() {
     const sum = s.reduce(function (a, b) { return a + b; }, 0);
     return `<div class="pgh-row">
       <div class="pgh-d">${fmtDate(e.date).slice(0, 6)}</div>
-      <div class="pgh-w">${e.gewicht ? String(e.gewicht).replace(".", ",") + " kg" : "–"}</div>
+      <div class="pgh-w">${e.gewicht ? String(e.gewicht).replace(".", ",") + " kg" : "–"}${studioTag(e)}</div>
       <div class="pgh-s">${s.join(" / ") || "–"}${s.length ? ` <span>Σ ${sum}</span>` : ""}${e.notiz ? `<div class="pgh-n">${escA(e.notiz)}</div>` : ""}</div>
       ${e.erhoehen ? '<span class="ubdg">↑</span>' : ""}
       <button class="dbtn" onclick="startEdit(${e.id})" style="font-size:15px">✎</button>
@@ -621,13 +634,21 @@ function init() {
       const all = loadEntries().filter(function (e) { return e.uebung === uebung; }).sort(nachDatum);
       const el = document.getElementById("last-entry");
       if (!el) return;
-      const last = all.length ? all[all.length - 1] : null;
+      // Zuerst der letzte Eintrag aus dem gewählten Studio, sonst der letzte überhaupt (mit Kennzeichnung)
+      const wahl = window.tlStudio ? window.tlStudio.gewaehlt() : "";
+      const hier = all.filter(function (e) {
+        return window.tlStudio ? (wahl ? String(e.studio || "") === wahl : heimOK(e)) : true;
+      });
+      const heim = all.filter(heimOK);
+      const pool = hier.length ? hier : (heim.length ? heim : all);
+      const last = pool.length ? pool[pool.length - 1] : null;
       if (!last) { el.classList.remove("show"); return; }
       el.classList.add("show");
       const sets = [last.s1, last.s2, last.s3, last.s4].filter(Boolean).join(" / ");
       document.getElementById("last-date").textContent = fmtDate(last.date);
       const dataEl = document.getElementById("last-data");
       dataEl.textContent = (last.gewicht ? last.gewicht + " kg" : "") + (sets ? "  ·  " + sets + " Wdh" : "");
+      dataEl.innerHTML += studioTag(last);
       if (last.erhoehen) dataEl.innerHTML += ' <span class="last-up">↑ erhöhen!</span>';
     };
   }

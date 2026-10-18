@@ -32,7 +32,7 @@
 "use strict";
 
 var CFG_KEY   = "tl-sync";
-var DATA_KEYS = ["tl-e", "tl-w", "tl-w0", "tl-d", "tl-f", "tl-fp", "tl-fg"];
+var DATA_KEYS = ["tl-e", "tl-w", "tl-w0", "tl-d", "tl-f", "tl-fp", "tl-fg", "tl-st"];
 var DEBOUNCE  = 8000;          // ms nach letzter Aenderung
 var STALE_D   = 7;             // Tage bis Warnung
 var API       = "https://api.github.com";
@@ -94,12 +94,12 @@ function buildCSV() {
     throw new Error("App-Funktionen nicht verfuegbar");
 
   var out = [csvRow(["Datum", "Einheit", "Übung", "Gewicht",
-                     "S1", "S2", "S3", "S4", "Notiz", "↑ Erhöhen?"])];
+                     "S1", "S2", "S3", "S4", "Notiz", "↑ Erhöhen?", "Studio"])];
   window.loadEntries().forEach(function (e) {
     out.push(csvRow([
       window.fmtDate(e.date), e.einheit, e.uebung, e.gewicht,
       e.s1, e.s2, e.s3, e.s4 || "", e.notiz || "",
-      e.erhoehen ? "Ja" : "Nein"
+      e.erhoehen ? "Ja" : "Nein", e.studio || ""
     ]));
   });
   var csv = out.join("\n");
