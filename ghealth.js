@@ -318,8 +318,8 @@ function tableHtml() {
   var cols = COLS.filter(function (c) { return all.some(function (r) { return num(r[c.f]); }); });
   if (!cols.length) return "";
   var grid = "grid-template-columns:52px repeat(" + cols.length + ",1fr);";
-  var cell = "text-align:right;font-variant-numeric:tabular-nums;";
-  var h = '<div style="display:grid;' + grid + 'gap:0 8px;margin-top:14px;font-size:13px">'
+  var cell = "text-align:right;font-variant-numeric:tabular-nums;padding-left:8px;";
+  var h = '<div style="display:grid;' + grid + 'gap:0;margin-top:14px;font-size:13px">'
         + '<div class="dhside" style="margin:0">Tag</div>'
         + cols.map(function (c) { return '<div class="dhside" style="margin:0;' + cell + '">' + c.l + '</div>'; }).join("");
   rows.forEach(function (r) {
@@ -364,10 +364,10 @@ function render() {
   if (lastErr) h += '<div class="dhint" style="color:#B33A3A">' + esc(lastErr) + '</div>';
 
   if (token() && needsSleepScope()) {
-    h += '<div class="dhint">Für Schlaf einmal <a href="#" onclick="ghConnect();return false">neu verbinden</a> und den Haken bei Schlaf setzen.</div>';
+    h += '<div class="dhint">Für Schlaf einmal <a href="#" onclick="ghConnect();return false" style="color:var(--text);font-weight:700">neu verbinden</a> und den Haken bei Schlaf setzen.</div>';
   }
   h += tableHtml();
-  var miss = COLS.filter(function (c) { return partErr[c.f] && c.f !== "steps"; });
+  var miss = COLS.filter(function (c) { return partErr[c.f] && c.f !== "steps" && !(c.f === "sleepMin" && needsSleepScope()); });
   if (miss.length) {
     h += '<div class="dhint" style="color:#B33A3A">' + miss.map(function (c) { return esc(c.l + ": " + partErr[c.f]); }).join("<br>") + '</div>';
   } else if (lastFetch && !dailyRows(FETCH_DAYS).some(function (r) { return num(r.sleepMin) || num(r.rhr) || num(r.hrv); })) {
