@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   ghealth.js – Google Health im Werte-Tab (22.10.2026)
+   ghealth.js – Google Health, Körper → Tracker (22.10.2026)
 
    Holt Schritte, Schlaf, Ruhepuls und HRV aus der Google
    Health API (Nachfolger der Fitbit Web API, die am
@@ -379,25 +379,34 @@ function render() {
 }
 
 /* ─── Init ─────────────────────────────────────── */
+/* Eigene Ansicht "health" (Körper → Tracker, 22.10.). Wie tracker.js mit
+   view-food: die Grundfassung von showView schaltet bei "health" alle
+   eigenen Views ab, hier wird nur die eigene dazugeschaltet. */
 function init() {
-  var view = document.getElementById("view-weight");
-  if (!view || document.getElementById("gh-sec")) return;
+  var app = document.getElementById("app");
+  if (!app || document.getElementById("gh-sec")) return;
 
-  var wrap = document.createElement("div");
-  wrap.innerHTML = '<div class="dhead"><div class="dhl">GOOGLE HEALTH</div><div class="dhline"></div></div>'
+  var view = document.createElement("div");
+  view.id = "view-health";
+  view.className = "view";
+  view.innerHTML = '<div class="dhead" style="margin-top:24px"><div class="dhl">GOOGLE HEALTH</div><div class="dhline"></div></div>'
                  + '<div class="dsec" id="gh-sec"><div id="gh-cont"></div></div>';
-  view.appendChild(wrap);
+  var wv = document.getElementById("view-weight");
+  if (wv && wv.parentNode === app) app.insertBefore(view, wv.nextSibling);
+  else app.appendChild(view);
 
   var back = takeRedirect();
 
   var origShow = window.showView;
   if (typeof origShow === "function") {
     window.showView = function (v) {
-      origShow.apply(this, arguments);
-      if (v === "weight") {
+      var res = origShow.apply(this, arguments);
+      view.classList.toggle("active", v === "health");
+      if (v === "health") {
         render();
         if (token() && Date.now() - lastFetch > 10 * 60000) refresh(false);
       }
+      return res;
     };
   }
 
@@ -407,7 +416,7 @@ function init() {
 
   render();
   if (back) {
-    if (typeof window.showView === "function") window.showView("weight");
+    if (typeof window.showView === "function") window.showView("health");
     setTimeout(function () {
       var s = document.getElementById("gh-sec");
       if (s) s.scrollIntoView({ behavior: "smooth", block: "center" });
