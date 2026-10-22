@@ -303,6 +303,7 @@ function manuell() {
     if (!e.erhoehen) return false;
     if (String(e.date || "") < grenze) return false;
     const ex = findEx(e.uebung);
+    if (!ex) return false;   // Testübung (Freitext, nicht im Plan): kein Erhöhungs-Signal
     const ab = ex && prog(ex).ab;
     return !(ab && String(e.date || "") < String(ab));
   });

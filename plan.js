@@ -40,6 +40,10 @@
 //   Oblique Crunch 25 · Face Pulls auf den gefahrenen Stand 25 kg.
 // · HSR: 105 kg an allen drei Tagen, Morgensteifigkeit Ø 1,86.
 // · Neu in progress.js: Nur Einträge der letzten 8 Wochen zählen.
+//
+// 22.10.: Overhead Cable Extensions als eigene Übung im Push-Tag,
+// zusätzlich zur Triceps Press (Default-Schwelle 3×15−2 = 43).
+// Die bisherigen Einträge unter Triceps Press zieht uebung.js um.
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "Oktober 2026 (Rev. 30.09.)",
@@ -64,6 +68,11 @@ const PLAN = {
       progression:{ schritt:2.5 },
       schritte:["Aufrecht sitzen, Rücken fest ans Polster","Sitzhöhe Stufe 3 – seit 21.08. fest dokumentiert","Griffe auf Schulterhöhe, Ellenbogen nah am Körper","Explosiv drücken bis zur vollen Streckung – Trizeps anspannen","3 Sek zurück – kontrolliert, nicht fallen lassen"],
       tipp:"Sitzhöhe Stufe 3 (seit 21.08. fest). 3×12 @ 100 kg zweimal in Folge – der Schritt auf 102,5 kg ist verdient. Konstanteste Progression im Push-Tag: 80 → 102,5 kg seit Juni." },
+    { name:"Overhead Cable Extensions", muskel:"Trizeps langer Kopf (Isolation, gedehnt)", typ:"isolation",
+      saetze:3, repzone:"12–15", aktuell:"15/20/15 @ 15 kg (22.10., Summe 50, ↑ markiert)", zielgewicht:17.5, ziel:"Summe ≥43 Wdh → nächste Stufe",
+      progression:{ schritt:2.5 },
+      schritte:["Seil am Kabelzug, Höhe Stufe 13","Rücken zur Maschine, Ellenbogen neben dem Kopf, zeigen nach vorn","Unten volle Dehnung – Unterarme hinter dem Kopf","Strecken bis kurz vor Lockout, Ellenbogen bleiben stehen","Vier-Finger-Griff ums Seil, Daumen nicht einschlagen"],
+      tipp:"Zusätzlich zur Triceps Press, seit 04.10. (12,5 → 15 kg). Ergänzt die Maschine um den langen Kopf in Dehnung. Handgelenk links: 24-Stunden-Reaktion im Werte-Tab mitlesen." },
     { name:"Rear Delt Fly", muskel:"Hintere Schulter · Rhomboiden", typ:"isolation",
       saetze:3, repzone:"12–15", aktuell:"10/12/12 @ 57,5 kg (25.09., Summe 34)", zielgewicht:57.5, ziel:"Summe ≥40 Wdh → 60 kg",
       progression:{ schwelle:40, schritt:2.5 }, pause:{ secs:120, label:"120 Sek" },
@@ -208,7 +217,8 @@ const PLAN = {
 // ghealth.js (22.10.): Google Health (Schritte, Schlaf, Ruhepuls, HRV) als eigene Ansicht "health".
 // nav.js (22.10.): Bereiche Training / Ernährung / Körper mit Chips – wirklich ganz außen, als Letztes.
 // studio.js (18.10.): Studio pro Eintrag, vor progress.js (das window.tlStudio nutzt).
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "tracker.js", "push.js", "header.js", "ghealth.js", "nav.js"].forEach(function (src) {
+// uebung.js (22.10.): Testübungen per Freitext + Umzug der Overhead-Einträge, nach progress.js.
+["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "nav.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;
