@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    ghealth.js – Google Health im Werte-Tab (22.10.2026)
 
-   Holt Schritte (Tagessummen) und Gewicht aus der Google
+   Holt Schritte (Tagessummen) aus der Google
    Health API (Nachfolger der Fitbit Web API, die am
    30.10.2026 abgeschaltet wird). Quelle ist alles, was in
    der Google-Health-App landet: Fitbit-Geräte, MobileTrack
@@ -29,8 +29,10 @@
        Abfrage). Damit laufen sie über sync.js ins Backup und
        als Spalte "Schritte" in export.csv. Geschrieben wird
        nur bei Änderung, sonst stößt jede Abfrage ein Backup an.
-     Gewicht → nur angezeigt. Fehlt ein Tag in tl-w, lässt er
-       sich per Tipp übernehmen. Die Hauswaage bleibt führend.
+     Gewicht → bewusst NICHT (22.10.): Die Hauswaage wird abgelesen
+       und nur in der App erfasst, Google Health wird dafür nicht
+       gepflegt. Der Bereich health_metrics bleibt in SCOPES, damit
+       spätere Werte (z. B. Ruhepuls) keine neue Zustimmung brauchen.
 
    Keys: tl-ghc (Client-ID), tl-ght (Token), tl-ghs (state).
    ═══════════════════════════════════════════════════ */
@@ -46,7 +48,7 @@ var SCOPES = [
 var DAYS = 7;
 
 var K_CID = "tl-ghc", K_TOK = "tl-ght", K_STATE = "tl-ghs";
-var busy = false, lastErr = "", weights = null, lastFetch = 0;
+var busy = false, lastErr = "", lastFetch = 0;
 
 /* ─── Hilfen ───────────────────────────────────── */
 function ls(k)       { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -102,7 +104,6 @@ function takeRedirect() {
   if (h.get("error")) { lastErr = "Google hat die Anmeldung abgebrochen (" + h.get("error") + ")."; return true; }
   var granted = h.get("scope") || "";
   lsSet(K_TOK, JSON.stringify({ t: h.get("access_token"), exp: Date.now() + (parseInt(h.get("expires_in"), 10) || 3600) * 1000 }));
-  if (granted && granted.indexOf("health_metrics") < 0) lastErr = "Gewicht nicht freigegeben – beim Verbinden beide Haken setzen.";
   return true;
 }
 
@@ -144,22 +145,6 @@ function fetchSteps() {
   });
 }
 
-function fetchWeights() {
-  return call("/dataTypes/weight/dataPoints").then(function (j) {
-    return (j.dataPoints || []).map(function (p) {
-      var w = p.weight || {}, st = w.sampleTime || {};
-      return {
-        date: civilToStr(st.civilTime),
-        ts: st.physicalTime || "",
-        kg: w.weightGrams != null ? Math.round(w.weightGrams / 100) / 10 : null,
-        src: (p.dataSource && p.dataSource.recordingMethod) === "MANUAL" ? "manuell" : "Gerät"
-      };
-    }).filter(function (x) { return x.date && x.kg != null; })
-      .sort(function (a, b) { return a.ts < b.ts ? 1 : -1; })
-      .slice(0, 10);
-  });
-}
-
 /* Schritte in tl-d – nur bei Änderung schreiben */
 function storeSteps(map) {
   var arr;
@@ -182,32 +167,13 @@ function storeSteps(map) {
 function refresh(manual) {
   if (busy || !token()) { render(); return; }
   busy = true; lastErr = ""; render();
-  Promise.all([
-    fetchSteps().then(storeSteps),
-    fetchWeights().then(function (w) { weights = w; })
-  ]).then(function () {
+  fetchSteps().then(storeSteps).then(function () {
     lastFetch = Date.now();
     if (manual) flash("Google Health aktualisiert ✓");
   }).catch(function (e) {
     lastErr = e && e.auth ? "" : ((e && e.msg) || (e && e.message) || "Abruf fehlgeschlagen.");
   }).then(function () { busy = false; render(); });
 }
-
-/* ─── Gewicht übernehmen ───────────────────────── */
-function hasW(date) {
-  try { return JSON.parse(ls("tl-w") || "[]").some(function (x) { return x.date === date; }); } catch (e) { return true; }
-}
-window.ghTakeWeight = function (date, kg) {
-  var arr;
-  try { arr = JSON.parse(ls("tl-w") || "[]"); } catch (e) { return; }
-  if (arr.some(function (x) { return x.date === date; })) return;
-  arr.push({ id: Date.now(), date: date, kg: kg });
-  arr.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
-  localStorage.setItem("tl-w", JSON.stringify(arr));
-  if (typeof window.buildWeight === "function") window.buildWeight();
-  flash("Gewicht übernommen ✓");
-  render();
-};
 
 /* ─── Oberfläche ───────────────────────────────── */
 window.ghSaveCid = function () {
@@ -218,7 +184,7 @@ window.ghSaveCid = function () {
 window.ghConnect = connect;
 window.ghRefresh = function () { refresh(true); };
 window.ghReset = function () {
-  var go = function () { lsDel(K_TOK); lsDel(K_CID); weights = null; lastErr = ""; render(); };
+  var go = function () { lsDel(K_TOK); lsDel(K_CID); lastErr = ""; render(); };
   if (window.tlAsk && window.tlAsk.confirm) window.tlAsk.confirm("Client-ID und Anmeldung auf diesem Gerät löschen? Die gespeicherten Schritte bleiben.").then(function (ok) { if (ok) go(); });
   else go();
 };
@@ -266,19 +232,6 @@ function render() {
                 + (typeof r.n === "number" ? r.n.toLocaleString("de-DE") : "–") + '</div></div>';
          }).join("")
        + '<div class="dhint">Ø ' + avg.toLocaleString("de-DE") + ' Schritte an ' + vals.length + (vals.length === 1 ? ' Tag' : ' Tagen') + ' mit Daten.</div>';
-  }
-
-  if (weights && weights.length) {
-    h += '<div class="dhside" style="margin-top:14px">Gewicht in Google Health</div>'
-       + weights.map(function (w) {
-           var act = hasW(w.date)
-             ? '<div class="dsrow-t dim">in App</div>'
-             : '<button class="dsave" style="padding:8px 12px;font-size:11px" onclick="ghTakeWeight(\'' + w.date + '\',' + w.kg + ')">übernehmen</button>';
-           return '<div class="dsrow"><div class="dsrow-d">' + fmtD(w.date) + '</div><div class="dsrow-v">'
-                + w.kg.toFixed(1).replace(".", ",") + ' kg <span style="font-weight:500;color:var(--muted);font-size:11px">' + w.src + '</span></div>' + act + '</div>';
-         }).join("");
-  } else if (weights) {
-    h += '<div class="dhint">Kein Gewicht in Google Health gefunden.</div>';
   }
 
   if (cid) h += '<div class="dhint" style="text-align:right"><a href="#" onclick="ghReset();return false" style="color:var(--dim)">Verbindung zurücksetzen</a></div>';
