@@ -128,11 +128,12 @@ function buildCSV() {
     var lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
     var rows = window.loadDaily().filter(function (d) {
       return d.kcal || d.est || d.trip || d.sup || typeof d.rate === "number" || typeof d.stiff === "number" ||
-             typeof d.hgL === "number" || typeof d.hgR === "number" || typeof d.steps === "number";
+             typeof d.hgL === "number" || typeof d.hgR === "number" || typeof d.steps === "number" ||
+             typeof d.sleepMin === "number" || typeof d.rhr === "number" || typeof d.hrv === "number";
     }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     if (rows.length) {
       csv += "\n\n# TÄGLICH\n" +
-             csvRow(["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)", "Geschätzt", "Reise", "Einnahme", "Daumen L (0-10)", "Daumen R (0-10)", "Schritte"]);
+             csvRow(["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Steifigkeit (Min)", "Geschätzt", "Reise", "Einnahme", "Daumen L (0-10)", "Daumen R (0-10)", "Schritte", "Schlaf (Min)", "Ruhepuls", "HRV (ms)"]);
       rows.forEach(function (d) {
         csv += "\n" + csvRow([
           window.fmtDate(d.date),
@@ -144,7 +145,10 @@ function buildCSV() {
           d.sup ? (d.sup === "manual" ? "ja" : "ja " + new Date(d.sup).toTimeString().slice(0, 5)) : "",
           typeof d.hgL === "number" ? d.hgL : "",
           typeof d.hgR === "number" ? d.hgR : "",
-          typeof d.steps === "number" ? d.steps : ""
+          typeof d.steps === "number" ? d.steps : "",
+          typeof d.sleepMin === "number" ? d.sleepMin : "",
+          typeof d.rhr === "number" ? d.rhr : "",
+          typeof d.hrv === "number" ? d.hrv : ""
         ]);
       });
     }

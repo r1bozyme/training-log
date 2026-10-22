@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    ghealth.js – Google Health im Werte-Tab (22.10.2026)
 
-   Holt Schritte (Tagessummen) aus der Google
+   Holt Schritte, Schlaf, Ruhepuls und HRV aus der Google
    Health API (Nachfolger der Fitbit Web API, die am
    30.10.2026 abgeschaltet wird). Quelle ist alles, was in
    der Google-Health-App landet: Fitbit-Geräte, MobileTrack
@@ -25,10 +25,19 @@
      Testnutzer: eigene Gmail-Adresse
 
    DATEN
-     Schritte → tl-d, Felder steps (Zahl) + stepsAt (ISO der
+     Schritte → tl-d, Felder steps (Zahl) + ghAt (ISO der
        Abfrage). Damit laufen sie über sync.js ins Backup und
        als Spalte "Schritte" in export.csv. Geschrieben wird
        nur bei Änderung, sonst stößt jede Abfrage ein Backup an.
+     Schlaf (sleepMin = minutesAsleep der längsten Sitzung, die an
+       diesem Tag endet), Ruhepuls (rhr, bpm) und HRV (hrv, Ø RMSSD
+       in ms) → ebenfalls tl-d, Spalten Schlaf (Min) / Ruhepuls / HRV
+       in export.csv. Ruhepuls und HRV sind Tageswerte von Google
+       (Datum = Aufwachtag). Fürs Handy allein gibt es keine Werte,
+       das braucht einen Tracker (Fitbit Air).
+     Schlaf braucht den Bereich sleep.readonly. Wer noch mit der
+       alten Freigabe angemeldet ist, sieht einen Hinweis zum
+       erneuten Verbinden.
      Gewicht → bewusst NICHT (22.10.): Die Hauswaage wird abgelesen
        und nur in der App erfasst, Google Health wird dafür nicht
        gepflegt. Der Bereich health_metrics bleibt in SCOPES, damit
@@ -43,12 +52,14 @@ var API    = "https://health.googleapis.com/v4/users/me";
 var AUTH   = "https://accounts.google.com/o/oauth2/v2/auth";
 var SCOPES = [
   "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
-  "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly"
+  "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
+  "https://www.googleapis.com/auth/googlehealth.sleep.readonly"
 ].join(" ");
-var DAYS = 7;
+var DAYS = 7;          // angezeigt
+var FETCH_DAYS = 14;   // abgerufen – zweite Woche nur für den Vergleich
 
 var K_CID = "tl-ghc", K_TOK = "tl-ght", K_STATE = "tl-ghs";
-var busy = false, lastErr = "", lastFetch = 0;
+var busy = false, lastErr = "", lastFetch = 0, partErr = {};
 
 /* ─── Hilfen ───────────────────────────────────── */
 function ls(k)       { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -67,6 +78,11 @@ function fmtD(s) { return typeof window.fmtDate === "function" ? window.fmtDate(
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 function flash(m) { if (typeof window.showFlash === "function") window.showFlash(m); }
 function redirectUri() { return new URL("./", location.href).href; }
+
+/* Fehlt die Schlaf-Freigabe? Alte Tokens ohne sc gelten als "unbekannt" → Hinweis. */
+function needsSleepScope() {
+  try { var t = JSON.parse(ls(K_TOK) || "null"); return !!t && (t.sc || "").indexOf("sleep") < 0; } catch (e) { return false; }
+}
 
 function token() {
   try {
@@ -103,7 +119,7 @@ function takeRedirect() {
   if (!expected || h.get("state") !== expected) { lastErr = "Anmeldung abgelehnt: Sicherheitsprüfung (state) fehlgeschlagen."; return true; }
   if (h.get("error")) { lastErr = "Google hat die Anmeldung abgebrochen (" + h.get("error") + ")."; return true; }
   var granted = h.get("scope") || "";
-  lsSet(K_TOK, JSON.stringify({ t: h.get("access_token"), exp: Date.now() + (parseInt(h.get("expires_in"), 10) || 3600) * 1000 }));
+  lsSet(K_TOK, JSON.stringify({ t: h.get("access_token"), exp: Date.now() + (parseInt(h.get("expires_in"), 10) || 3600) * 1000, sc: granted }));
   return true;
 }
 
@@ -129,7 +145,7 @@ function call(path, opts) {
 
 function fetchSteps() {
   var end = new Date(), start = new Date();
-  start.setDate(start.getDate() - (DAYS - 1));
+  start.setDate(start.getDate() - (FETCH_DAYS - 1));
   return call("/dataTypes/steps/dataPoints:dailyRollUp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -145,17 +161,73 @@ function fetchSteps() {
   });
 }
 
-/* Schritte in tl-d – nur bei Änderung schreiben */
-function storeSteps(map) {
+/* GET mit Filter, folgt nextPageToken (max. 5 Seiten) */
+function listAll(type, filter) {
+  var out = [];
+  function page(tok, n) {
+    var q = "?filter=" + encodeURIComponent(filter) + (tok ? "&pageToken=" + encodeURIComponent(tok) : "");
+    return call("/dataTypes/" + type + "/dataPoints" + q).then(function (j) {
+      out = out.concat(j.dataPoints || []);
+      return j.nextPageToken && n < 5 ? page(j.nextPageToken, n + 1) : out;
+    });
+  }
+  return page("", 1);
+}
+function dateToStr(d) { return d && d.year ? d.year + "-" + pad(d.month) + "-" + pad(d.day) : ""; }
+function startStr() { var d = new Date(); d.setDate(d.getDate() - (FETCH_DAYS - 1)); return localDate(d); }
+function tomorrowStr() { var d = new Date(); d.setDate(d.getDate() + 1); return localDate(d); }
+
+function fetchRhr() {
+  var f = 'daily_resting_heart_rate.date >= "' + startStr() + '" AND daily_resting_heart_rate.date < "' + tomorrowStr() + '"';
+  return listAll("daily-resting-heart-rate", f).then(function (pts) {
+    var out = {};
+    pts.forEach(function (p) {
+      var x = p.dailyRestingHeartRate || {}, d = dateToStr(x.date), n = parseInt(x.beatsPerMinute, 10);
+      if (d && !isNaN(n) && n > 0) out[d] = n;
+    });
+    return out;
+  });
+}
+
+function fetchHrv() {
+  var f = 'daily_heart_rate_variability.date >= "' + startStr() + '" AND daily_heart_rate_variability.date < "' + tomorrowStr() + '"';
+  return listAll("daily-heart-rate-variability", f).then(function (pts) {
+    var out = {};
+    pts.forEach(function (p) {
+      var x = p.dailyHeartRateVariability || {}, d = dateToStr(x.date), v = x.averageHeartRateVariabilityMilliseconds;
+      if (d && typeof v === "number" && v > 0) out[d] = Math.round(v * 10) / 10;
+    });
+    return out;
+  });
+}
+
+/* Schlaf: pro Aufwachtag die längste Sitzung (Nickerchen fallen so raus) */
+function fetchSleep() {
+  var f = 'sleep.interval.civil_end_time >= "' + startStr() + 'T00:00:00" AND sleep.interval.civil_end_time < "' + tomorrowStr() + 'T00:00:00"';
+  return listAll("sleep", f).then(function (pts) {
+    var out = {};
+    pts.forEach(function (p) {
+      var x = p.sleep || {}, iv = x.interval || {}, sm = x.summary || {};
+      var d = civilToStr(iv.civilEndTime), n = parseInt(sm.minutesAsleep, 10);
+      if (d && !isNaN(n) && n > 0 && (!out[d] || n > out[d])) out[d] = n;
+    });
+    return out;
+  });
+}
+
+/* Werte in tl-d – nur bei Änderung schreiben (sonst stößt jeder Abruf ein Backup an) */
+function storeDaily(field, map) {
   var arr;
   try { arr = JSON.parse(ls("tl-d") || "[]"); } catch (e) { return; }
   var changed = false, now = new Date().toISOString();
   Object.keys(map).forEach(function (date) {
     var i = arr.findIndex(function (d) { return d.date === date; });
     if (i >= 0) {
-      if (arr[i].steps !== map[date]) { arr[i].steps = map[date]; arr[i].stepsAt = now; changed = true; }
+      if (arr[i][field] !== map[date]) { arr[i][field] = map[date]; arr[i].ghAt = now; changed = true; }
     } else if (map[date] > 0) {
-      arr.push({ date: date, kcal: null, est: false, trip: false, rate: null, ratedAt: null, stiff: null, steps: map[date], stepsAt: now });
+      var row = { date: date, kcal: null, est: false, trip: false, rate: null, ratedAt: null, stiff: null, ghAt: now };
+      row[field] = map[date];
+      arr.push(row);
       changed = true;
     }
   });
@@ -163,15 +235,32 @@ function storeSteps(map) {
   arr.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
   localStorage.setItem("tl-d", JSON.stringify(arr));   // über sync.js-Hülle → Backup
 }
+function storeSteps(map) { storeDaily("steps", map); }
 
 function refresh(manual) {
   if (busy || !token()) { render(); return; }
-  busy = true; lastErr = ""; render();
-  fetchSteps().then(storeSteps).then(function () {
-    lastFetch = Date.now();
-    if (manual) flash("Google Health aktualisiert ✓");
-  }).catch(function (e) {
-    lastErr = e && e.auth ? "" : ((e && e.msg) || (e && e.message) || "Abruf fehlgeschlagen.");
+  busy = true; lastErr = ""; partErr = {}; render();
+  /* Nacheinander schreiben, damit sich die tl-d-Updates nicht überholen */
+  var jobs = [
+    ["steps",   fetchSteps],
+    ["sleepMin", fetchSleep],
+    ["rhr",     fetchRhr],
+    ["hrv",     fetchHrv]
+  ];
+  var authFail = false;
+  var run = jobs.reduce(function (pr, job) {
+    return pr.then(function () {
+      if (authFail) return;
+      return job[1]().then(function (m) { storeDaily(job[0], m); }).catch(function (e) {
+        if (e && e.auth) { authFail = true; return; }
+        partErr[job[0]] = (e && e.msg) || (e && e.message) || "Abruf fehlgeschlagen.";
+      });
+    });
+  }, Promise.resolve());
+  run.then(function () {
+    if (!authFail) lastFetch = Date.now();
+    if (partErr.steps) lastErr = partErr.steps;
+    if (manual && !authFail) flash("Google Health aktualisiert ✓");
   }).then(function () { busy = false; render(); });
 }
 
@@ -189,18 +278,70 @@ window.ghReset = function () {
   else go();
 };
 
-function stepsRows() {
+function dailyRows(n) {
   var arr;
   try { arr = JSON.parse(ls("tl-d") || "[]"); } catch (e) { arr = []; }
   var by = {};
-  arr.forEach(function (d) { if (typeof d.steps === "number") by[d.date] = d.steps; });
+  arr.forEach(function (d) { by[d.date] = d; });
   var rows = [], d = new Date();
-  for (var i = 0; i < DAYS; i++) {
-    var s = localDate(d);
-    rows.push({ date: s, n: by[s] });
+  for (var i = 0; i < n; i++) {
+    var s = localDate(d), x = by[s] || {};
+    rows.push({ date: s, steps: x.steps, sleepMin: x.sleepMin, rhr: x.rhr, hrv: x.hrv });
     d.setDate(d.getDate() - 1);
   }
   return rows;
+}
+function num(v) { return typeof v === "number"; }
+function avgOf(rows, f) {
+  var v = rows.map(function (r) { return r[f]; }).filter(num);
+  return v.length ? { a: v.reduce(function (x, y) { return x + y; }, 0) / v.length, n: v.length } : null;
+}
+function fmtSleep(m) { return Math.floor(m / 60) + ":" + pad(Math.round(m % 60)) + " h"; }
+function shortD(s) { return s.slice(8, 10) + "." + s.slice(5, 7) + "."; }
+function fmtVal(f, v) {
+  if (!num(v)) return "–";
+  if (f === "steps") return v.toLocaleString("de-DE");
+  if (f === "sleepMin") return fmtSleep(v);
+  if (f === "hrv") return v.toFixed(0);
+  return String(v);
+}
+
+var COLS = [
+  { f: "steps",    l: "Schritte" },
+  { f: "sleepMin", l: "Schlaf" },
+  { f: "rhr",      l: "Ruhepuls" },
+  { f: "hrv",      l: "HRV" }
+];
+
+function tableHtml() {
+  var all = dailyRows(FETCH_DAYS), rows = all.slice(0, DAYS), prev = all.slice(DAYS);
+  var cols = COLS.filter(function (c) { return all.some(function (r) { return num(r[c.f]); }); });
+  if (!cols.length) return "";
+  var grid = "grid-template-columns:52px repeat(" + cols.length + ",1fr);";
+  var cell = "text-align:right;font-variant-numeric:tabular-nums;";
+  var h = '<div style="display:grid;' + grid + 'gap:0 8px;margin-top:14px;font-size:13px">'
+        + '<div class="dhside" style="margin:0">Tag</div>'
+        + cols.map(function (c) { return '<div class="dhside" style="margin:0;' + cell + '">' + c.l + '</div>'; }).join("");
+  rows.forEach(function (r) {
+    var bd = "padding:9px 0;border-bottom:1px solid var(--border);";
+    h += '<div style="' + bd + 'color:var(--muted)">' + shortD(r.date) + '</div>'
+       + cols.map(function (c) { return '<div style="' + bd + cell + 'font-weight:600">' + fmtVal(c.f, r[c.f]) + '</div>'; }).join("");
+  });
+  /* Ø-Zeile + Vergleich zur Vorwoche (nur Ruhepuls/HRV, da zählt der Trend) */
+  h += '<div style="padding:9px 0;color:var(--muted)">Ø 7 T</div>'
+     + cols.map(function (c) {
+         var cur = avgOf(rows, c.f), old = avgOf(prev, c.f), t = "–", sub = "";
+         if (cur) {
+           t = c.f === "steps" ? Math.round(cur.a).toLocaleString("de-DE") : c.f === "sleepMin" ? fmtSleep(cur.a) : cur.a.toFixed(c.f === "rhr" ? 1 : 0).replace(".", ",");
+           if ((c.f === "rhr" || c.f === "hrv") && old && cur.n >= 3 && old.n >= 3) {
+             var dlt = cur.a - old.a;
+             sub = '<div style="font-size:11px;font-weight:500;color:var(--muted)">' + (dlt >= 0 ? "+" : "−") + Math.abs(dlt).toFixed(1).replace(".", ",") + ' z. Vw.</div>';
+           }
+         }
+         return '<div style="padding:9px 0;' + cell + 'font-weight:700">' + t + sub + '</div>';
+       }).join("");
+  h += '</div>';
+  return h;
 }
 
 function render() {
@@ -222,16 +363,15 @@ function render() {
 
   if (lastErr) h += '<div class="dhint" style="color:#B33A3A">' + esc(lastErr) + '</div>';
 
-  var rows = stepsRows();
-  if (rows.some(function (r) { return typeof r.n === "number"; })) {
-    var vals = rows.map(function (r) { return r.n; }).filter(function (n) { return typeof n === "number"; });
-    var avg = Math.round(vals.reduce(function (a, b) { return a + b; }, 0) / vals.length);
-    h += '<div class="dhside" style="margin-top:14px">Schritte</div>'
-       + rows.map(function (r) {
-           return '<div class="dsrow"><div class="dsrow-d">' + fmtD(r.date) + '</div><div class="dsrow-v">'
-                + (typeof r.n === "number" ? r.n.toLocaleString("de-DE") : "–") + '</div></div>';
-         }).join("")
-       + '<div class="dhint">Ø ' + avg.toLocaleString("de-DE") + ' Schritte an ' + vals.length + (vals.length === 1 ? ' Tag' : ' Tagen') + ' mit Daten.</div>';
+  if (token() && needsSleepScope()) {
+    h += '<div class="dhint">Für Schlaf einmal <a href="#" onclick="ghConnect();return false">neu verbinden</a> und den Haken bei Schlaf setzen.</div>';
+  }
+  h += tableHtml();
+  var miss = COLS.filter(function (c) { return partErr[c.f] && c.f !== "steps"; });
+  if (miss.length) {
+    h += '<div class="dhint" style="color:#B33A3A">' + miss.map(function (c) { return esc(c.l + ": " + partErr[c.f]); }).join("<br>") + '</div>';
+  } else if (lastFetch && !dailyRows(FETCH_DAYS).some(function (r) { return num(r.sleepMin) || num(r.rhr) || num(r.hrv); })) {
+    h += '<div class="dhint">Schlaf, Ruhepuls und HRV erscheinen, sobald ein Tracker (Fitbit Air) Daten liefert.</div>';
   }
 
   if (cid) h += '<div class="dhint" style="text-align:right"><a href="#" onclick="ghReset();return false" style="color:var(--dim)">Verbindung zurücksetzen</a></div>';
