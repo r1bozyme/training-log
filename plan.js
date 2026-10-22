@@ -205,8 +205,9 @@ const PLAN = {
 // header.js ganz zuletzt (03.10.): Status-Chip oben rechts, äußerste showView-Schicht.
 // Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
 // und diesen Block entfernen.
+// ghealth.js (22.10.): Google Health (Schritte, Gewicht) im Werte-Tab, ganz außen.
 // studio.js (18.10.): Studio pro Eintrag, vor progress.js (das window.tlStudio nutzt).
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "tracker.js", "push.js", "header.js"].forEach(function (src) {
+["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "tracker.js", "push.js", "header.js", "ghealth.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;
