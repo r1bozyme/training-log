@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Oura verbinden</title>
+<style>
+  :root { --bg:#F5F5F3; --surface:#FFFFFF; --text:#1A1A1A; --muted:#666; --border:#E8E8E8; --ok:#2E7D32; --err:#C62828; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121212; --surface:#1E1E1E; --text:#EDEDED; --muted:#9A9A9A; --border:#2C2C2C; --ok:#66BB6A; --err:#EF5350; } }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:520px; margin:0 auto; padding:32px 16px; }
+  h1 { font-size:1.3rem; margin:0 0 16px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  code { display:block; word-break:break-all; font:15px/1.4 ui-monospace,Menlo,Consolas,monospace; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; margin:10px 0 14px; }
+  button { width:100%; font:inherit; font-weight:600; padding:12px; border-radius:10px; border:0; background:var(--text); color:var(--bg); }
+  .muted { color:var(--muted); font-size:.92rem; }
+  .ok { color:var(--ok); } .err { color:var(--err); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Oura verbinden</h1>
+  <div class="card" id="box"><p class="muted">Lese Antwort von Oura …</p></div>
+</main>
+<script>
+/* Nur Anzeige. Bewusst ohne localStorage (gleiche Herkunft wie Training Log
+   und Finanz-Cockpit) und ohne Netzwerkanfragen – der Code wird nur angezeigt
+   und manuell in den GitHub-Workflow "oura" (Eingabe "code") kopiert. */
+(function () {
+  var p = new URLSearchParams(location.search);
+  var box = document.getElementById("box");
+  var code = p.get("code"), err = p.get("error"), state = p.get("state");
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
+
+  if (err) {
+    box.innerHTML = '<p class="err"><b>Oura hat die Verbindung abgelehnt.</b></p>' +
+      '<code>' + esc(err) + (p.get("error_description") ? " – " + esc(p.get("error_description")) : "") + '</code>' +
+      '<p class="muted">Anmeldung bei Oura erneut starten.</p>';
+    return;
+  }
+  if (!code) {
+    box.innerHTML = '<p>Diese Seite ist die Rücksprungadresse für die Oura-Anmeldung. Direkt aufgerufen zeigt sie nichts an.</p>';
+    return;
+  }
+  box.innerHTML = '<p class="ok"><b>Oura hat die Verbindung freigegeben.</b></p>' +
+    '<p>Diesen Code in den GitHub-Workflow <b>oura</b> als Eingabe <b>code</b> einfügen und starten. Er ist nur wenige Minuten gültig.</p>' +
+    '<code id="c">' + esc(code) + '</code>' +
+    (state ? '<p class="muted">state: ' + esc(state) + '</p>' : '') +
+    '<button id="cp">Code kopieren</button>';
+  document.getElementById("cp").onclick = function () {
+    var b = this;
+    function done() { b.textContent = "Kopiert ✓"; }
+    if (navigator.clipboard) navigator.clipboard.writeText(code).then(done, function () { select(); });
+    else select();
+    function select() { var r = document.createRange(); r.selectNodeContents(document.getElementById("c")); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Markiert – jetzt kopieren"; }
+  };
+  /* Code aus der Adresszeile und dem Verlauf entfernen */
+  history.replaceState(null, "", location.pathname);
+})();
+</script>
+</body>
+</html>
