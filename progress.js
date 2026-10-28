@@ -466,7 +466,11 @@ function kurve(pts) {
   const line = pts.map(function (p, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p.w).toFixed(1); }).join(" ");
   const dots = pts.map(function (p, i) { return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.w).toFixed(1)}" r="2.6"/>`; }).join("");
   const d0 = fmtDate(pts[0].date).slice(0, 6), d1 = fmtDate(pts[pts.length - 1].date).slice(0, 6);
-  return `<svg class="pgh-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewichtsverlauf">
+  const scrub = typeof scrubAttr === "function" ? scrubAttr(pts.map(function (p, i) {
+    return { x: x(i), y: [y(p.w)], v: kg(p.w),
+             t: fmtDate(p.date) + (p.s && p.s.length ? " · " + p.s.join("/") : "") };
+  })) : "";
+  return `<svg class="pgh-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewichtsverlauf"${scrub}>
     <line class="ax" x1="${L}" y1="${T}" x2="${L}" y2="${H - B}"/>
     <line class="ax" x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}"/>
     <text x="${L - 4}" y="${y(hi) + 4}" text-anchor="end">${String(hi).replace(".", ",")}</text>
@@ -484,7 +488,7 @@ function renderHist() {
   if (!es.length) { histEx = ""; return; }
   // Kurve und Kopfzeile nur aus dem Heimstudio – Fremdgeräte verzerren sonst den Verlauf
   const mitGew = es.filter(function (e) { return heimOK(e) && num(e.gewicht) !== null && num(e.gewicht) > 0; });
-  const pts = mitGew.map(function (e) { return { date: e.date, w: num(e.gewicht) }; });
+  const pts = mitGew.map(function (e) { return { date: e.date, w: num(e.gewicht), s: satzListe(e) }; });
   const ex = findEx(histEx);
   const erst = mitGew[0], letzt = mitGew[mitGew.length - 1];
   let kopf = es.length + " Einheiten";

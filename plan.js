@@ -215,10 +215,11 @@ const PLAN = {
 // Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
 // und diesen Block entfernen.
 // ghealth.js (22.10.): Google Health (Schritte, Schlaf, Ruhepuls, HRV) als eigene Ansicht "health".
+// scrub.js (28.10.): Verlaufsgraphen per Gedrückthalten abtasten (Datum + Wert).
 // nav.js (22.10.): Bereiche Training / Ernährung / Körper mit Chips – wirklich ganz außen, als Letztes.
 // studio.js (18.10.): Studio pro Eintrag, vor progress.js (das window.tlStudio nutzt).
 // uebung.js (22.10.): Testübungen per Freitext + Umzug der Overhead-Einträge, nach progress.js.
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "nav.js"].forEach(function (src) {
+["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "scrub.js", "nav.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;

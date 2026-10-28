@@ -773,7 +773,13 @@ function parseKg(g) {
   return isNaN(n) ? null : n;
 }
 
-function sparkline(vals, cssColor) {
+// Datenpunkte für scrub.js (Gedrückthalten zeigt Datum und Wert)
+function scrubAttr(pts) {
+  const j = JSON.stringify(pts.map(p => ({ x: +(+p.x).toFixed(1), y: p.y.map(v => v === null ? null : +(+v).toFixed(1)), c: p.c, v: p.v, t: p.t })));
+  return ` data-scrub="${j.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")}"`;
+}
+
+function sparkline(vals, cssColor, info) {
   const w = 260, h = 44, pad = 4;
   const min = Math.min(...vals), max = Math.max(...vals);
   const rng = (max - min) || 1;
@@ -784,7 +790,11 @@ function sparkline(vals, cssColor) {
     return x.toFixed(1) + "," + y.toFixed(1);
   });
   const lastPt = pts[pts.length - 1].split(",");
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+  const scrub = info ? scrubAttr(pts.map((pt, i) => {
+    const [x, y] = pt.split(",");
+    return { x: x, y: [y], c: [cssColor], v: info[i].v, t: info[i].t };
+  })) : "";
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"${scrub}>
     <polyline points="${pts.join(" ")}" fill="none" stroke="${cssColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3.5" fill="${cssColor}"/>
   </svg>`;
@@ -874,7 +884,10 @@ function buildStats() {
       const deltaStr = delta === 0 ? "±0" : (delta > 0 ? "+" : "−") + fmtKg(Math.abs(delta));
       const deltaCls = delta > 0 ? "up" : (delta < 0 ? "down" : "flat");
       const chart = vals.length >= 2
-        ? sparkline(vals, colors[ein])
+        ? sparkline(vals, colors[ein], es.map(e => {
+            const saetze = [e.s1, e.s2, e.s3, e.s4].map(x => parseInt(x, 10)).filter(n => n > 0);
+            return { v: fmtKg(parseKg(e.gewicht)), t: fmtDate(e.date) + (saetze.length ? " · " + saetze.join("/") : "") };
+          }))
         : `<div class="spark-none">Erst 1 Datenpunkt – dranbleiben!</div>`;
       cards += `<div class="stcard">
         <div class="stc-top">
@@ -1075,7 +1088,12 @@ function weightChart(pts) {
   const lblFirst = fmtDate(pts[0].date).slice(0, 6);
   const lblLast  = fmtDate(lastP.date).slice(0, 6);
 
-  return `<svg class="wsvg" viewBox="0 0 ${W} ${H}">
+  const scrub = scrubAttr(pts.map(p => ({
+    x: X(p.day), y: [Y(p.kg), Y(p.trend)], c: ["#BBBBBB", "#1A1A1A"],
+    v: fmtNum(p.kg, 1) + " kg", t: fmtDate(p.date) + " · Trend " + fmtNum(p.trend, 1)
+  })));
+
+  return `<svg class="wsvg" viewBox="0 0 ${W} ${H}"${scrub}>
     ${grid}
     <polyline points="${raw}" fill="none" stroke="#D8D8D8" stroke-width="1.5" stroke-linejoin="round"/>
     <polyline points="${trend}" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
