@@ -379,7 +379,8 @@ function n0(x) { return Math.round(x); }
 function n1(x) { return (Math.round(x * 10) / 10).toString().replace(".", ","); }
 
 /* ─── Tageszustand ──────────────────────────────────────── */
-var fDate = null, fSearch = "", fOpen = null, fOpenSec = "",  fBasisOpen = false, fNewOpen = false;
+var fDate = null, fSearch = "", fOpen = null, fOpenSec = "",  fBasisOpen = false, fNewOpen = false,
+    fBasListOpen = false, fSetOpen = false;   /* 29.10.: Basis-Gruppe in der Liste, Bereich „Ziel & Basis“ */
 
 function curDate() {
   var el = document.getElementById("f-day");
@@ -524,7 +525,12 @@ window.foodClose = function () {
 };
 
 /* ─── Eigene Produkte ───────────────────────────────────── */
-window.foodNewToggle = function () { fNewOpen = !fNewOpen; buildFood(); };
+window.foodNewToggle = function () {
+  fNewOpen = !fNewOpen; buildFood();
+  /* 29.10.: Name aus der Suche übernehmen, wenn sie nichts gefunden hat */
+  var e = document.getElementById("fn-name");
+  if (fNewOpen && e && fSearch.trim()) { e.value = fSearch.trim(); window.foodNewName(e.value); }
+};
 
 window.foodNewSave = function () {
   function v(id) { var e = document.getElementById(id); return e ? e.value.trim() : ""; }
@@ -718,6 +724,8 @@ window.foodRezDel = function (rid, ev) {
 
 /* ─── Fixbasis bearbeiten ───────────────────────────────── */
 window.foodBasisToggle = function () { fBasisOpen = !fBasisOpen; buildFood(); };
+window.foodBasListToggle = function () { fBasListOpen = !fBasListOpen; buildFood(); };
+window.foodSetToggle = function () { fSetOpen = !fSetOpen; buildFood(); };
 
 window.foodBasisSet = function (pid, on) {
   var c = cfg();
@@ -810,7 +818,8 @@ function renderPicker() {
     return !q || p.n.toLowerCase().indexOf(q) !== -1 || (p.g || "").toLowerCase().indexOf(q) !== -1;
   });
   if (!list.length) {
-    box.innerHTML = '<div class="fhint">Nichts gefunden. Über <strong>+ Eigenes Produkt</strong> anlegen – es steht danach dauerhaft in der Liste.</div>';
+    box.innerHTML = '<div class="fhint">Nichts gefunden.</div>' +
+      (fNewOpen ? "" : '<button class="fbtn2 prim" style="width:100%;margin-top:10px" onclick="foodNewToggle()">„' + esc(fSearch.trim()) + '“ als eigenes Produkt anlegen</button>');
     return;
   }
   var groups = {};
@@ -937,7 +946,7 @@ window.buildFood = function () {
   /* Abendpensum */
   var pensum;
   if (!items.length) {
-    pensum = '<div class="fphint">Noch nichts eingetragen. <strong>Fixbasis eintragen</strong> setzt die täglichen Posten in einem Schritt.</div>';
+    pensum = "";
   } else {
     var pcls = rest.kcal < 0 ? "over" : (rest.kcal < 250 ? "tight" : "");
     var line;
@@ -964,26 +973,55 @@ window.buildFood = function () {
   /* Tagesliste */
   var de = dailyEntry(d), estOn = !!(de && de.est), tripOn = !!(de && de.trip);
   var liste = "";
-  if (items.length) {
-    liste = '<div class="fsec"><div class="fsub">Heute erfasst · ' + items.length + " Posten</div>" +
-      items.map(function (it) {
+
+  /* 29.10.: Fixbasis in der Liste als eine Zeile. Basis-Posten ist – wie
+     bei foodRezSaveDay – jeweils das erste Vorkommen eines aktiven
+     Basis-Produkts. Zusätzlich gegessene Mengen desselben Produkts
+     stehen damit weiter einzeln. */
+  var basOn = c.basis.filter(function (b) { return b.on; });
+  var basLeft = {};
+  basOn.forEach(function (b) { basLeft[b.pid] = (basLeft[b.pid] || 0) + 1; });
+  var basItems = [], extraItems = [];
+  items.forEach(function (it) {
+    if (basLeft[it.pid]) { basLeft[it.pid]--; basItems.push(it); } else extraItems.push(it);
+  });
+  var basMissing = basOn.filter(function (b) { return basLeft[b.pid] > 0; }).length;
+  var basDone = basItems.length > 0;
+
+  function itemRow(it, sub) {
         var mu = (it.ref === 100) ? (n1(it.menge) + " " + (it.unit === "ml" ? "ml" : "g"))
                                   : (n1(it.menge) + " " + it.unit);
-        return '<div class="fitem">' +
+        return '<div class="fitem' + (sub ? " fsubitem" : "") + '">' +
           '<div class="fin"><div class="fitn">' + esc(it.n) + "</div>" +
           '<div class="fitm">' + mu + " · " + n0(abs(it, "kcal")) + " kcal · " +
             n1(abs(it, "kh")) + " KH · " + n1(abs(it, "f")) + " F · " + n1(abs(it, "p")) + " P</div></div>" +
           '<button class="fx fed" onclick="foodQty(' + it.id + ')" title="Menge ändern">✎</button>' +
           '<button class="fx" onclick="foodDel(' + it.id + ')">×</button></div>';
-      }).join("") +
+  }
+
+  if (items.length) {
+    var basSum = sumDay(basItems);
+    var basRow = "";
+    if (basDone) {
+      basRow = '<div class="fitem fbasgrp" onclick="foodBasListToggle()">' +
+        '<div class="fin"><div class="fitn">Fixbasis · ' + basItems.length + " Posten</div>" +
+        '<div class="fitm">' + n0(basSum.kcal) + " kcal · " + n1(basSum.kh) + " KH · " + n1(basSum.f) + " F · " + n1(basSum.p) + " P" +
+          (basMissing ? " · " + basMissing + " fehl" + (basMissing > 1 ? "en" : "t") : "") + "</div></div>" +
+        '<span class="fbaschev">' + (fBasListOpen ? "▾" : "▸") + "</span></div>" +
+        (fBasListOpen ? '<div class="fbaslist">' + basItems.map(function (it) { return itemRow(it, true); }).join("") +
+          (basMissing ? '<button class="fbtn2 ghost" style="width:100%;margin-top:8px" onclick="foodBasis()">Fehlende Basis-Posten ergänzen (' + basMissing + ")</button>" : "") +
+          "</div>" : "");
+    }
+    liste = '<div class="fsec"><div class="fsub">Heute erfasst · ' + items.length + " Posten</div>" +
+      basRow + extraItems.map(function (it) { return itemRow(it, false); }).join("") +
       '<div class="frow2">' +
         '<button class="fbtn2" onclick="foodClose()">Tag abschließen</button>' +
         '<button class="fbtn2 fest' + (estOn ? " on" : "") + '" onclick="foodEst()">' + (estOn ? "✓ Geschätzt" : "Geschätzt") + "</button>" +
         '<button class="fbtn2 ftrip' + (tripOn ? " on" : "") + '" onclick="foodTrip()">' + (tripOn ? "✓ Reise" : "Reise") + "</button>" +
       "</div>" +
       '<div class="frow2"><button class="fbtn2 ghost" onclick="foodClear()">Tag leeren</button></div>' +
-      (tripOn ? '<div class="fhint">Als <strong>Reisetag</strong> markiert – zählt nicht für den Abgleich Kalorien gegen Waage und wird im Review getrennt von einzelnen Ausnahmen ausgewertet.</div>'
-       : (estOn ? '<div class="fhint">Als <strong>geschätzt</strong> markiert – zählt nicht für den Abgleich Kalorien gegen Waage.</div>' : "")) +
+      (tripOn ? '<div class="fhint"><strong>Reisetag</strong> – zählt nicht für den Abgleich mit der Waage.</div>'
+       : (estOn ? '<div class="fhint"><strong>Geschätzt</strong> – zählt nicht für den Abgleich mit der Waage.</div>' : "")) +
       "</div>";
   }
 
@@ -1010,7 +1048,7 @@ window.buildFood = function () {
 
   var mahlzeiten = '<div class="fsec"><div class="fsub">Mahlzeiten</div>' + rezHtml +
     '<button class="fbtn2 ghost" style="width:100%;margin-top:12px" onclick="foodRezSaveDay()">Heutige Posten als Mahlzeit sichern</button>' +
-    '<div class="fhint">Ein Tap setzt alle Posten des Rezepts. Mengen danach in „Heute erfasst“ über ✎ anpassen, wenn du abgewandelt hast. Gesichert wird ohne die Fixbasis – nur was zusätzlich auf dem Tag steht.</div></div>';
+    '<div class="fhint">Ein Tap trägt das Rezept ein. Abgewandelt? Danach mit ✎ anpassen.</div></div>';
 
   /* Fixbasis-Editor */
   var basisSum = sumDay(c.basis.filter(function (b) { return b.on; }).map(function (b) {
@@ -1021,7 +1059,7 @@ window.buildFood = function () {
   var chkCount = c.basis.filter(function (b) { var pr = prod(b.pid); return b.on && pr && pr.chk; }).length;
 
   var basisBody = "";
-  if (fBasisOpen) {
+  if (fSetOpen) {
     basisBody = '<div class="fbasisbody">' +
       c.basis.map(function (b) {
         var pr = prod(b.pid);
@@ -1039,28 +1077,37 @@ window.buildFood = function () {
         '<option value="">Posten hinzufügen …</option>' +
         allProducts().map(function (p) { return '<option value="' + p.id + '">' + esc(p.n) + "</option>"; }).join("") +
       '</select><button class="fbtn2" onclick="foodBasisAdd()">OK</button></div>' +
-      (chkCount ? '<div class="fhint">' + chkCount + " Posten der Basis stehen mit geschätzten Werten. Auf das <strong>?</strong> tippen, Etikettenwerte eintragen – die Korrektur gilt danach dauerhaft.</div>" : "") +
+      (chkCount ? '<div class="fhint">' + chkCount + " Posten mit geschätzten Werten – <strong>?</strong> antippen und Etikett eintragen.</div>" : "") +
       "</div>";
   }
 
-  var basis = '<div class="fsec">' +
+  /* 29.10.: Die Karte gibt es nur, solange die Basis heute fehlt.
+     Bearbeitet wird sie unter „Ziel & Basis“. */
+  var basis = basDone ? "" : '<div class="fsec fbascard">' +
     '<div class="fsub">Fixbasis · ' + n0(basisSum.kcal) + " kcal · " + n0(basisSum.p) + " g Protein</div>" +
-    '<div class="frow2">' +
-      '<button class="fbtn2 prim" onclick="foodBasis()">Fixbasis eintragen</button>' +
-      '<button class="fbtn2 ghost" onclick="foodBasisToggle()">' + (fBasisOpen ? "Fertig" : "Anpassen") + "</button>" +
-    "</div>" + basisBody + "</div>";
+    '<button class="fbtn2 prim" style="width:100%" onclick="foodBasis()">Fixbasis eintragen</button>' +
+    (items.length ? "" : '<div class="fhint">Setzt die ' + basOn.length + " täglichen Posten in einem Schritt.</div>") +
+    "</div>";
 
-  /* Ziel */
-  var isNeu = g.kcal === GOAL_NEU.kcal;
-  var ziel = '<div class="fsec"><div class="fsub">Tagesziel</div>' +
-    '<div class="fgoal">' + n0(g.kcal) + " kcal · " + n0(g.kh) + " g KH · " + n0(g.f) + " g Fett · " + n0(g.p) + " g Protein</div>" +
-    '<div class="frow2">' +
-      '<button class="fbtn2' + (isNeu ? "" : " prim") + '" onclick="foodGoalSet(\'alt\')">2.775 kcal</button>' +
-      '<button class="fbtn2' + (isNeu ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">3.000 kcal</button>' +
-      '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Frei</button>' +
-    "</div>" +
-    '<div class="fhint">Seit dem 06.09. steht das Ziel auf <strong>3.000 kcal</strong>: +225 kcal gegenüber 2.775, vollständig als +55 g KH (350 → 405). Fett und Protein bleiben unverändert. Grundlage ist der Hauswaage-Trend, nicht die InBody-Zahl. <strong>Oktober ist der erste saubere Testmonat</strong> (ab 01.10.): Eine Woche zählt, wenn mindestens 6 von 7 Tagen erfasst sind. Liegt der Trend nach 3–4 sauberen Wochen unter +0,1 kg/Woche, folgen +200 kcal als KH.' +
-    (c.goalSince ? " Zuletzt gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div></div>";
+  /* Ziel & Basis – selten gebraucht, deshalb eingeklappt am Ende (29.10.) */
+  var ziel = '<div class="fsec fset">' +
+    '<div class="fsethead" onclick="foodSetToggle()"><div class="fsub" style="margin:0">Ziel & Basis</div>' +
+      '<div class="fsetsum">' + n0(g.kcal) + " kcal · Basis " + basOn.length + " Posten" + (chkCount ? " · " + chkCount + " ?" : "") + "</div>" +
+      '<span class="fbaschev">' + (fSetOpen ? "▾" : "▸") + "</span></div>" +
+    (fSetOpen ?
+      '<div class="fbasisbody">' +
+        '<div class="fgoal">' + n0(g.kcal) + " kcal · " + n0(g.kh) + " g KH · " + n0(g.f) + " g Fett · " + n0(g.p) + " g Protein</div>" +
+        '<div class="frow2">' +
+          '<button class="fbtn2' + (g.kcal === GOAL_NEU.kcal ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">3.000 kcal</button>' +
+          '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Frei</button>' +
+        "</div>" +
+        '<div class="fhint">Woche zählt ab 6 von 7 erfassten Tagen. Trend nach 3–4 sauberen Wochen unter +0,1 kg/Woche → +200 kcal als KH.' +
+          (c.goalSince ? " Gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div>" +
+      "</div>" +
+      '<div class="fsub" style="margin-top:18px">Fixbasis · ' + n0(basisSum.kcal) + " kcal · " + n0(basisSum.p) + " g Protein</div>" +
+      basisBody
+    : "") +
+    "</div>";
 
   /* Neues Produkt */
   var neu = "";
@@ -1090,8 +1137,8 @@ window.buildFood = function () {
     '<button class="fbtn2 ghost" style="width:100%;margin-top:10px" onclick="foodNewToggle()">' + (fNewOpen ? "Abbrechen" : "+ Eigenes Produkt") + "</button>" +
     neu + "</div>";
 
-  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + pensum + liste + basis + mahlzeiten + picker + ziel +
-    '<div class="fnote">Die Zahlen sind ein Steuerungsinstrument, kein Selbstzweck: Ausschlaggebend bleibt der Gewichtstrend im Werte-Tab. Das Tracking beantwortet die Frage, <strong>warum</strong> der Trend liegt, wie er liegt – vor allem, ob der Abend die strukturelle Lücke ist.<br><br>Ballaststoffe sind bewusst nicht enthalten: für zu viele Produkte fehlt der Etikettenwert.</div>';
+  /* 29.10.: Fixbasis-Karte vor allem anderen, solange sie fehlt */
+  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + pensum + basis + liste + mahlzeiten + picker + ziel;
 
   renderPicker();
 };
@@ -1162,6 +1209,13 @@ var CSS = [
 ".frez.eng { opacity:.5; }",
 ".frez.eng .frezm { color:#B33A3A; }",
 ".fchk { cursor:pointer; }",
+".fbasgrp { cursor:pointer; }",
+".fbaschev { font-size:13px; color:var(--dim); width:14px; text-align:center; flex-shrink:0; }",
+".fbaslist { padding-left:12px; border-left:2px solid var(--border); margin:2px 0 6px; }",
+".fsubitem .fitn { font-size:12.5px; font-weight:500; }",
+".fbascard { border:1.5px solid var(--text); }",
+".fsethead { display:flex; align-items:center; gap:10px; cursor:pointer; }",
+".fsetsum { flex:1; text-align:right; font-size:11px; color:var(--muted); }",
 ".fbasisbody { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }",
 ".fbrow { display:flex; align-items:center; gap:8px; padding:6px 0; }",
 ".fbrow.off { opacity:.42; }",
