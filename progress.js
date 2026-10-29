@@ -220,6 +220,44 @@ function status(ex) {
   return base;
 }
 
+// ─── GEWICHT VORBELEGEN ──────────────────────────
+// Neuer Eintrag: Gewichtsfeld mit dem letzten Gewicht fuellen. Ist eine
+// Erhoehung faellig (Band "treffer" oder letzter Eintrag "↑ erhoehen"),
+// steht stattdessen das neue Gewicht drin, markiert mit "↑ vorbelegt".
+// Ein selbst eingetippter Wert wird nie ueberschrieben; im Bearbeiten-
+// Modus bleibt das Feld unangetastet.
+function zielVorschlag(uebung, last) {
+  const w = last ? num(last.gewicht) : null;
+  if (w === null) return null;
+  const ex = findEx(uebung);
+  if (ex && heimOK(last)) {
+    const st = status(ex);
+    if (st.state === "treffer" && st.ziel > w) return { kg: st.ziel, up: true };
+  }
+  if (last.erhoehen && ex)
+    return { kg: Math.round((w + schrittVon(ex)) * 100) / 100, up: true };
+  return { kg: w, up: false };
+}
+
+function vorbelegen(uebung, last) {
+  const f = document.getElementById("f-gew");
+  if (!f) return;
+  if (typeof editId !== "undefined" && editId !== null) return;
+  // eigene Eingabe bleibt stehen – ausser die Uebung wurde gewechselt
+  if (f.value !== "" && f.dataset.pre !== "1" && f.dataset.ex === uebung) return;
+  const v = zielVorschlag(uebung, last);
+  const tag = document.getElementById("pg-pre");
+  if (!v) {
+    f.value = ""; delete f.dataset.pre; f.dataset.ex = uebung;
+    if (tag) tag.style.display = "none";
+    return;
+  }
+  f.value = String(v.kg);
+  f.dataset.pre = "1";
+  f.dataset.ex = uebung;
+  if (tag) tag.style.display = v.up ? "" : "none";
+}
+
 // ─── BAND IM EINTRAG-TAB ─────────────────────────
 function bandHTML(ex) {
   const st = status(ex);
@@ -616,6 +654,36 @@ function init() {
   band.id = "pg-band";
   hint.parentNode.insertBefore(band, hint.nextSibling);
 
+  // Vorbelegung: Hinweis am Feld, eigene Eingabe beendet die Vorbelegung
+  const gew = document.getElementById("f-gew");
+  if (gew && !document.getElementById("pg-pre")) {
+    const lbl = gew.previousElementSibling;
+    const tag = document.createElement("span");
+    tag.id = "pg-pre";
+    tag.className = "last-up";
+    tag.style.display = "none";
+    tag.style.letterSpacing = "0";
+    tag.style.textTransform = "none";
+    tag.textContent = "↑ vorbelegt";
+    if (lbl) lbl.appendChild(tag);
+    gew.addEventListener("input", function () {
+      delete gew.dataset.pre;
+      const u = document.getElementById("f-uebung");
+      gew.dataset.ex = u ? u.value : "";
+      tag.style.display = "none";
+    });
+  }
+
+  // resetForm erweitern – nach "Abbrechen" (Bearbeiten) direkt neu vorbelegen
+  const origReset = window.resetForm;
+  if (typeof origReset === "function") {
+    window.resetForm = function () {
+      origReset.apply(this, arguments);
+      const u = document.getElementById("f-uebung");
+      if (u && u.value && typeof window.showLastEntry === "function") window.showLastEntry(u.value);
+    };
+  }
+
   // refreshHint erweitern – Band folgt der Übungsauswahl
   const origHint = window.refreshHint;
   if (typeof origHint === "function") {
@@ -647,6 +715,7 @@ function init() {
       const heim = all.filter(heimOK);
       const pool = hier.length ? hier : (heim.length ? heim : all);
       const last = pool.length ? pool[pool.length - 1] : null;
+      vorbelegen(uebung, last);
       if (!last) { el.classList.remove("show"); return; }
       el.classList.add("show");
       const sets = [last.s1, last.s2, last.s3, last.s4].filter(Boolean).join(" / ");
