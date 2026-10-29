@@ -1090,7 +1090,7 @@ window.buildFood = function () {
     '<button class="fbtn2 ghost" style="width:100%;margin-top:10px" onclick="foodNewToggle()">' + (fNewOpen ? "Abbrechen" : "+ Eigenes Produkt") + "</button>" +
     neu + "</div>";
 
-  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + pensum + liste + mahlzeiten + basis + picker + ziel +
+  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + pensum + liste + basis + mahlzeiten + picker + ziel +
     '<div class="fnote">Die Zahlen sind ein Steuerungsinstrument, kein Selbstzweck: Ausschlaggebend bleibt der Gewichtstrend im Werte-Tab. Das Tracking beantwortet die Frage, <strong>warum</strong> der Trend liegt, wie er liegt – vor allem, ob der Abend die strukturelle Lücke ist.<br><br>Ballaststoffe sind bewusst nicht enthalten: für zu viele Produkte fehlt der Etikettenwert.</div>';
 
   renderPicker();
