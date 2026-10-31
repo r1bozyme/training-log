@@ -1,44 +1,32 @@
 /* ═══════════════════════════════════════════════════
-   push.js – Erinnerungen per System-Benachrichtigung (02.10.2026)
+   push.js – Erinnerungen (02.10.2026, umgebaut 31.10.2026)
 
-   Ablauf:
-   1. "Aktivieren" im Log-Tab fragt die Benachrichtigungs-Erlaubnis ab,
-      registriert sw.js und legt ein Push-Abo an.
-   2. Das Abo landet als push/subscription.json im privaten Daten-Repo
-      (ueber denselben Token wie das Backup, sync.js).
-   3. Der Workflow "reminders" dort liest backup.json und schickt nur,
-      was noch offen ist:
-        ~05:50 still  – Steifigkeit, Wiegen (Di/Fr), Gestern offen
-        ~08:30 Ton    – Nachfass, nur wenn noch offen
-        ~10:00 Ton    – Supplements & Medikamente, wenn nicht abgehakt (03.10.)
-        ~21:30        – Tag abschliessen, Backup veraltet (> 3 Tage)
-   4. Tippen auf die Meldung springt per ?go= bzw. Nachricht des
-      Service Workers an die passende Stelle.
+   Seit 09.10. laufen die Erinnerungen nur noch über ntfy (eigene App,
+   geheimer Kanal); Chrome hat das Web-Push-Abo auf dem Handy immer
+   wieder verworfen. 31.10. (Review): Der Chrome-Push-Teil ist entfernt –
+   kein Abo, keine Selbstheilung, keine Abo-Uploads mehr. Ein noch
+   vorhandenes Browser-Abo wird beim Start einmal still beendet.
+
+   Geblieben:
+   · go(): Sprungziele für ?go=… (ntfy-Klick-URL) und Nachrichten des
+     Service Workers (stiff, thumb, weight, yday, supps, food, yfood,
+     sync, einkauf, vorrat).
+   · Kasten im Log-Tab: Status und An/Aus. Der Schalter schreibt
+     push/subscription.json mit on:true/false – der Erinnerungsdienst
+     (training-log-data/push/remind.js) schweigt bei on:false.
 
    localStorage "tl-push" ist bewusst KEIN Daten-Key (kein Sync).
-   CSS-Klassen mit Praefix .tlr- (vorher auf Kollisionen geprueft).
    ═══════════════════════════════════════════════════ */
 
 (function () {
 
-var VAPID_PUBLIC = "BDHjTILs5t3Z50ClZFNEeq1MToPeeE6Xqt4HNggTB_rqtrVTl5K5b05ECf9KkBUcs7pJigro5ZeR5CegMHEpI8Q";
 var KEY  = "tl-push";
 var PATH = "push/subscription.json";
-
-var supported = ("serviceWorker" in navigator) && ("PushManager" in window) && ("Notification" in window);
 
 function st() { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } }
 function saveSt(o) { localStorage.setItem(KEY, JSON.stringify(o)); }
 function flash(m) { if (typeof window.showFlash === "function") window.showFlash(m); }
 function syncReady() { return !!(window.tlSync && window.tlSync.ready && window.tlSync.ready()); }
-
-function keyBytes(b64) {
-  var pad = "=".repeat((4 - b64.length % 4) % 4);
-  var raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
-  var out = new Uint8Array(raw.length);
-  for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
 
 function localDate(offsetDays) {
   var d = new Date(); d.setDate(d.getDate() + (offsetDays || 0));
@@ -46,132 +34,24 @@ function localDate(offsetDays) {
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
 }
 
-/* ─── Abo ───────────────────────────────────────────────── */
-function registerSW() {
-  return navigator.serviceWorker.register("sw.js", { scope: "./" })
-    .then(function () { return navigator.serviceWorker.ready; });
-}
-
-function upload(sub, why) {
-  var body = sub
-    ? { v: 1, on: true, ts: new Date().toISOString(), why: why || "manuell", sub: sub.toJSON() }
-    : { v: 1, on: false, ts: new Date().toISOString() };
-  return window.tlSync.put(PATH, JSON.stringify(body, null, 1),
-                           sub ? "push: Abo aktiviert" : "push: Abo beendet");
-}
-
-function enable() {
-  if (!supported) { flash("Nicht unterstützt"); return; }
-  if (!syncReady()) { flash("Erst das Backup einrichten (⚙︎)"); return; }
-  Notification.requestPermission().then(function (perm) {
-    if (perm !== "granted") { flash("Benachrichtigungen nicht erlaubt"); render(); throw null; }
-    return registerSW();
-  }).then(function (reg) {
-    return reg.pushManager.getSubscription().then(function (old) {
-      return old || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) });
-    });
-  }).then(function (sub) {
-    return upload(sub, "manuell").then(function () {
-      saveSt({ on: true, ep: sub.endpoint, since: localDate(0), chk: Date.now() });
-      flash("Erinnerungen aktiv – Bestätigung kommt gleich");
-      render();
-    });
-  }).catch(function (e) {
-    if (e === null) return;
-    console.error("push:", e);
-    flash("Fehler – siehe Status");
-    var s = st(); s.err = String(e && e.message || e); saveSt(s); render();
-  });
-}
-
-function disable() {
-  var unsub = navigator.serviceWorker.getRegistration("./").then(function (reg) {
-    return reg ? reg.pushManager.getSubscription() : null;
-  }).then(function (sub) { return sub ? sub.unsubscribe() : true; });
-  unsub.then(function () { return syncReady() ? upload(null) : true; })
-    .then(function () { saveSt({ on: false }); flash("Erinnerungen aus"); render(); })
-    .catch(function (e) { console.error("push:", e); flash("Fehler beim Ausschalten"); });
-}
-
-function test() {
+/* Altes Chrome-Abo einmal still beenden (Service Worker bleibt für Klicks registriert) */
+function dropBrowserSub() {
+  if (!("serviceWorker" in navigator)) return;
+  var s = st(); if (s.dropped) return;
   navigator.serviceWorker.getRegistration("./").then(function (reg) {
-    if (!reg) { flash("Erst aktivieren"); return; }
-    return reg.showNotification("Test: Morgensteifigkeit", {
-      body: "So sehen die Erinnerungen aus. Tippen springt zur Steifigkeit.",
-      tag: "tl-test", data: { go: "stiff" }, lang: "de",
-      icon: "n-stiff.png", badge: "badge-96.png"
-    });
-  });
+    if (!reg || !reg.pushManager) return null;
+    return reg.pushManager.getSubscription().then(function (sub) { return sub ? sub.unsubscribe() : null; });
+  }).then(function () { var t = st(); t.dropped = new Date().toISOString(); saveSt(t); }).catch(function () {});
 }
 
-/* Selbstheilung (06.10.): Chrome tauscht das Abo auf diesem Handy immer wieder
-   aus, ohne den Service Worker zu benachrichtigen – Pushes an das alte gehen dann
-   mit 410 ins Leere. Deshalb bei jedem Oeffnen und Zurueckkehren in die App:
-   - lokales Abo gegen das im Daten-Repo pruefen (push/subscription.json),
-   - gegen die Tot-Meldung des Erinnerungsdienstes (push/health.json),
-   und bei Abweichung sofort ein gueltiges Abo hochladen. "why" landet in
-   subscription.json: geaendert = Chrome hat getauscht, fehlte = kein lokales Abo,
-   tot = vom Push-Dienst abgemeldet, repo = Repo hatte ein anderes/keins. */
-/* Gleicher Medientyp wie getSha() in sync.js und ohne Browser-Cache: ein
-   zwischengespeicherter Roh-Abruf derselben URL lieferte dort sonst keine sha
-   -> PUT 422 "sha wasn't supplied" (06.10.). */
-function repoJSON(p) {
-  return window.tlSync.get(p, { cache: "no-store" }).then(function (r) {
-    if (r.status === 404) return null;
-    if (!r.ok) throw new Error("GET " + p + ": " + r.status);
-    return r.json().then(function (j) {
-      var bin = atob(String(j.content || "").replace(/\s/g, ""));
-      var bytes = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return JSON.parse(new TextDecoder().decode(bytes) || "null");
-    });
-  });
+function setOn(on) {
+  if (!syncReady()) { flash("Erst das Backup einrichten (⚙︎)"); return; }
+  var body = { v: 2, on: !!on, ts: new Date().toISOString(), why: "manuell", channel: "ntfy" };
+  window.tlSync.put(PATH, JSON.stringify(body, null, 1), on ? "push: Erinnerungen an (ntfy)" : "push: Erinnerungen aus")
+    .then(function () { var s = st(); s.on = !!on; s.off = !on; saveSt(s); render(); flash(on ? "Erinnerungen an ✓" : "Erinnerungen aus"); })
+    .catch(function (e) { flash("Fehler: " + (e && e.message || e)); });
 }
 
-function freshSub(reg) {
-  return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC) });
-}
-
-var healing = false, lastHeal = 0;
-function heal() {
-  var s = st();
-  if (!supported || !s.on || healing) return;
-  if (Notification.permission !== "granted") { render(); return; }
-  if (!syncReady()) return;
-  healing = true; lastHeal = Date.now();
-  var why = "";
-  registerSW().then(function (reg) {
-    return Promise.all([reg.pushManager.getSubscription(), repoJSON(PATH), repoJSON("push/health.json")])
-      .then(function (r) {
-        var sub = r[0], repo = r[1] || {}, health = r[2] || {};
-        if (sub && health.dead === sub.endpoint) {
-          why = "tot";
-          return sub.unsubscribe().catch(function () {}).then(function () { return freshSub(reg); });
-        }
-        if (!sub) { why = "fehlte"; return freshSub(reg); }
-        if (sub.endpoint !== s.ep) why = "geaendert";
-        else if (!repo.on || !repo.sub || repo.sub.endpoint !== sub.endpoint) why = "repo";
-        return sub;
-      });
-  }).then(function (sub) {
-    s = st(); s.chk = Date.now(); delete s.healErr;
-    if (!why) { saveSt(s); render(); return; }
-    return upload(sub, why).then(function () {
-      s.ep = sub.endpoint; delete s.err; s.fix = Date.now(); s.fixWhy = why; saveSt(s); render();
-    });
-  }).catch(function (e) {
-    console.warn("push heal:", e);
-    var t = st(); t.healErr = hm(Date.now()) + " " + (why ? "[" + why + "] " : "") + String((e && (e.name + ": " + e.message)) || e).slice(0, 160);
-    saveSt(t); render();
-  }).then(function () { healing = false; });
-}
-
-/* Beim Zurueckkehren in die App erneut pruefen, hoechstens alle 10 Min. */
-document.addEventListener("visibilitychange", function () {
-  if (document.visibilityState === "visible" && Date.now() - lastHeal > 10 * 60 * 1000) heal();
-});
-
-/* ─── Sprungziele ───────────────────────────────────────── */
 function pulse(id) {
   var sec = document.getElementById(id);
   if (!sec) return;
@@ -220,30 +100,18 @@ function go(where) {
 /* ─── Oberflaeche (Log-Tab, unter dem Backup-Kasten) ─────── */
 function statusHTML() {
   var s = st();
-  if (!supported) return "Erinnerungen: auf diesem Gerät nicht unterstützt.";
-  if (s.on && Notification.permission === "denied")
-    return "Erinnerungen: <b style='color:#B3261E'>blockiert</b> – in den App-Einstellungen von Android wieder erlauben.";
-  if (s.err) return "Erinnerungen: <b style='color:#B3261E'>Fehler</b> – " + s.err;
-  if (s.on) return "Erinnerungen: <b style='color:var(--text)'>an</b>" + (s.since ? " seit " + s.since.split("-").reverse().join(".") : "") +
-                   "<br>Morgens ~05:50 still, Nachfass ~08:30, Einnahme ~10:10, abends ~21:30 – nur wenn etwas offen ist." +
-                   (s.chk ? "<br><span style='opacity:.7'>Abo geprüft " + hm(s.chk) +
-                     (s.fix ? " · zuletzt erneuert " + dm(s.fix) + " " + hm(s.fix) + " (" + s.fixWhy + ")" : "") + "</span>" : "") +
-                   (s.healErr ? "<br><b style='color:#B3261E'>Prüfung fehlgeschlagen</b> " + s.healErr : "");
-  if (!syncReady()) return "Erinnerungen: aus. Brauchen das Backup – erst oben ⚙︎ Einstellungen.";
-  return "Erinnerungen: aus.";
+  if (s.off) return "Erinnerungen: <b style='color:var(--text)'>aus</b>.";
+  return "Erinnerungen: <b style='color:var(--text)'>an</b> über die App <b>ntfy</b>." +
+    "<br>Morgens ~05:50 still, Nachfass ~08:30, Einnahme ~10:10, abends ~21:30 – nur wenn etwas offen ist." +
+    "<br>Freitag ab 20 Uhr: Einkaufsliste; Online-Bestellungen mit ~10 Tagen Vorlauf.";
 }
 
-function hm(t) { var d = new Date(t); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
-function dm(t) { var d = new Date(t); return d.getDate() + "." + (d.getMonth() + 1) + "."; }
-
 function render() {
-  var box = document.getElementById("tlr-box");
+  var box = document.getElementById("tlr-status");
   if (!box) return;
-  var on = st().on;
-  document.getElementById("tlr-status").innerHTML = statusHTML();
-  document.getElementById("tlr-toggle").textContent = on ? "Ausschalten" : "🔔 Aktivieren";
-  document.getElementById("tlr-test").style.display = on ? "" : "none";
-  document.getElementById("tlr-toggle").style.display = supported ? "" : "none";
+  box.innerHTML = statusHTML();
+  var b = document.getElementById("tlr-toggle");
+  if (b) b.textContent = st().off ? "🔔 Einschalten" : "Ausschalten";
 }
 
 function mount() {
@@ -254,17 +122,10 @@ function mount() {
   box.id = "tlr-box";
   box.innerHTML =
     '<div id="tlr-status" style="margin-bottom:10px"></div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-      '<button id="tlr-toggle" class="fbtn"></button>' +
-      '<button id="tlr-test" class="fbtn">Test</button>' +
-    "</div>";
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><button id="tlr-toggle" class="fbtn"></button></div>';
   var sb = document.getElementById("sync-box");
   if (sb && sb.parentNode === view) view.insertBefore(box, sb.nextSibling); else view.appendChild(box);
-  document.getElementById("tlr-toggle").onclick = function () {
-    var s = st(); delete s.err; saveSt(s);
-    if (s.on) disable(); else enable();
-  };
-  document.getElementById("tlr-test").onclick = test;
+  document.getElementById("tlr-toggle").onclick = function () { setOn(!!st().off); };
   render();
 }
 
@@ -275,13 +136,11 @@ function init() {
   if (typeof origShow === "function") {
     window.showView = function (v) { origShow(v); if (v === "log") { mount(); render(); } };
   }
-
-  if (supported) {
+  if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", function (e) {
       if (e.data && e.data.type === "tl-go") go(e.data.go);
     });
   }
-
   try {
     var p = new URLSearchParams(location.search);
     var target = p.get("go");
@@ -292,13 +151,11 @@ function init() {
       history.replaceState(null, "", location.pathname + (q ? "?" + q : "") + location.hash);
     }
   } catch (e) { /* unkritisch */ }
-
-  setTimeout(heal, 2000);
+  setTimeout(dropBrowserSub, 3000);
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();
 
-window.tlPush = { enable: enable, disable: disable, test: test, go: go };
-
+window.tlPush = { go: go, on: function () { setOn(true); }, off: function () { setOn(false); } };
 })();

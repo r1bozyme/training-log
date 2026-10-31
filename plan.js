@@ -238,9 +238,11 @@ const PLAN = {
 // nav.js (22.10.): Bereiche Training / Ernährung / Körper mit Chips – wirklich ganz außen, als Letztes.
 // studio.js (18.10.): Studio pro Eintrag, vor progress.js (das window.tlStudio nutzt).
 // uebung.js (22.10.): Testübungen per Freitext + Umzug der Overhead-Einträge, nach progress.js.
+// abgleich.js (31.10.): Essen-Tab – fehlende Tage aus dem Backup einzeln zurückholen, Hinweis „Gestern nicht abgeschlossen“.
+// push.js (31.10.): Chrome-Push entfernt, nur noch Sprungziele + ntfy-Status/An-Aus.
 // energie.js (31.10.): Energiebilanz-Schätzer, Karte unter Ernährung › Heute.
 // vorrat-core.js + vorrat.js (31.10.): Vorrat & Einkauf (Ernährung › Vorrat · Einkauf), vor nav.js.
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "scrub.js", "vorrat-core.js", "vorrat.js", "energie.js", "nav.js"].forEach(function (src) {
+["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "scrub.js", "vorrat-core.js", "vorrat.js", "energie.js", "abgleich.js", "nav.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;

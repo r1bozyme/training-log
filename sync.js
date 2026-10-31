@@ -354,11 +354,18 @@ function sync(manual) {
     .then(function (ok) { running = false; render(); return ok; });
 }
 
-function schedule() {
+/* 31.10.: tl-d (Tag abschließen, Steifigkeit, Supplements, Wiegen-Haken) ist
+   genau das, was die Erinnerungen im Backup prüfen. Ursache der Abend-
+   Erinnerung am 09.10. trotz abgeschlossenem Tag: Tag geschlossen, App
+   innerhalb der 8 s verlassen – der Sync beim Verlassen kam im Hintergrund
+   nicht mehr durch (letztes Backup 15:45, Erinnerung 21:30, nächstes Backup
+   erst beim Wiederöffnen 21:35). Deshalb tl-d nach 1,2 s sichern. */
+var FAST_KEYS = ["tl-d"];
+function schedule(k) {
   seq++;
   var c = cfg(); c.dirty = true; saveCfg(c);
   clearTimeout(timer);
-  timer = setTimeout(function () { sync(false); }, DEBOUNCE);
+  timer = setTimeout(function () { sync(false); }, FAST_KEYS.indexOf(k) !== -1 ? 1200 : DEBOUNCE);
   render();
 }
 
@@ -369,11 +376,11 @@ function hookStorage() {
   var remI = localStorage.removeItem.bind(localStorage);
   localStorage.setItem = function (k, v) {
     setI(k, v);
-    if (DATA_KEYS.indexOf(k) !== -1) schedule();
+    if (DATA_KEYS.indexOf(k) !== -1) schedule(k);
   };
   localStorage.removeItem = function (k) {
     remI(k);
-    if (DATA_KEYS.indexOf(k) !== -1) schedule();
+    if (DATA_KEYS.indexOf(k) !== -1) schedule(k);
   };
 }
 
