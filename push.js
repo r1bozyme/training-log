@@ -197,6 +197,9 @@ function go(where) {
       return;
     }
     setTimeout(function () { pulse({ stiff: "d-stiffsec", thumb: "d-thumbsec", supps: "d-supsec" }[where] || "d-weightsec"); }, 150);
+  } else if (where === "einkauf" || where === "vorrat") {
+    window.showView(where);
+    setTimeout(function () { window.scrollTo({ top: 0, behavior: "smooth" }); }, 100);
   } else if (where === "food" || where === "yfood") {
     window.showView("food");
     var fd = document.getElementById("f-day");

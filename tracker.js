@@ -359,6 +359,8 @@ function cfg() {
 function saveCfg(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
 
 window.loadFoodGoal = function () { applyNov(); return cfg().goal; };
+/* vorrat.js (31.10.): Produktnamen und Einheiten inkl. eigener Produkte */
+window.foodProducts = function () { return allProducts(); };
 
 /* Overrides sind korrigierte Etikettenwerte. Sie ersetzen die
    eingebauten Zahlen und löschen die chk-Markierung – der Wert

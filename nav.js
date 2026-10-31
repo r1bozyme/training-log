@@ -4,7 +4,7 @@
    Unten nur noch drei Bereiche, oben Chips im Stil des
    Finanz-Cockpits:
      Training   Log · Stats · Plan     + Eintrag als schwebender Knopf
-     Ernährung  Heute                  (Vorrat · Einkauf folgen im November)
+     Ernährung  Heute · Vorrat · Einkauf   (Vorrat & Einkauf seit 31.10., vorrat.js)
      Körper     Werte · Tracker
 
    Die Views bleiben, wie sie sind (add, log, stats, plan, food,
@@ -22,7 +22,7 @@
 
 var AREAS = [
   { id: "training", label: "Training",  views: [["log", "Log"], ["stats", "Stats"], ["plan", "Plan"]], extra: ["add"] },
-  { id: "food",     label: "Ernährung", views: [["food", "Heute"]] },
+  { id: "food",     label: "Ernährung", views: [["food", "Heute"], ["vorrat", "Vorrat"], ["einkauf", "Einkauf"]] },
   { id: "body",     label: "Körper",    views: [["weight", "Werte"], ["health", "Tracker"]] }
 ];
 var DEFAULT = { training: "log", food: "food", body: "weight" };
@@ -69,7 +69,6 @@ function renderChips() {
   var h = a.views.map(function (x) {
     return '<button type="button" data-v="' + x[0] + '"' + (x[0] === cur ? ' class="on"' : '') + '>' + x[1] + '</button>';
   }).join("");
-  if (a.id === "food") h += '<span class="soon">Vorrat · Einkauf ab November</span>';
   bar.innerHTML = h;
 }
 
@@ -130,7 +129,7 @@ function init() {
   document.body.appendChild(fab);
 
   /* Aktive Ansicht beim Start übernehmen */
-  ["add", "log", "stats", "plan", "food", "weight", "health"].forEach(function (id) {
+  ["add", "log", "stats", "plan", "food", "vorrat", "einkauf", "weight", "health"].forEach(function (id) {
     var v = document.getElementById("view-" + id);
     if (v && v.classList.contains("active")) cur = id;
   });
