@@ -123,11 +123,14 @@ var GOAL_V = 2;
 /* 31.10. (Review): Oktober-Test ausgewertet. Bei echten 3.000 kcal
    (19.–30.10.) blieb das Gewicht flach, der Zuwachs kam von den
    Tagen mit ~3.100. Variante B: +200 kcal als KH ab dem ersten
-   normalen Training nach dem Deload (01.–07.11.). Die Umstellung
-   schaltet sich am 08.11. selbst, datiert und einmalig (novV):
-   Ziel 3.200 / 455 g KH, Fixbasis +1 Banane und +30 g Rosinen bzw.
-   Sultaninen – als Delta auf die eigenen Mengen, nicht als Reset. */
-var GOAL_NOV = { kcal: 3200, kh: 455, f: 82, p: 160 };
+   normalen Training nach dem Deload (01.–07.11.). Noch am 31.10.
+   korrigiert: Der Energiebilanz-Schätzer (energie.js) sieht über
+   den ganzen Oktober Erhaltung ≈ 2.820 ± 85 kcal – die flache
+   zweite Hälfte war Rauschen (±0,31 kg/Woche). Deshalb nur +100:
+   Ziel 3.100 / 430 g KH, Fixbasis +1 Banane – als Delta auf die
+   eigene Menge, nicht als Reset. Schaltet sich am 08.11. selbst,
+   datiert und einmalig (novV). */
+var GOAL_NOV = { kcal: 3100, kh: 430, f: 82, p: 160 };
 var GOAL_NOV_AB = "2026-11-08";
 function goalStd() { return todayStr() >= GOAL_NOV_AB ? GOAL_NOV : GOAL_NEU; }
 function applyNov() {
@@ -139,7 +142,6 @@ function applyNov() {
     c.goalSince = GOAL_NOV_AB;
     (c.basis || []).forEach(function (b) {
       if (b.pid === "banane") b.menge = (+b.menge || 0) + 1;
-      if (b.pid === "rosinen" || b.pid === "sultan") b.menge = (+b.menge || 0) + 30;
     });
     c.novV = 1;
     saveCfg(c);
@@ -1130,7 +1132,7 @@ window.buildFood = function () {
           '<button class="fbtn2' + (g.kcal === goalStd().kcal ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">' + n0(goalStd().kcal) + ' kcal</button>' +
           '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Frei</button>' +
         "</div>" +
-        '<div class="fhint">Woche zählt ab 6 von 7 erfassten Tagen. November-Test: 3.200 kcal ab 08.11. Trend nach 3 sauberen Wochen unter +0,1 kg/Woche → +150–200 kcal als KH, über +0,35 → −100.' +
+        '<div class="fhint">Woche zählt ab 6 von 7 erfassten Tagen. November-Test: 3.100 kcal ab 08.11. Trend nach 3 sauberen Wochen unter +0,1 kg/Woche → +150–200 kcal als KH, über +0,35 → −100.' +
           (c.goalSince ? " Gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div>" +
       "</div>" +
       '<div class="fsub" style="margin-top:18px">Fixbasis · ' + n0(basisSum.kcal) + " kcal · " + n0(basisSum.p) + " g Protein</div>" +
