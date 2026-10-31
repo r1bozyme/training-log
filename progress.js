@@ -147,6 +147,24 @@ function satzListe(e) {
 
 function kg(n) { return String(n).replace(".", ",") + " kg"; }
 
+// ─── DELOAD (Review 31.10.) ──────────────────────
+// PLAN.deload = { von, bis }: Einträge darin sind bewusst leichter und
+// würden sonst als "letzte Einheit" gelesen – das Vorbelegen nach dem
+// Deload stünde auf 90 %, und manuelle ↑ gingen verloren.
+function dl() { return (typeof PLAN !== "undefined" && PLAN.deload) || null; }
+function inDeload(d) {
+  const w = dl(); d = String(d || "");
+  return !!(w && d >= w.von && d <= w.bis);
+}
+function keinDeload(e) { return !inDeload(e && e.date); }
+function letzteNormale(uebung) {
+  const alle = (typeof loadEntries === "function" ? loadEntries() : []);
+  const l = alle.filter(function (e) {
+    return e.uebung === uebung && keinDeload(e) && num(e.gewicht) !== null && heimOK(e);
+  }).sort(nachDatum);
+  return l.length ? l[l.length - 1] : null;
+}
+
 // studio.js: leer/Heimstudio = zählt. Ohne studio.js zählt alles.
 function heimOK(e) { return !window.tlStudio || window.tlStudio.istHeim(e); }
 function studioTag(e) {
@@ -180,7 +198,7 @@ function status(ex) {
   // ein nachgetragener alter Eintrag stuende sonst am Ende und wuerde
   // als "letzte Einheit" gelesen.
   const eigene = alle.filter(function (e) {
-    return e.uebung === ex.name && num(e.gewicht) !== null && heimOK(e) &&
+    return e.uebung === ex.name && num(e.gewicht) !== null && heimOK(e) && keinDeload(e) &&
            (!ab || String(e.date || "") >= ab);
   }).sort(nachDatum);
 
@@ -227,9 +245,22 @@ function status(ex) {
 // Ein selbst eingetippter Wert wird nie ueberschrieben; im Bearbeiten-
 // Modus bleibt das Feld unangetastet.
 function zielVorschlag(uebung, last) {
-  const w = last ? num(last.gewicht) : null;
-  if (w === null) return null;
   const ex = findEx(uebung);
+  const heute = isoVor(0);
+  // Deload-Einträge sind nie die Referenz: auf die letzte normale Einheit zurückgreifen.
+  if (last && inDeload(last.date) && heimOK(last)) last = letzteNormale(uebung) || last;
+  let w = last ? num(last.gewicht) : null;
+  if (w === null) return null;
+  if (inDeload(heute) && ex) {
+    const st0 = schrittVon(ex);
+    const d = Math.floor((w * 0.9) / st0) * st0;
+    return { kg: Math.round(d * 100) / 100, up: false, deload: true };
+  }
+  // Planrevision: Einträge vor PLAN.stand auf das neue zielgewicht heben
+  // (oder senken, z. B. Rücknahme nach Einbruch).
+  if (ex && heimOK(last) && typeof ex.zielgewicht === "number" && PLAN.stand &&
+      String(last.date || "") < PLAN.stand && Math.abs(ex.zielgewicht - w) > 0.01)
+    return { kg: ex.zielgewicht, up: ex.zielgewicht > w };
   if (ex && heimOK(last)) {
     const st = status(ex);
     if (st.state === "treffer" && st.ziel > w) return { kg: st.ziel, up: true };
@@ -255,7 +286,11 @@ function vorbelegen(uebung, last) {
   f.value = String(v.kg);
   f.dataset.pre = "1";
   f.dataset.ex = uebung;
-  if (tag) tag.style.display = v.up ? "" : "none";
+  if (tag) {
+    tag.style.display = (v.up || v.deload) ? "" : "none";
+    if (!tag.dataset.txt) tag.dataset.txt = tag.textContent;
+    tag.textContent = v.deload ? "Deload ~90 %" : tag.dataset.txt;
+  }
 }
 
 // ─── BAND IM EINTRAG-TAB ─────────────────────────
@@ -335,7 +370,7 @@ function renderBand() {
 function manuell() {
   const alle = (typeof loadEntries === "function" ? loadEntries() : []);
   const latest = {};
-  alle.filter(heimOK).sort(nachDatum).forEach(function (e) { latest[e.uebung] = e; });
+  alle.filter(heimOK).filter(keinDeload).sort(nachDatum).forEach(function (e) { latest[e.uebung] = e; });
   const grenze = isoVor(FENSTER_TAGE);
   return Object.keys(latest).map(function (k) { return latest[k]; }).filter(function (e) {
     if (!e.erhoehen) return false;

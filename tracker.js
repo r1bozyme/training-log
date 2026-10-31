@@ -120,6 +120,32 @@ var GOAL_NEU = { kcal: 3000, kh: 405, f: 82, p: 160 };
    überschrieben, weil GOAL_V dann bereits steht. */
 var GOAL_V = 2;
 
+/* 31.10. (Review): Oktober-Test ausgewertet. Bei echten 3.000 kcal
+   (19.–30.10.) blieb das Gewicht flach, der Zuwachs kam von den
+   Tagen mit ~3.100. Variante B: +200 kcal als KH ab dem ersten
+   normalen Training nach dem Deload (01.–07.11.). Die Umstellung
+   schaltet sich am 08.11. selbst, datiert und einmalig (novV):
+   Ziel 3.200 / 455 g KH, Fixbasis +1 Banane und +30 g Rosinen bzw.
+   Sultaninen – als Delta auf die eigenen Mengen, nicht als Reset. */
+var GOAL_NOV = { kcal: 3200, kh: 455, f: 82, p: 160 };
+var GOAL_NOV_AB = "2026-11-08";
+function goalStd() { return todayStr() >= GOAL_NOV_AB ? GOAL_NOV : GOAL_NEU; }
+function applyNov() {
+  try {
+    if (todayStr() < GOAL_NOV_AB) return;
+    var c = cfg();
+    if (c.novV === 1) return;
+    c.goal = { kcal:GOAL_NOV.kcal, kh:GOAL_NOV.kh, f:GOAL_NOV.f, p:GOAL_NOV.p };
+    c.goalSince = GOAL_NOV_AB;
+    (c.basis || []).forEach(function (b) {
+      if (b.pid === "banane") b.menge = (+b.menge || 0) + 1;
+      if (b.pid === "rosinen" || b.pid === "sultan") b.menge = (+b.menge || 0) + 30;
+    });
+    c.novV = 1;
+    saveCfg(c);
+  } catch (e) {}
+}
+
 /* ─── Produktbasis ──────────────────────────────────────────
    Werte je ref-Einheit. Quelle: Etikett, soweit vorhanden.
    chk:1 = geschätzt, beim nächsten Einkauf gegenprüfen. */
@@ -332,7 +358,7 @@ function cfg() {
 }
 function saveCfg(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
 
-window.loadFoodGoal = function () { return cfg().goal; };
+window.loadFoodGoal = function () { applyNov(); return cfg().goal; };
 
 /* Overrides sind korrigierte Etikettenwerte. Sie ersetzen die
    eingebauten Zahlen und löschen die chk-Markierung – der Wert
@@ -757,7 +783,7 @@ window.foodBasisDel = function (pid) {
 /* ─── Ziel ──────────────────────────────────────────────── */
 window.foodGoalSet = function (which) {
   var c = cfg();
-  var g = which === "neu" ? GOAL_NEU : GOAL_ALT;
+  var g = which === "neu" ? goalStd() : GOAL_ALT;
   c.goal = { kcal:g.kcal, kh:g.kh, f:g.f, p:g.p };
   c.goalSince = todayStr();
   saveCfg(c); buildFood();
@@ -908,6 +934,7 @@ function esc(s) {
 
 /* ─── Render: Gesamt ────────────────────────────────────── */
 window.buildFood = function () {
+  applyNov();
   var cont = document.getElementById("f-cont");
   if (!cont) return;
   var d = curDate(), items = dayItems(d), s = sumDay(items), c = cfg(), g = c.goal;
@@ -1098,10 +1125,10 @@ window.buildFood = function () {
       '<div class="fbasisbody">' +
         '<div class="fgoal">' + n0(g.kcal) + " kcal · " + n0(g.kh) + " g KH · " + n0(g.f) + " g Fett · " + n0(g.p) + " g Protein</div>" +
         '<div class="frow2">' +
-          '<button class="fbtn2' + (g.kcal === GOAL_NEU.kcal ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">3.000 kcal</button>' +
+          '<button class="fbtn2' + (g.kcal === goalStd().kcal ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">' + n0(goalStd().kcal) + ' kcal</button>' +
           '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Frei</button>' +
         "</div>" +
-        '<div class="fhint">Woche zählt ab 6 von 7 erfassten Tagen. Trend nach 3–4 sauberen Wochen unter +0,1 kg/Woche → +200 kcal als KH.' +
+        '<div class="fhint">Woche zählt ab 6 von 7 erfassten Tagen. November-Test: 3.200 kcal ab 08.11. Trend nach 3 sauberen Wochen unter +0,1 kg/Woche → +150–200 kcal als KH, über +0,35 → −100.' +
           (c.goalSince ? " Gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div>" +
       "</div>" +
       '<div class="fsub" style="margin-top:18px">Fixbasis · ' + n0(basisSum.kcal) + " kcal · " + n0(basisSum.p) + " g Protein</div>" +
