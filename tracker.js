@@ -65,6 +65,10 @@
    Bereits eingetragene Posten behalten ihre Werte – ein Tag von
    gestern soll sich nicht rückwirkend ändern.
 
+   02.11. – Skyr-Umstellung vollzogen: 500 g Milsani Skyr pro Tag
+   (200 g Müsli, 300 g nachmittags mit Banane) ersetzen FAGE 300 g
+   und Magerquark 100 g. Basis-Migration V7 setzt gezielt um.
+
    10.10. – Aldi-Umstellung: Bio Basis Müsli, Walnüsse und Mandeln,
    Bio Sultaninen als Produkte und als Basisposten (zunächst aus).
    Volles Korn Roggen ersetzt Lieken in r1 und r4. Skyr auf das neue
@@ -286,19 +290,19 @@ function guessCat(name) {
 }
 function isOwn(p) { return !!(p && (p.own || String(p.id).indexOf("own") === 0)); }
 
-var BASIS_V = 6;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
+var BASIS_V = 7;   // hochzählen, wenn BASIS_DEF sich ändert -> Migration
 var BASIS_DEF = [
   { pid:"menergy", menge:100, on:true },
   /* 10.10.: Aldi-Umstellung. Die neuen Posten stehen aus, bis die
      alten Packungen leer sind – dann neu an, alt aus. */
   { pid:"mbasis",  menge:110, on:false },
   { pid:"hafermi", menge:85,  on:true },
-  { pid:"quark",   menge:100, on:true },   // morgens; die 200 g abends stecken in r4
-  { pid:"fage02",  menge:300, on:true },   // 100 g Müsli + 200 g nachmittags
-  /* 08.10.: Skyr ersetzt Quark 100 + FAGE 300 = 400 g. Steht aus,
-     solange die alten Packungen aufgebraucht werden. Umstellung:
-     Skyr an, Quark und FAGE aus – bei Teilumstellung Mengen anpassen. */
-  { pid:"skyr",    menge:400, on:false },
+  /* 02.11.: Umstellung vollzogen. Ein 500-g-Becher Skyr pro Tag:
+     200 g morgens ins Müsli, 300 g nachmittags mit der Banane.
+     Quark und FAGE bleiben ausgeschaltet in der Liste. */
+  { pid:"quark",   menge:100, on:false },
+  { pid:"fage02",  menge:300, on:false },
+  { pid:"skyr",    menge:500, on:true },
   { pid:"nuesse",  menge:30,  on:true },
   { pid:"walnuss", menge:15,  on:false },
   { pid:"mandel",  menge:15,  on:false },
@@ -1333,6 +1337,15 @@ function init() {
           if (pos >= 0) c0.basis.splice(pos + 1, 0, neu); else c0.basis.push(neu);
           hat[b.pid] = true;
         });
+        /* V7 (02.11.): Skyr-Umstellung ist kein Zusatz, sondern ein
+           Tausch – deshalb hier gezielt setzen: Skyr 500 g an,
+           Magerquark und FAGE aus. Alle anderen Posten bleiben. */
+        if ((c0.basisV || 0) < 7) {
+          c0.basis.forEach(function (b) {
+            if (b.pid === "skyr") { b.menge = 500; b.on = true; }
+            if (b.pid === "quark" || b.pid === "fage02") b.on = false;
+          });
+        }
         c0.basisV = BASIS_V;
         dirty = true;
       } else if (c0.basisV !== BASIS_V) {
