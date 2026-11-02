@@ -34,6 +34,9 @@ var DEF = [
   /* Aldi */
   { pid:"skyr",    pack:500,  lbl:"Becher",  src:"aldi" },
   { pid:"bquark",  pack:250,  lbl:"Becher",  src:"aldi" },
+  /* 02.11.: Berchtesgadener wird weiter gekauft (beide Sorten parallel) –
+     aus dem Altbestand in den regulären Einkauf. */
+  { pid:"quark",   pack:500,  lbl:"Becher",  src:"aldi" },
   { pid:"mbasis",  pack:750,  lbl:"Beutel",  src:"aldi" },
   { pid:"banane",  pack:1,    lbl:"Stück",   src:"aldi" },
   { pid:"heidel",  pack:500,  lbl:"Beutel",  src:"aldi" },
@@ -50,7 +53,6 @@ var DEF = [
   /* Altbestand, bis aufgebraucht */
   { pid:"menergy", pack:1000, lbl:"Beutel",  src:"alt" },
   { pid:"fage02",  pack:500,  lbl:"Becher",  src:"alt" },
-  { pid:"quark",   pack:500,  lbl:"Becher",  src:"alt" },
   { pid:"rosinen", pack:500,  lbl:"Packung", src:"alt" },
   { pid:"nuesse",  pack:200,  lbl:"Packung", src:"alt" }
 ];
