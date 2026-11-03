@@ -32,7 +32,7 @@
 "use strict";
 
 var CFG_KEY   = "tl-sync";
-var DATA_KEYS = ["tl-e", "tl-w", "tl-w0", "tl-d", "tl-f", "tl-fp", "tl-fg", "tl-st", "tl-v"];   // tl-v: Vorrat (31.10.)
+var DATA_KEYS = ["tl-e", "tl-w", "tl-w0", "tl-d", "tl-f", "tl-fp", "tl-fg", "tl-st", "tl-v", "tl-rs"];   // tl-v: Vorrat (31.10.), tl-rs: Reise-Modus (03.11.)
 var DEBOUNCE  = 8000;          // ms nach letzter Aenderung
 var STALE_D   = 7;             // Tage bis Warnung
 var API       = "https://api.github.com";

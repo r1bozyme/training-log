@@ -234,6 +234,14 @@ var PRODUKTE = [
   { id:"paprika", n:"Paprika rot",                    g:"Obst/Gem.", ref:100, unit:"g",      kcal:31,  kh:6.0,  f:0.3,  p:1.0,  std:150, chk:1 },
   { id:"passata", n:"Passata",                        g:"Obst/Gem.", ref:100, unit:"g",      kcal:35,  kh:6,    f:0.2,  p:1.3,  std:200 },
 
+  /* 03.11.: Schätzposten für den Reise-Modus (reise.js). Bewusst grob –
+     Tage damit sind ohnehin „Reise“ und fallen aus der Energiebilanz.
+     Werte über ✎ anpassbar, falls sich ein typischer Wert herausstellt. */
+  { id:"hotelfr", n:"Hotelfrühstück (Schätzung)",     g:"Gerichte / Unterwegs", ref:1, unit:"Port.", kcal:750, kh:85, f:30, p:35, std:1, chk:1 },
+  { id:"rveg",    n:"Restaurant-Hauptgericht vegetarisch (Schätzung)", g:"Gerichte / Unterwegs", ref:1, unit:"Port.", kcal:900, kh:95, f:40, p:30, std:1, chk:1 },
+  { id:"rpasta",  n:"Pasta im Restaurant (Schätzung)", g:"Gerichte / Unterwegs", ref:1, unit:"Port.", kcal:950, kh:125, f:33, p:32, std:1, chk:1 },
+  { id:"sandw",   n:"Belegtes Brötchen vegetarisch (Schätzung)", g:"Gerichte / Unterwegs", ref:1, unit:"Stück", kcal:450, kh:52, f:17, p:18, std:1, chk:1 },
+
   // Würzen
   { id:"sojasauce",n:"Sojasauce",                     g:"Würzen",    ref:1,   unit:"EL",     kcal:10,  kh:1,    f:0,    p:1,    std:2 },
 

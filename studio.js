@@ -95,7 +95,8 @@ window.tlStudio = {
   istHeim: istHeim,
   label: label,
   gewaehlt: gewaehlt,
-  heim: function () { return cfg().heim; }
+  heim: function () { return cfg().heim; },
+  autoZurueck: function () { autoZurueck(); }   // reise.js
 };
 
 /* ─── Einmalige Korrektur: Probetraining 18.10. ─────────
@@ -138,6 +139,21 @@ function migrateAlt() {
 /* Fremdes Studio nur für den Tag der Wahl bzw. des letzten Eintrags */
 function autoZurueck() {
   var c = cfg();
+  /* REISE (03.11.): An Reisetagen (reise.js) steht das Studio einmal am
+     Tag auf „Unterwegs“ – auch nach Neustart. Von Hand umstellen bleibt
+     für den Rest des Tages stehen (reiseTag). */
+  if (window.tlReise && window.tlReise.aktivAm(heute())) {
+    if (c.reiseTag === heute()) return;
+    c.reiseTag = heute();
+    if (c.andere.indexOf("Unterwegs") === -1) c.andere.unshift("Unterwegs");
+    var vorher = c.aktiv;
+    setAktiv(c, "Unterwegs");
+    saveCfg(c);
+    if (!bearbeite) fillSelect("Unterwegs");
+    if (typeof window.refreshHint === "function") window.refreshHint();
+    if (vorher !== "Unterwegs" && typeof window.showFlash === "function") window.showFlash("Reise-Modus: Studio „Unterwegs“");
+    return;
+  }
   if (!c.aktiv) return;
   if (!c.aktivTag) { c.aktivTag = heute(); saveCfg(c); return; }   // Altbestand: ab heute zählen
   if (c.aktivTag === heute()) return;
