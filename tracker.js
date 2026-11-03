@@ -1257,19 +1257,28 @@ window.buildFood = function () {
         '<div id="f-picker"></div>' + neu) +
     "</div>";
 
-  /* Aktionsleiste über der Navigation – erst, wenn etwas erfasst ist */
+  /* 03.11.: Tagesaktionen als schwebender Knopf wie „＋ Eintrag“ im Training –
+     erst, wenn etwas erfasst ist. Tipp öffnet die Optionen darüber. */
   var act = "";
   if (items.length) {
     var st = de && de.kcal, stL = { under: "darunter", hit: "Ziel", over: "darüber" }[st];
-    act = '<div class="factw">' + (fMoreOpen ? '<div class="fmorebox">' +
-        '<button class="fbtn2 ghost" onclick="foodRezSaveDay()">Als Mahlzeit sichern</button>' +
-        '<button class="fbtn2 ghost" style="color:#B33A3A" onclick="foodClear()">Tag leeren</button></div>' : "") +
-      '<div class="fact">' +
-        '<button class="fbtn2 fclose' + (st ? " done" : "") + '" onclick="foodClose()">' + (st ? "✓ Abgeschlossen · " + stL : "Tag abschließen") + "</button>" +
-        '<button class="fbtn2 fest' + (estOn ? " on" : "") + '" onclick="foodEst()">' + (estOn ? "✓ Geschätzt" : "Geschätzt") + "</button>" +
-        '<button class="fbtn2 ftrip' + (tripOn ? " on" : "") + '" onclick="foodTrip()">' + (tripOn ? "✓ Reise" : "Reise") + "</button>" +
-        '<button class="fbtn2 fmore" aria-label="Weitere Aktionen" onclick="foodMoreToggle()">' + (fMoreOpen ? "×" : "⋯") + "</button>" +
-      "</div></div>";
+    var diffK = s.kcal - g.kcal, wird = diffK < -125 ? "darunter" : (diffK > 125 ? "darüber" : "Ziel");
+    var opt = function (fn, titel, sub, cls) {
+      return '<button class="ffopt' + (cls ? " " + cls : "") + '" onclick="foodMoreToggle();' + fn + '"><span class="ffot">' + titel + "</span>" +
+        (sub ? '<span class="ffos">' + sub + "</span>" : "") + "</button>";
+    };
+    act = (fMoreOpen ?
+        '<div class="ffov" onclick="foodMoreToggle()"></div><div class="ffmenu">' +
+          opt("foodClose()", st ? "✓ Abgeschlossen · " + stL : "Tag abschließen",
+              st ? "Erneut tippen bestätigt" : "Wird gewertet als „" + wird + "“ (" + (diffK >= 0 ? "+" : "−") + n0(Math.abs(diffK)) + " kcal)", st ? "done" : "prim") +
+          opt("foodEst()", (estOn ? "✓ " : "") + "Werte teilweise geschätzt", "Bäcker, Restaurant – fällt aus der Kalibrierung", estOn ? "on" : "") +
+          opt("foodTrip()", (tripOn ? "✓ " : "") + "Reisetag", "Fällt aus der Energiebilanz", tripOn ? "on" : "") +
+          opt("foodRezSaveDay()", "Als Mahlzeit sichern", "Posten außerhalb der Basis") +
+          opt("foodClear()", "Tag leeren", "", "danger") +
+        "</div>" : "") +
+      '<button class="ffab' + (st ? " done" : "") + (fMoreOpen ? " open" : "") + '" onclick="foodMoreToggle()">' +
+        (fMoreOpen ? "× Schließen" : st ? "✓ " + stL : "Tag ▴") +
+        (!fMoreOpen && (estOn || tripOn) ? ' <span class="ffm">' + (tripOn ? "Reise" : "geschätzt") + "</span>" : "") + "</button>";
   }
 
   /* Morgens Fixbasis zuerst, danach Restbudget und Liste */
@@ -1281,6 +1290,7 @@ window.buildFood = function () {
     if (!ab) { ab = document.createElement("div"); ab.id = "f-act"; }
     if (ab.parentNode !== fv || ab !== fv.lastElementChild) fv.appendChild(ab);
     ab.innerHTML = act;
+    fv.classList.toggle("ffab-on", !!act);
   }
 
   renderPicker();
@@ -1415,15 +1425,23 @@ var CSS = [
 ".fover { display:inline-block; margin-top:5px; padding:2px 8px; border-radius:10px; background:#FDF3E4; color:#8A5A0E; font-size:11px; font-weight:700; }",
 ".fplus { width:32px; height:32px; border-radius:8px; border:1.5px solid var(--border); background:transparent; font-size:18px; color:var(--muted); flex-shrink:0; cursor:pointer; }",
 ".fzu { font-size:12px; color:var(--muted); padding:6px 0 2px; cursor:pointer; }",
-"#f-act { position:sticky; bottom:calc(60px + var(--sb)); z-index:50; }",
-".factw { margin-top:16px; background:var(--surface); border-top:1px solid var(--border); }",
-".fact { display:flex; gap:8px; padding:10px 16px; }",
-".fact .fbtn2 { padding:12px 6px; }",
-".fact .fclose { flex:2; background:var(--text); border-color:var(--text); color:#FFF; }",
-".fact .fclose.done { background:var(--go-bg); border-color:#B8DCB8; color:var(--go); }",
-".fact .fmore { flex:0 0 44px; padding:12px 0; font-size:14px; }",
-".fmorebox { display:flex; gap:8px; padding:10px 16px 0; background:var(--surface); }",
-".fmorebox .fbtn2 { font-weight:600; }"
+"#view-food.ffab-on { padding-bottom:76px; }",
+".ffab { position:fixed; right:max(16px, calc(50% - 224px)); bottom:calc(76px + var(--sb)); z-index:102; border:none; border-radius:99px;",
+"  padding:14px 20px; background:var(--neutral); color:#FFF; font-family:var(--fb); font-weight:700; font-size:14px;",
+"  box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; }",
+".ffab.done { background:var(--go-bg); color:var(--go); border:1.5px solid #B8DCB8; }",
+".ffab.open { background:var(--surface); color:var(--text); border:1.5px solid var(--border); }",
+".ffm { font-size:11px; font-weight:600; opacity:.7; margin-left:4px; }",
+".ffov { position:fixed; inset:0; z-index:101; background:rgba(26,26,26,.18); }",
+".ffmenu { position:fixed; right:max(16px, calc(50% - 224px)); bottom:calc(136px + var(--sb)); z-index:102; width:min(300px, calc(100% - 32px));",
+"  background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.16); padding:6px; }",
+".ffopt { display:block; width:100%; text-align:left; border:none; background:transparent; padding:11px 12px; border-radius:10px; font-family:var(--fb); cursor:pointer; }",
+".ffopt:active { background:var(--bg); }",
+".ffot { display:block; font-size:14px; font-weight:700; color:var(--text); }",
+".ffos { display:block; font-size:11.5px; color:var(--muted); margin-top:2px; }",
+".ffopt.prim { background:var(--neutral); } .ffopt.prim .ffot { color:#FFF; } .ffopt.prim .ffos { color:rgba(255,255,255,.7); }",
+".ffopt.done .ffot, .ffopt.on .ffot { color:var(--go); }",
+".ffopt.danger .ffot { color:#B33A3A; }"
 ].join("\n");
 
 /* 03.11. Variante B: ‹ Datum › statt Datumsfeld. Das Feld #f-day bleibt
