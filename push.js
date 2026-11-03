@@ -91,6 +91,8 @@ function go(where) {
       if (f) { f.value = localDate(-1); if (typeof window.buildFood === "function") window.buildFood(); }
       flash("Gestern: " + localDate(-1).split("-").reverse().join("."));
     }
+  } else if (where === "inbody") {   // 03.11.: Vorabend-Erinnerung → Bereitschaftskarte
+    if (typeof window.tlInbodyJump === "function") window.tlInbodyJump(); else window.showView("weight");
   } else if (where === "sync") {
     window.showView("log");
     setTimeout(function () { pulse("sync-box"); }, 150);
