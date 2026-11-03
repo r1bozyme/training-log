@@ -31,7 +31,7 @@ window.tlTermine = TERMINE;
 // Nächster Monatsreview (Kalender: Export-Termin am 1.). null → Monat aus PLAN.version.
 var REVIEW = "2026-12-01";
 // Aktueller Trainingsplan (Google Doc) – Tap auf den Plan-Chip. Beim Review aktualisieren.
-var PLAN_DOC = "https://docs.google.com/document/d/1LkPcVWu4MIzyl2kzKh8RPNFOWUZ1I2CViR1LCJSCbF4/edit";
+var PLAN_DOC = "https://docs.google.com/document/d/1dKhKCOQBCGH7YJNfkfgXghoYDSuN8GYWfIsAEdYzA5c/edit";
 // Kurzfassung der Messbedingungen – Tap auf den InBody-Chip.
 var INBODY_HINWEIS = "07:00 nüchtern, vor dem Trinken · Ruhetag am Vortag";
 

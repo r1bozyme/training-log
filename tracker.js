@@ -422,7 +422,10 @@ function n1(x) { return (Math.round(x * 10) / 10).toString().replace(".", ","); 
 
 /* ─── Tageszustand ──────────────────────────────────────── */
 var fDate = null, fSearch = "", fOpen = null, fOpenSec = "",  fBasisOpen = false, fNewOpen = false,
-    fBasListOpen = false, fSetOpen = false;   /* 29.10.: Basis-Gruppe in der Liste, Bereich „Ziel & Basis“ */
+    fBasListOpen = false, fSetOpen = false,
+    /* 03.11. Variante B: Hinzufügen-Reiter (m = Mahlzeiten, p = Produkte),
+       Kategorien ausgeklappt, Mittag trotz Erledigt offen, ⋯-Menü, offene Gruppen */
+    fAddTab = "m", fAllOpen = false, fMittagOpen = false, fMoreOpen = false, fGrpOpen = {};   /* 29.10.: Basis-Gruppe in der Liste, Bereich „Ziel & Basis“ */
 
 function curDate() {
   var el = document.getElementById("f-day");
@@ -709,12 +712,17 @@ window.foodRez = function (rid) {
   for (var i = 0; i < all.length; i++) if (all[i].id === rid) r = all[i];
   if (!r) return;
   var d = curDate(), arr = dayItems(d).slice(), n = 0;
+  /* 03.11. (Variante B): gid/gn/gz fassen die Posten in der Tagesliste
+     zu einer Zeile „Rezeptname“ zusammen; gz (Mittag/Abend) steuert die
+     Reihenfolge der Mahlzeiten. Ältere Posten ohne gid stehen einzeln. */
+  var gid = "g" + Date.now();
   r.items.forEach(function (x) {
     var pr = prod(x.pid); if (!pr) return;
     arr.push({
       id: Date.now() + Math.floor(Math.random() * 100000) + n,
       pid: pr.id, n: pr.n, menge: x.menge, unit: pr.unit, ref: pr.ref,
-      kcal: pr.kcal, kh: pr.kh, f: pr.f, p: pr.p
+      kcal: pr.kcal, kh: pr.kh, f: pr.f, p: pr.p,
+      gid: gid, gn: r.n, gz: r.zeit || "Eigene"
     });
     n++;
   });
@@ -876,10 +884,19 @@ function renderPicker() {
   if (!q) {
     var oft = haeufig();
     if (oft.length) html += '<div class="fgrp">Häufig</div>' + oft.map(function (p) { return row(p, "h"); }).join("");
+    /* 03.11. Variante B: die volle Liste erst auf Tipp – sonst steht der
+       ganze Katalog zwischen Suche und „Ziel & Basis“. */
+    if (oft.length && !fAllOpen) {
+      box.innerHTML = html + '<div class="flinks"><button class="flink" onclick="foodAllToggle()">Alle Kategorien ▸</button>' +
+        '<button class="flink dim" onclick="foodNewToggle()">' + (fNewOpen ? "Abbrechen" : "+ Eigenes Produkt") + "</button></div>";
+      return;
+    }
   }
   html += Object.keys(groups).sort(function (a, b) { return order(a) - order(b); }).map(function (g) {
     return '<div class="fgrp">' + g + "</div>" + groups[g].slice().sort(alpha).map(function (p) { return row(p, "c"); }).join("");
   }).join("");
+  html += '<div class="flinks">' + (!q && fAllOpen ? '<button class="flink" onclick="foodAllToggle()">Kategorien einklappen ▴</button>' : "<span></span>") +
+    '<button class="flink dim" onclick="foodNewToggle()">' + (fNewOpen ? "Abbrechen" : "+ Eigenes Produkt") + "</button></div>";
   box.innerHTML = html;
 }
 
@@ -948,12 +965,45 @@ function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/* ─── Datumsnavigation (Variante B) ──────────────────────── */
+var WTAG = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+var MON = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function shiftDay(dstr, n) {
+  var x = new Date(dstr + "T12:00:00"); x.setDate(x.getDate() + n);
+  return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0");
+}
+window.foodDay = function (delta) {
+  var el = document.getElementById("f-day"); if (!el) return;
+  var nd = shiftDay(curDate(), delta);
+  if (nd > todayStr()) return;
+  el.value = nd;
+  fMoreOpen = false; fMittagOpen = false;
+  el.dispatchEvent(new Event("change"));   // buildFood + abgleich.js
+};
+function renderDayNav(d) {
+  var t = todayStr(), x = new Date(d + "T12:00:00");
+  var dt = document.getElementById("f-dt"), ds = document.getElementById("f-ds"), nx = document.getElementById("f-next");
+  if (dt) dt.textContent = WTAG[x.getDay()] + ", " + x.getDate() + ". " + MON[x.getMonth()];
+  if (ds) {
+    var diff = Math.round((new Date(t + "T12:00:00") - x) / 864e5);
+    ds.textContent = diff === 0 ? "heute" : diff === 1 ? "gestern" : "vor " + diff + " Tagen";
+    ds.className = "fds" + (diff ? " alt" : "");
+  }
+  if (nx) nx.disabled = d >= t;
+}
+window.foodTab = function (t) { fAddTab = t; buildFood(); };
+window.foodAllToggle = function () { fAllOpen = !fAllOpen; renderPicker(); };
+window.foodMittagToggle = function () { fMittagOpen = !fMittagOpen; buildFood(); };
+window.foodMoreToggle = function () { fMoreOpen = !fMoreOpen; buildFood(); };
+window.foodGrpToggle = function (gid) { fGrpOpen[gid] = !fGrpOpen[gid]; buildFood(); };
+
 /* ─── Render: Gesamt ────────────────────────────────────── */
 window.buildFood = function () {
   applyNov();
   var cont = document.getElementById("f-cont");
   if (!cont) return;
   var d = curDate(), items = dayItems(d), s = sumDay(items), c = cfg(), g = c.goal;
+  renderDayNav(d);
 
   var rest = { kcal: g.kcal - s.kcal, kh: g.kh - s.kh, f: g.f - s.f, p: g.p - s.p };
 
@@ -1015,18 +1065,20 @@ window.buildFood = function () {
 
   /* Tagesliste */
   var de = dailyEntry(d), estOn = !!(de && de.est), tripOn = !!(de && de.trip);
+  var isToday = d === todayStr();
   var liste = "";
 
   /* 29.10.: Fixbasis in der Liste als eine Zeile. Basis-Posten ist – wie
      bei foodRezSaveDay – jeweils das erste Vorkommen eines aktiven
      Basis-Produkts. Zusätzlich gegessene Mengen desselben Produkts
-     stehen damit weiter einzeln. */
+     stehen damit weiter einzeln. 03.11.: Rezept-Posten (gid) ebenso
+     als eine Zeile je Rezept. */
   var basOn = c.basis.filter(function (b) { return b.on; });
   var basLeft = {};
   basOn.forEach(function (b) { basLeft[b.pid] = (basLeft[b.pid] || 0) + 1; });
   var basItems = [], extraItems = [];
   items.forEach(function (it) {
-    if (basLeft[it.pid]) { basLeft[it.pid]--; basItems.push(it); } else extraItems.push(it);
+    if (!it.gid && basLeft[it.pid]) { basLeft[it.pid]--; basItems.push(it); } else extraItems.push(it);
   });
   var basMissing = basOn.filter(function (b) { return basLeft[b.pid] > 0; }).length;
   var basDone = basItems.length > 0;
@@ -1041,57 +1093,72 @@ window.buildFood = function () {
           '<button class="fx fed" onclick="foodQty(' + it.id + ')" title="Menge ändern">✎</button>' +
           '<button class="fx" onclick="foodDel(' + it.id + ')">×</button></div>';
   }
+  function grpRow(titel, arr, open, toggle, extra) {
+    var su = sumDay(arr);
+    return '<div class="fitem fbasgrp" onclick="' + toggle + '">' +
+      '<div class="fin"><div class="fitn">' + esc(titel) + "</div>" +
+      '<div class="fitm">' + arr.length + " Posten · " + n0(su.kcal) + " kcal · " + n0(su.kh) + " KH · " + n0(su.f) + " F · " + n0(su.p) + " P" +
+        (extra || "") + "</div></div>" +
+      '<span class="fbaschev">' + (open ? "▾" : "▸") + "</span></div>" +
+      (open ? '<div class="fbaslist">' + arr.map(function (it) { return itemRow(it, true); }).join("") : "");
+  }
 
   if (items.length) {
-    var basSum = sumDay(basItems);
     var basRow = "";
     if (basDone) {
-      basRow = '<div class="fitem fbasgrp" onclick="foodBasListToggle()">' +
-        '<div class="fin"><div class="fitn">Fixbasis · ' + basItems.length + " Posten</div>" +
-        '<div class="fitm">' + n0(basSum.kcal) + " kcal · " + n1(basSum.kh) + " KH · " + n1(basSum.f) + " F · " + n1(basSum.p) + " P" +
-          (basMissing ? " · " + basMissing + " fehl" + (basMissing > 1 ? "en" : "t") : "") + "</div></div>" +
-        '<span class="fbaschev">' + (fBasListOpen ? "▾" : "▸") + "</span></div>" +
-        (fBasListOpen ? '<div class="fbaslist">' + basItems.map(function (it) { return itemRow(it, true); }).join("") +
-          (basMissing ? '<button class="fbtn2 ghost" style="width:100%;margin-top:8px" onclick="foodBasis()">Fehlende Basis-Posten ergänzen (' + basMissing + ")</button>" : "") +
-          "</div>" : "");
+      basRow = grpRow("Fixbasis", basItems, fBasListOpen, "foodBasListToggle()",
+        basMissing ? " · " + basMissing + " fehl" + (basMissing > 1 ? "en" : "t") : "");
+      if (fBasListOpen) basRow += (basMissing ? '<button class="fbtn2 ghost" style="width:100%;margin-top:8px" onclick="foodBasis()">Fehlende Basis-Posten ergänzen (' + basMissing + ")</button>" : "") + "</div>";
     }
-    liste = '<div class="fsec"><div class="fsub">Heute erfasst · ' + items.length + " Posten</div>" +
-      basRow + extraItems.map(function (it) { return itemRow(it, false); }).join("") +
-      '<div class="frow2">' +
-        '<button class="fbtn2" onclick="foodClose()">Tag abschließen</button>' +
-        '<button class="fbtn2 fest' + (estOn ? " on" : "") + '" onclick="foodEst()">' + (estOn ? "✓ Geschätzt" : "Geschätzt") + "</button>" +
-        '<button class="fbtn2 ftrip' + (tripOn ? " on" : "") + '" onclick="foodTrip()">' + (tripOn ? "✓ Reise" : "Reise") + "</button>" +
-      "</div>" +
-      '<div class="frow2"><button class="fbtn2 ghost" onclick="foodClear()">Tag leeren</button></div>' +
+    /* Rezeptgruppen in der Reihenfolge des Eintragens, Einzelposten dazwischen */
+    var rows = [], seen = {};
+    extraItems.forEach(function (it) {
+      if (!it.gid) { rows.push(itemRow(it, false)); return; }
+      if (seen[it.gid]) return;
+      seen[it.gid] = 1;
+      var arr = extraItems.filter(function (x) { return x.gid === it.gid; });
+      var gid = String(it.gid).replace(/[^\w-]/g, "");
+      rows.push(grpRow(it.gn || "Mahlzeit", arr, !!fGrpOpen[gid], "foodGrpToggle('" + gid + "')") + (fGrpOpen[gid] ? "</div>" : ""));
+    });
+    liste = '<div class="fsec"><div class="fsubrow"><div class="fsub">' + "Erfasst · " + items.length + " Posten</div>" +
+      '<button class="flink dim" onclick="foodRezSaveDay()">Als Mahlzeit sichern</button></div>' +
+      basRow + rows.join("") +
       (tripOn ? '<div class="fhint"><strong>Reisetag</strong> – zählt nicht für den Abgleich mit der Waage.</div>'
        : (estOn ? '<div class="fhint"><strong>Geschätzt</strong> – zählt nicht für den Abgleich mit der Waage.</div>' : "")) +
       "</div>";
   }
 
-  /* Mahlzeiten. Sortiert nach Fett, weil das die Größe ist, an der
-     die Auswahl am Abend tatsächlich scheitert. Der Rest-Fett-Wert
-     des Tages entscheidet, was noch passt – deshalb steht neben
-     jeder Mahlzeit das Fett und nicht nur die Kalorienzahl. */
+  /* Mahlzeiten. Innerhalb der Gruppe nach Fett sortiert – an Fett
+     scheitert die Auswahl am Abend meist. 03.11.: Ist das Mittagessen
+     schon eingetragen (oder nach 15 Uhr), steht Abend oben und Mittag
+     eingeklappt. Rezepte über dem Rest bekommen einen Hinweis. */
   var rezAll = allRezepte();
-  var rezHtml = ["Mittag", "Abend", "Eigene"].map(function (z) {
+  var mittagDa = items.some(function (it) { return it.gz === "Mittag"; }) ||
+                 (isToday && new Date().getHours() >= 15) || d < todayStr();
+  var zeiten = mittagDa ? ["Abend", "Eigene", "Mittag"] : ["Mittag", "Abend", "Eigene"];
+  var rezHtml = zeiten.map(function (z) {
     var rs = rezAll.filter(function (r) { return (r.zeit || "Eigene") === z; });
     if (!rs.length) return "";
+    if (z === "Mittag" && mittagDa && !fMittagOpen) {
+      return '<div class="fgrp">Mittag</div><div class="fzu" onclick="foodMittagToggle()">' + rs.length + " Rezepte · " +
+        (items.some(function (it) { return it.gz === "Mittag"; }) ? "heute schon eingetragen" : "eingeklappt") + " ▸</div>";
+    }
     rs.sort(function (a, b) { return rezSum(a).f - rezSum(b).f; });
-    return '<div class="fgrp">' + z + "</div>" + rs.map(function (r) {
-      var rs2 = rezSum(r);
-      var passt = items.length && rs2.f <= rest.f && rs2.kcal <= rest.kcal;
-      var eng   = items.length && !passt;
-      return '<div class="frez' + (eng ? " eng" : (passt ? " passt" : "")) + '" onclick="foodRez(\'' + r.id + '\')">' +
-        '<div class="frezn">' + esc(r.n) + "</div>" +
-        '<div class="frezm">' + n0(rs2.kcal) + " kcal · " + n1(rs2.f) + " g F · " + n0(rs2.p) + " g P</div>" +
-        (r.zeit === "Eigene" ? '<button class="fx" onclick="foodRezDel(\'' + r.id + '\',event)">×</button>' : '<span class="frezc">+</span>') +
-        "</div>";
-    }).join("");
+    return '<div class="fgrp fgrpz"><span>' + (z === "Eigene" ? "Eigene Mahlzeiten" : z) + "</span>" +
+      (z === "Mittag" && mittagDa ? '<button class="flink dim" onclick="foodMittagToggle()">einklappen ▴</button>' : "") + "</div>" +
+      rs.map(function (r) {
+        var rs2 = rezSum(r);
+        var ueber = items.length ? rs2.kcal - rest.kcal : 0;
+        var passt = items.length && rs2.f <= rest.f && rs2.kcal <= rest.kcal;
+        return '<div class="frez' + (passt ? " passt" : "") + '" onclick="foodRez(\'' + r.id + '\')">' +
+          '<div class="frezb"><div class="frezn">' + esc(r.n) + "</div>" +
+          '<div class="frezm">' + n0(rs2.kcal) + " kcal · " + n1(rs2.f) + " g F · " + n0(rs2.p) + " g P</div>" +
+          (ueber > 0 ? '<span class="fover">' + n0(ueber) + " kcal über Rest</span>" :
+           (items.length && rs2.f > rest.f ? '<span class="fover">' + n1(rs2.f - rest.f) + " g Fett über Rest</span>" : "")) + "</div>" +
+          (r.zeit === "Eigene" ? '<button class="fx" onclick="foodRezDel(\'' + r.id + '\',event)">×</button>' : '<button class="fplus" aria-label="Eintragen">+</button>') +
+          "</div>";
+      }).join("");
   }).join("");
-
-  var mahlzeiten = '<div class="fsec"><div class="fsub">Mahlzeiten</div>' + rezHtml +
-    '<button class="fbtn2 ghost" style="width:100%;margin-top:12px" onclick="foodRezSaveDay()">Heutige Posten als Mahlzeit sichern</button>' +
-    '<div class="fhint">Ein Tap trägt das Rezept ein. Abgewandelt? Danach mit ✎ anpassen.</div></div>';
 
   /* Fixbasis-Editor */
   var basisSum = sumDay(c.basis.filter(function (b) { return b.on; }).map(function (b) {
@@ -1124,12 +1191,16 @@ window.buildFood = function () {
       "</div>";
   }
 
-  /* 29.10.: Die Karte gibt es nur, solange die Basis heute fehlt.
-     Bearbeitet wird sie unter „Ziel & Basis“. */
-  var basis = basDone ? "" : '<div class="fsec fbascard">' +
-    '<div class="fsub">Fixbasis · ' + n0(basisSum.kcal) + " kcal · " + n0(basisSum.p) + " g Protein</div>" +
+  /* Fixbasis-Karte, solange die Basis am Tag fehlt. Morgens (Tag leer)
+     als „Erster Schritt“. An Reisetagen trägt foodBasis die Reise-Basis
+     ein (reise.js) – dann steht die Karte dort, hier nicht. */
+  var reiseTag = window.tlReise && window.tlReise.aktivAm(d);
+  var basis = (basDone || reiseTag) ? "" : '<div class="fsec fbascard">' +
+    (items.length ? "" : '<div class="fstep">Erster Schritt</div>') +
+    '<div class="fbasttl">Fixbasis eintragen</div>' +
+    '<div class="fbasmeta">' + basOn.length + " Posten · " + n0(basisSum.kcal) + " kcal · " + n0(basisSum.kh) + " KH · " +
+      n0(basisSum.f) + " F · " + n0(basisSum.p) + " P</div>" +
     '<button class="fbtn2 prim" style="width:100%" onclick="foodBasis()">Fixbasis eintragen</button>' +
-    (items.length ? "" : '<div class="fhint">Setzt die ' + basOn.length + " täglichen Posten in einem Schritt.</div>") +
     "</div>";
 
   /* Ziel & Basis – selten gebraucht, deshalb eingeklappt am Ende (29.10.) */
@@ -1174,14 +1245,43 @@ window.buildFood = function () {
       "</div>";
   }
 
-  var picker = '<div class="fsec"><div class="fsub">Hinzufügen</div>' +
-    '<input type="text" class="fsearch" placeholder="Suchen … (z. B. Ei, Brot, Tofu)" value="' + esc(fSearch) + '" oninput="foodSearch(this.value)">' +
-    '<div id="f-picker"></div>' +
-    '<button class="fbtn2 ghost" style="width:100%;margin-top:10px" onclick="foodNewToggle()">' + (fNewOpen ? "Abbrechen" : "+ Eigenes Produkt") + "</button>" +
-    neu + "</div>";
+  /* 03.11. Variante B: ein „Hinzufügen“ mit zwei Reitern statt zwei Karten.
+     Neues Produkt öffnet den Produkte-Reiter. */
+  if (fNewOpen) fAddTab = "p";
+  var add = '<div class="fsec"><div class="fsub">Hinzufügen</div>' +
+    '<div class="fseg"><button class="' + (fAddTab === "m" ? "on" : "") + '" onclick="foodTab(\'m\')">Mahlzeiten</button>' +
+      '<button class="' + (fAddTab === "p" ? "on" : "") + '" onclick="foodTab(\'p\')">Produkte</button></div>' +
+    (fAddTab === "m"
+      ? rezHtml + '<div class="fhint">Ein Tap trägt das Rezept ein. Abgewandelt? In der Liste aufklappen und mit ✎ anpassen.</div>'
+      : '<input type="text" class="fsearch" style="margin-top:12px" placeholder="Suchen … (z. B. Ei, Brot, Tofu)" value="' + esc(fSearch) + '" oninput="foodSearch(this.value)">' +
+        '<div id="f-picker"></div>' + neu) +
+    "</div>";
 
-  /* 29.10.: Fixbasis-Karte vor allem anderen, solange sie fehlt */
-  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + pensum + basis + liste + mahlzeiten + picker + ziel;
+  /* Aktionsleiste über der Navigation – erst, wenn etwas erfasst ist */
+  var act = "";
+  if (items.length) {
+    var st = de && de.kcal, stL = { under: "darunter", hit: "Ziel", over: "darüber" }[st];
+    act = '<div class="factw">' + (fMoreOpen ? '<div class="fmorebox">' +
+        '<button class="fbtn2 ghost" onclick="foodRezSaveDay()">Als Mahlzeit sichern</button>' +
+        '<button class="fbtn2 ghost" style="color:#B33A3A" onclick="foodClear()">Tag leeren</button></div>' : "") +
+      '<div class="fact">' +
+        '<button class="fbtn2 fclose' + (st ? " done" : "") + '" onclick="foodClose()">' + (st ? "✓ Abgeschlossen · " + stL : "Tag abschließen") + "</button>" +
+        '<button class="fbtn2 fest' + (estOn ? " on" : "") + '" onclick="foodEst()">' + (estOn ? "✓ Geschätzt" : "Geschätzt") + "</button>" +
+        '<button class="fbtn2 ftrip' + (tripOn ? " on" : "") + '" onclick="foodTrip()">' + (tripOn ? "✓ Reise" : "Reise") + "</button>" +
+        '<button class="fbtn2 fmore" aria-label="Weitere Aktionen" onclick="foodMoreToggle()">' + (fMoreOpen ? "×" : "⋯") + "</button>" +
+      "</div></div>";
+  }
+
+  /* Morgens Fixbasis zuerst, danach Restbudget und Liste */
+  cont.innerHTML = '<div class="fbars">' + bars + "</div>" + basis + pensum + liste + add + ziel;
+  /* Leiste als letztes Kind der Ansicht (hinter Energiebilanz & Co.),
+     damit sie über die ganze Seite unten stehen bleibt */
+  var fv = document.getElementById("view-food"), ab = document.getElementById("f-act");
+  if (fv) {
+    if (!ab) { ab = document.createElement("div"); ab.id = "f-act"; }
+    if (ab.parentNode !== fv || ab !== fv.lastElementChild) fv.appendChild(ab);
+    ab.innerHTML = act;
+  }
 
   renderPicker();
 };
@@ -1286,12 +1386,54 @@ var CSS = [
 ".fdate { display:flex; align-items:center; gap:12px; margin:22px 20px 0; }",
 ".fdate label { font-size:10px; color:var(--muted); font-weight:600; letter-spacing:1px; text-transform:uppercase; flex-shrink:0; }",
 ".fdate input { flex:1; margin-bottom:0; }",
-".bnav .nbtn { font-size:10px; padding:11px 0; letter-spacing:-0.3px; }"
+".bnav .nbtn { font-size:10px; padding:11px 0; letter-spacing:-0.3px; }",
+/* 03.11. Variante B */
+".fdnav { display:flex; align-items:center; justify-content:space-between; padding:14px 12px 0; }",
+".fdarr { width:44px; height:44px; border:none; background:transparent; font-size:24px; color:var(--muted); cursor:pointer; }",
+".fdarr:disabled { color:var(--border); }",
+".fdc { position:relative; flex:1; text-align:center; cursor:pointer; }",
+".fdt { display:block; font-family:var(--fd); font-size:22px; letter-spacing:1.5px; color:var(--text); line-height:1.15; }",
+".fds { display:block; font-size:11px; color:var(--muted); }",
+".fds.alt { color:#B87A15; font-weight:700; }",
+".fdc input { position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0 !important; padding:0 !important; border:none; cursor:pointer; }",
+".fdnav + #f-cont .fbars { padding-top:12px; }",
+".fstep { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }",
+".fbasttl { font-size:15px; font-weight:700; color:var(--text); margin-bottom:2px; }",
+".fbasmeta { font-size:11px; color:var(--muted); margin-bottom:12px; }",
+".fsubrow { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:4px; }",
+".fsubrow .fsub { margin-bottom:0; }",
+".flink { white-space:nowrap; border:none; background:transparent; padding:6px 0; font-family:var(--fb); font-size:12.5px; font-weight:700; color:var(--text); cursor:pointer; }",
+".flink.dim { color:var(--muted); font-weight:600; }",
+".flinks { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }",
+".fseg { display:flex; padding:3px; background:var(--bg); border-radius:10px; gap:3px; }",
+".fseg button { flex:1; padding:9px; border-radius:8px; border:none; background:transparent; font-family:var(--fb); font-weight:600; font-size:13px; color:var(--muted); cursor:pointer; }",
+".fseg button.on { background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.08); font-weight:700; color:var(--text); }",
+".fseg + .fsearch, .fseg + div .fsearch { margin-top:12px; }",
+".fgrpz { display:flex; justify-content:space-between; align-items:center; }",
+".frezb { flex:1; min-width:0; }",
+".frezb .frezm { margin-top:2px; }",
+".fover { display:inline-block; margin-top:5px; padding:2px 8px; border-radius:10px; background:#FDF3E4; color:#8A5A0E; font-size:11px; font-weight:700; }",
+".fplus { width:32px; height:32px; border-radius:8px; border:1.5px solid var(--border); background:transparent; font-size:18px; color:var(--muted); flex-shrink:0; cursor:pointer; }",
+".fzu { font-size:12px; color:var(--muted); padding:6px 0 2px; cursor:pointer; }",
+"#f-act { position:sticky; bottom:calc(60px + var(--sb)); z-index:50; }",
+".factw { margin-top:16px; background:var(--surface); border-top:1px solid var(--border); }",
+".fact { display:flex; gap:8px; padding:10px 16px; }",
+".fact .fbtn2 { padding:12px 6px; }",
+".fact .fclose { flex:2; background:var(--text); border-color:var(--text); color:#FFF; }",
+".fact .fclose.done { background:var(--go-bg); border-color:#B8DCB8; color:var(--go); }",
+".fact .fmore { flex:0 0 44px; padding:12px 0; font-size:14px; }",
+".fmorebox { display:flex; gap:8px; padding:10px 16px 0; background:var(--surface); }",
+".fmorebox .fbtn2 { font-weight:600; }"
 ].join("\n");
 
+/* 03.11. Variante B: ‹ Datum › statt Datumsfeld. Das Feld #f-day bleibt
+   (abgleich.js, push.js, reise.js lesen es) – unsichtbar über dem Datum,
+   ein Tipp darauf öffnet weiter die Kalenderauswahl. */
 var MARKUP =
-  '<div class="fdate"><label for="f-day">Datum</label>' +
-  '<input type="date" id="f-day" onchange="buildFood()"></div>' +
+  '<div class="fdnav"><button class="fdarr" id="f-prev" aria-label="Vortag" onclick="foodDay(-1)">‹</button>' +
+  '<label class="fdc"><span class="fdt" id="f-dt"></span><span class="fds" id="f-ds"></span>' +
+  '<input type="date" id="f-day" aria-label="Datum wählen" onchange="buildFood()"></label>' +
+  '<button class="fdarr" id="f-next" aria-label="Folgetag" onclick="foodDay(1)">›</button></div>' +
   '<div id="f-cont"></div>';
 
 /* ─── Init ──────────────────────────────────────────────── */
