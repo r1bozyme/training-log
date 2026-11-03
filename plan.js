@@ -241,8 +241,9 @@ const PLAN = {
 // abgleich.js (31.10.): Essen-Tab – fehlende Tage aus dem Backup einzeln zurückholen, Hinweis „Gestern nicht abgeschlossen“.
 // push.js (31.10.): Chrome-Push entfernt, nur noch Sprungziele + ntfy-Status/An-Aus.
 // energie.js (31.10.): Energiebilanz-Schätzer, Karte unter Ernährung › Heute.
+// inbody.js (03.11.): InBody-Bereitschaftscheck, Karte oben im Werte-Tab ab 6 Tage vor dem Termin.
 // vorrat-core.js + vorrat.js (31.10.): Vorrat & Einkauf (Ernährung › Vorrat · Einkauf), vor nav.js.
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "scrub.js", "vorrat-core.js", "vorrat.js", "energie.js", "abgleich.js", "nav.js"].forEach(function (src) {
+["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "scrub.js", "vorrat-core.js", "vorrat.js", "energie.js", "abgleich.js", "inbody.js", "nav.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;

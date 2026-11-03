@@ -24,10 +24,12 @@
 // Beim Monatsreview pflegen. date als "JJJJ-MM-TT", sobald fest;
 // bis dahin steht text bis einschließlich "bis".
 var TERMINE = [
-  { label: "InBody", date: "2026-10-31" }   // Kalender: Sa 07:00, nüchtern
+  { label: "InBody", date: "2026-11-12" }   // Kalender: 07:00, nüchtern (verschoben wg. Schnupfen + Deload)
 ];
+// inbody.js liest den InBody-Termin von hier (Bereitschaftscheck im Werte-Tab).
+window.tlTermine = TERMINE;
 // Nächster Monatsreview (Kalender: Export-Termin am 1.). null → Monat aus PLAN.version.
-var REVIEW = "2026-11-01";
+var REVIEW = "2026-12-01";
 // Aktueller Trainingsplan (Google Doc) – Tap auf den Plan-Chip. Beim Review aktualisieren.
 var PLAN_DOC = "https://docs.google.com/document/d/1LkPcVWu4MIzyl2kzKh8RPNFOWUZ1I2CViR1LCJSCbF4/edit";
 // Kurzfassung der Messbedingungen – Tap auf den InBody-Chip.
@@ -141,6 +143,14 @@ function chipStats() {
       if (d < 0) continue;
       var wann = d === 0 ? "heute" : d === 1 ? "morgen" : "in " + d + " T.";
       var hinweis = x.label === "InBody" ? INBODY_HINWEIS : (x.hinweis || "");
+      // InBody im Vorlauf: Farbe nach Bereitschaftscheck, Tap → Karte im Werte-Tab
+      var ib = x.label === "InBody" && typeof window.tlInbodyStatus === "function" ? window.tlInbodyStatus() : null;
+      if (ib) {
+        var mark = ib === "ok" ? " ✓" : ib === "nein" ? " ✕" : "";
+        return { cls: ib === "ok" ? "go" : (ib === "nein" || ib === "fehlt") ? "open" : "",
+                 html: esc(x.label) + ' <span class="hc-m">' + wann + mark + "</span>",
+                 tap: function () { window.tlInbodyJump(); } };
+      }
       return { cls: "", html: esc(x.label) + ' <span class="hc-m">' + wann + "</span>",
                tap: hinweis ? function () { flash(hinweis); } : null };
     }
