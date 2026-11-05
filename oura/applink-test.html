@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oura-Absprung testen</title>
+<style>body{font-family:system-ui,sans-serif;margin:24px;color:#1a1a1a;background:#f5f5f3}a{display:block;margin:12px 0;padding:16px;border-radius:12px;background:#fff;border:1px solid #ddd;color:#1a1a1a;font-weight:700;text-decoration:none}small{display:block;font-weight:400;color:#777;margin-top:4px;word-break:break-all}</style>
+</head><body>
+<h2>Oura-Absprung testen</h2>
+<p>Jeden Knopf einmal antippen und zurückkommen. Notier die Nummern, bei denen sich die Oura-App öffnet. Kein Play-Store-Fallback – wenn nichts passiert oder ein Fehler kommt, klappt diese Variante nicht.</p>
+<a href="intent://#Intent;scheme=oura;package=com.ouraring.oura;end">1 · Schema oura<small>intent://#Intent;scheme=oura;package=com.ouraring.oura;end</small></a>
+<a href="intent://home#Intent;scheme=oura;package=com.ouraring.oura;end">2 · Schema oura, Pfad home<small>intent://home#Intent;scheme=oura;…</small></a>
+<a href="intent://#Intent;scheme=ouraring;package=com.ouraring.oura;end">3 · Schema ouraring<small>intent://#Intent;scheme=ouraring;…</small></a>
+<a href="intent:#Intent;package=com.ouraring.oura;end">4 · Nur Paketname<small>intent:#Intent;package=com.ouraring.oura;end</small></a>
+<a href="oura://">5 · oura:// direkt<small>oura://</small></a>
+<a href="https://cloud.ouraring.com/">6 · App-Link cloud.ouraring.com<small>https://cloud.ouraring.com/</small></a>
+</body></html>
