@@ -32,7 +32,8 @@ var PATH = "oura/data.json";
 var DAYS = 7, CMP_DAYS = 14;
 var K_CACHE = "tl-oura";
 /* Absprung in die Oura-App (Android-Intent; fehlt die App → Play Store) */
-var APP_URL = "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.ouraring.oura;"
+/* Schema "oura" (am 05.11. auf dem Handy getestet; die Launcher-Variante blockt Chrome) */
+var APP_URL = "intent://#Intent;scheme=oura;package=com.ouraring.oura;"
             + "S.browser_fallback_url=" + encodeURIComponent("https://play.google.com/store/apps/details?id=com.ouraring.oura") + ";end";
 var busy = false, lastErr = "", lastFetch = 0;
 var data = null;
