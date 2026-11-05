@@ -21,6 +21,8 @@
      hrv      = Ø rMSSD der Nacht in ms
    Readiness/HRV-Einordnung brauchen bei Oura ca. 2 Wochen Basislinie.
 
+   Unten rechts "In Oura öffnen ↗" (05.11.): Android-Intent auf com.ouraring.oura.
+
    Keys: tl-oura (letzter Stand von data.json, Cache für Offline-Start).
    ═══════════════════════════════════════════════════ */
 (function () {
@@ -29,6 +31,9 @@
 var PATH = "oura/data.json";
 var DAYS = 7, CMP_DAYS = 14;
 var K_CACHE = "tl-oura";
+/* Absprung in die Oura-App (Android-Intent; fehlt die App → Play Store) */
+var APP_URL = "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.ouraring.oura;"
+            + "S.browser_fallback_url=" + encodeURIComponent("https://play.google.com/store/apps/details?id=com.ouraring.oura") + ";end";
 var busy = false, lastErr = "", lastFetch = 0;
 var data = null;
 
@@ -211,6 +216,7 @@ function render() {
     var all = rows(CMP_DAYS);
     h += '<div style="margin-top:14px">' + todayHtml(all) + '</div>' + tableHtml(all);
   }
+  h += '<div class="dhint" style="text-align:right;margin-top:12px"><a href="' + APP_URL + '" style="color:var(--text);font-weight:700;text-decoration:none">In Oura öffnen ↗</a></div>';
   box.innerHTML = h;
 
   /* Google-Health-Abschnitt ausblenden, sobald Oura aktiv ist */
