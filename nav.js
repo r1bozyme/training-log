@@ -26,6 +26,7 @@ var AREAS = [
   { id: "body",     label: "Körper",    views: [["weight", "Werte"], ["health", "Tracker"]] }
 ];
 var DEFAULT = { training: "log", food: "food", body: "weight" };
+window.tlNavAreas = AREAS;   // swipe.js wischt entlang dieser Reihenfolge
 var last = {};        // zuletzt offene Ansicht je Bereich
 var cur = "add";
 
