@@ -43,6 +43,9 @@
        gepflegt. Der Bereich health_metrics bleibt in SCOPES, damit
        spätere Werte (z. B. Ruhepuls) keine neue Zustimmung brauchen.
 
+   OURA (05.11.): Sobald oura.js live Werte hat (tlOura.active()), ruft
+   diese Datei nicht mehr ab und der Abschnitt wird ausgeblendet.
+
    Keys: tl-ghc (Client-ID), tl-ght (Token), tl-ghs (state).
    ═══════════════════════════════════════════════════ */
 (function () {
@@ -238,6 +241,8 @@ function storeDaily(field, map) {
 function storeSteps(map) { storeDaily("steps", map); }
 
 function refresh(manual) {
+  /* Oura aktiv (oura.js, 05.11.): Google Health ruht und überschreibt nichts */
+  if (window.tlOura && window.tlOura.active()) { render(); return; }
   if (busy || !token()) { render(); return; }
   busy = true; lastErr = ""; partErr = {}; render();
   /* Nacheinander schreiben, damit sich die tl-d-Updates nicht überholen */

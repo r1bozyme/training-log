@@ -234,6 +234,7 @@ const PLAN = {
 // Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
 // und diesen Block entfernen.
 // ghealth.js (22.10.): Google Health (Schritte, Schlaf, Ruhepuls, HRV) als eigene Ansicht "health".
+// oura.js (05.11.): Oura-Ring aus oura/data.json (Daten-Repo), erster Abschnitt in "health", ersetzt Google Health sobald live.
 // scrub.js (28.10.): Verlaufsgraphen per Gedrückthalten abtasten (Datum + Wert).
 // nav.js (22.10.): Bereiche Training / Ernährung / Körper mit Chips – wirklich ganz außen, als Letztes.
 // studio.js (18.10.): Studio pro Eintrag, vor progress.js (das window.tlStudio nutzt).
@@ -245,7 +246,7 @@ const PLAN = {
 // inbody.js (03.11.): InBody-Bereitschaftscheck, Karte oben im Werte-Tab ab 6 Tage vor dem Termin.
 // swipe.js (05.11.): Wischen zwischen den Unteransichten eines Bereichs, nach nav.js.
 // vorrat-core.js + vorrat.js (31.10.): Vorrat & Einkauf (Ernährung › Vorrat · Einkauf), vor nav.js.
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "scrub.js", "vorrat-core.js", "vorrat.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"].forEach(function (src) {
+["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;
