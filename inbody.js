@@ -228,7 +228,10 @@ function init() {
   if (!wv || document.getElementById("ib-cont")) return;
   var st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
   var box = document.createElement("div"); box.id = "ib-cont";
-  wv.insertBefore(box, wv.firstChild);
+  // „Heute offen“ (daily.js) bleibt ganz oben, die InBody-Karte direkt darunter
+  var todo = document.getElementById("d-todo");
+  if (todo && todo.parentNode) todo.parentNode.insertBefore(box, todo.nextSibling);
+  else wv.insertBefore(box, wv.firstChild);
   var orig = window.showView;
   if (typeof orig === "function") {
     window.showView = function (v) { var r = orig.apply(this, arguments); if (v === "weight") render(); return r; };
