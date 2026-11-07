@@ -47,6 +47,8 @@
 //
 // REVIEW 31.10. (November-Revision):
 // · Deload 01.–07.11., Ziele gelten ab 08.11.
+//   07.11.: Deload einen Tag früher gefahren (31.10.–06.11., komplette
+//   Pause), 07.11. ist die erste normale Einheit.
 // · Pull-Kernblock: Latzug, Ruderzug, Rear Delt Fly laufen immer
 //   (Ruderzug im Oktober nur 2×). Ruderzug-Schritt 2,5 kg.
 // · Nachgezogen: Shoulder Press 40 · Triceps 102,5 · Overhead 17,5 ·
@@ -65,7 +67,7 @@ const PLAN = {
   // deload: Einträge in diesem Fenster zählen nicht für Erhöhungen,
   // Vorbelegung und manuelle ↑-Markierungen. Während des Fensters
   // wird mit ~90 % des letzten normalen Gewichts vorbelegt.
-  deload: { von: "2026-11-01", bis: "2026-11-07" },
+  deload: { von: "2026-10-31", bis: "2026-11-06" },
   Push: [
     { name:"Chest Press", muskel:"Brust · Schulter · Trizeps", typ:"compound",
       saetze:4, repzone:"8–12", aktuell:"12/11/10/7 @ 60 kg (13.10., Summe 40)", zielgewicht:60, ziel:"Summe ≥44 Wdh → 62,5 kg",
