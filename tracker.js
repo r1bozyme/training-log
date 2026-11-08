@@ -368,6 +368,7 @@ function cfg() {
   if (!c.basis) c.basis = BASIS_DEF.map(function (b) { return { pid:b.pid, menge:b.menge, on:b.on }; });
   if (!c.ovr)   c.ovr   = {};
   if (!c.rez)   c.rez   = [];
+  if (!c.ean || typeof c.ean !== "object") c.ean = {};
   return c;
 }
 function saveCfg(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
@@ -421,7 +422,7 @@ function n0(x) { return Math.round(x); }
 function n1(x) { return (Math.round(x * 10) / 10).toString().replace(".", ","); }
 
 /* ─── Tageszustand ──────────────────────────────────────── */
-var fDate = null, fSearch = "", fOpen = null, fOpenSec = "",  fBasisOpen = false, fNewOpen = false,
+var fDate = null, fSearch = "", fOpen = null, fOpenSec = "",  fBasisOpen = false, fNewOpen = false, fPre = null,
     fBasListOpen = false, fSetOpen = false,
     /* 03.11. Variante B: Hinzufügen-Reiter (m = Mahlzeiten, p = Produkte),
        Kategorien ausgeklappt, Mittag trotz Erledigt offen, ⋯-Menü, offene Gruppen */
@@ -571,7 +572,7 @@ window.foodClose = function () {
 
 /* ─── Eigene Produkte ───────────────────────────────────── */
 window.foodNewToggle = function () {
-  fNewOpen = !fNewOpen; buildFood();
+  fNewOpen = !fNewOpen; fPre = null; buildFood();
   /* 29.10.: Name aus der Suche übernehmen, wenn sie nichts gefunden hat */
   var e = document.getElementById("fn-name");
   if (fNewOpen && e && fSearch.trim()) { e.value = fSearch.trim(); window.foodNewName(e.value); }
@@ -594,10 +595,43 @@ window.foodNewSave = function () {
     std: refSel === "1" ? 1 : 100
   };
   if (!p.kcal && !p.kh && !p.f && !p.p) { showFlash("Nährwerte fehlen"); return; }
+  /* 08.11. Scan: Werte unverändert aus Open Food Facts → geschätzt (chk:1),
+     bis sie am Etikett bestätigt sind (? antippen, Speichern). */
+  if (fPre && fPre.off && ["kcal","kh","f","p"].every(function (k) { return fPre[k] !== null && p[k] === fPre[k]; })) { p.chk = 1; p.src = "off"; }
   var a = ownProducts(); a.push(p); saveOwn(a);
-  fNewOpen = false; fSearch = name;
+  if (fPre && fPre.ean) { var c0 = cfg(); c0.ean[fPre.ean] = p.id; saveCfg(c0); }
+  fNewOpen = false; fPre = null; fSearch = name;
   buildFood();
   showFlash("Gespeichert unter „" + cat + "“ ✓");
+};
+
+/* ─── Barcode-Scan (08.11., scan.js) ────────────────────
+   cfg().ean = { EAN: pid } für eingebaute und eigene Produkte. */
+window.foodEanLookup = function (code) {
+  var pid = (cfg().ean || {})[code];
+  return pid && prod(pid) ? pid : null;
+};
+window.foodEanLink = function (code, pid) {
+  var c = cfg(); c.ean[code] = pid; saveCfg(c);
+  var pr = prod(pid); showFlash("Verknüpft: " + (pr ? pr.n : pid) + " ✓");
+};
+window.foodScanShow = function (pid) {
+  var pr = prod(pid); if (!pr) return;
+  fAddTab = "p"; fNewOpen = false; fPre = null;
+  fSearch = pr.n; fOpen = pid; fOpenSec = "c";
+  buildFood();
+  var e = document.getElementById("fq-" + pid);
+  if (e) { e.scrollIntoView({ block: "center" }); }
+};
+window.foodNewPrefill = function (o) {
+  fAddTab = "p"; fNewOpen = true; fPre = o; fSearch = "";
+  buildFood();
+  var f = function (id, v) { var e = document.getElementById(id); if (e && v !== null && v !== undefined) e.value = v; };
+  f("fn-name", o.name); if (o.name) window.foodNewName(o.name);
+  f("fn-ref", o.ml ? "100ml" : "100g");
+  f("fn-kcal", o.kcal); f("fn-kh", o.kh); f("fn-f", o.f); f("fn-p", o.p);
+  var e = document.getElementById(o.name ? "fn-kcal" : "fn-name");
+  if (e) e.scrollIntoView({ block: "center" });
 };
 
 /* Kategorie-Vorschlag live beim Tippen des Namens – nur solange
@@ -650,7 +684,8 @@ window.foodProdEdit = function (pid, ev) {
      ungültige Felder behalten den alten Wert. */
   var felder = [["kcal","Kalorien","kcal"],["kh","Kohlenhydrate","g"],["f","Fett","g"],["p","Protein","g"]];
   tlAsk.form({
-    title: pr.n, text: "Name und Nährwerte je " + einheit, ok: "Speichern",
+    title: pr.n, ok: "Speichern",
+    text: "Name und Nährwerte je " + einheit + (pr.chk ? ". Geschätzt – Speichern ohne Änderung bestätigt die Werte als geprüft." : ""),
     fields: [{ key: "name", label: "Name", type: "text", value: pr.n }].concat(
       felder.map(function (f) { return { key: f[0], label: f[1], type: "num", value: pr[f[0]], suffix: f[2] }; }))
   }).then(function (r) {
@@ -665,9 +700,10 @@ window.foodProdEdit = function (pid, ev) {
       var x = r[f[0]];
       if (isFinite(x) && x >= 0 && x !== pr[f[0]]) { neu[f[0]] = x; n++; }
     });
-    if (!n && !nameNeu) { showFlash("Keine Änderung"); return; }
+    var best = !n && !nameNeu && !!pr.chk;   // 08.11.: Etikett stimmt → nur bestätigen
+    if (!n && !nameNeu && !best) { showFlash("Keine Änderung"); return; }
     var c = cfg();
-    if (n) {
+    if (n || best) {
       var alt = c.ovr[pid] || {};
       c.ovr[pid] = neu;
       if (alt.n) c.ovr[pid].n = alt.n;
@@ -690,7 +726,8 @@ window.foodProdEdit = function (pid, ev) {
       if (fSearch && pr.n.toLowerCase().indexOf(fSearch.toLowerCase()) !== -1) fSearch = name;
     }
     saveCfg(c); buildFood();
-    showFlash(nameNeu && n ? "Name und Werte geändert ✓"
+    showFlash(best ? "Werte bestätigt ✓"
+            : nameNeu && n ? "Name und Werte geändert ✓"
             : nameNeu ? "Umbenannt" + (tage ? " · " + tage + " erfasste Posten angepasst" : "") + " ✓"
             : "Werte korrigiert ✓");
   });
@@ -1253,7 +1290,8 @@ window.buildFood = function () {
       '<button class="' + (fAddTab === "p" ? "on" : "") + '" onclick="foodTab(\'p\')">Produkte</button></div>' +
     (fAddTab === "m"
       ? rezHtml + '<div class="fhint">Ein Tap trägt das Rezept ein. Abgewandelt? In der Liste aufklappen und mit ✎ anpassen.</div>'
-      : '<input type="text" class="fsearch" style="margin-top:12px" placeholder="Suchen … (z. B. Ei, Brot, Tofu)" value="' + esc(fSearch) + '" oninput="foodSearch(this.value)">' +
+      : '<div class="fsrow"><input type="text" class="fsearch" placeholder="Suchen … (z. B. Ei, Brot, Tofu)" value="' + esc(fSearch) + '" oninput="foodSearch(this.value)">' +
+        '<button class="fscanb" aria-label="Barcode scannen" onclick="tlScan.open(\'food\')">▦</button></div>' +
         '<div id="f-picker"></div>' + neu) +
     "</div>";
 
@@ -1362,6 +1400,8 @@ var CSS = [
 ".frez.eng { opacity:.5; }",
 ".frez.eng .frezm { color:#B33A3A; }",
 ".fchk { cursor:pointer; }",
+".fsrow { display:flex; gap:8px; margin:12px 0; align-items:stretch; } .fsrow .fsearch { flex:1; min-width:0; margin:0 !important; }",
+".fscanb { flex:0 0 48px; border:1px solid var(--border); border-radius:12px; background:var(--surface); font-size:22px; line-height:1; color:inherit; }",
 ".fbasgrp { cursor:pointer; }",
 ".fbaschev { font-size:13px; color:var(--dim); width:14px; text-align:center; flex-shrink:0; }",
 ".fbaslist { padding-left:12px; border-left:2px solid var(--border); margin:2px 0 6px; }",

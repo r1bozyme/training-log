@@ -247,8 +247,9 @@ const PLAN = {
 // reise.js (03.11.): Reise-Modus, Karte oben in Ernährung › Heute; studio.js fragt tlReise.
 // inbody.js (03.11.): InBody-Bereitschaftscheck, Karte oben im Werte-Tab ab 6 Tage vor dem Termin.
 // swipe.js (05.11.): Wischen zwischen den Unteransichten eines Bereichs, nach nav.js.
+// scan.js (08.11.): Barcode-Scanner (Heute › Produkte und Vorrat), nach tracker.js und vorrat.js.
 // vorrat-core.js + vorrat.js (31.10.): Vorrat & Einkauf (Ernährung › Vorrat · Einkauf), vor nav.js.
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"].forEach(function (src) {
+["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"].forEach(function (src) {
   var s = document.createElement("script");
   s.src = src;
   s.async = false;

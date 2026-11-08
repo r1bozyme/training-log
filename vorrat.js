@@ -137,6 +137,16 @@ window.vrAdd = function (sel) {
   setTimeout(function () { window.vrEdit(pid); }, 50);
 };
 window.vrBought = function (pid, n) { window.vrPlus(pid, n); };
+/* scan.js (08.11.): eine Packung buchen (n = -1 für Rückgängig), ohne Neuzeichnen
+   pro Scan; nimmt das Produkt bei Bedarf in den Vorrat auf. Gibt den Namen zurück. */
+window.vrScanPlus = function (pid, n) {
+  var P = prodMap(); if (!P[pid]) return null;
+  var s = state();
+  if (!C.DEF.some(function (d) { return d.pid === pid; }) && s.extra.indexOf(pid) < 0) { s.extra.push(pid); save(s); }
+  setPacks(pid, restPacks(pid) + (n || 1));
+  try { rerender(); } catch (e) {}
+  return P[pid].n;
+};
 window.vrAllBought = function () {
   var e = C.einkauf(liste(), today());
   e.aldi.forEach(function (r) { setPacks(r.pid, restPacks(r.pid) + r.kaufen); });
@@ -208,6 +218,8 @@ function buildVorrat() {
   var opts = Object.keys(P).filter(function (id) { return !known[id]; })
     .map(function (id) { return P[id]; }).sort(function (a, b) { return a.n.localeCompare(b.n, "de"); });
   var hidden = L.filter(function (r) { return r.hide; });
+  h = '<div class="fsec"><button class="fbtn2 prim" style="width:100%" onclick="tlScan.open(\'vorrat\')">▦ Einkauf scannen</button>' +
+    '<div class="fhint">Jede gescannte Packung bucht +1. Produkte einmal unter Heute › Produkte scannen und verknüpfen.</div></div>' + h;
   h += '<div class="fsec"><div class="fsub">Weitere Produkte</div>' +
     '<div class="fbaddrow"><select onchange="vrAdd(this)"><option value="">+ Produkt aus dem Tracker …</option>' +
     opts.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.n) + '</option>'; }).join("") +
