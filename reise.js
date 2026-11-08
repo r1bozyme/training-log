@@ -49,7 +49,8 @@ function cfg() {
 function save(c) { localStorage.setItem(KEY, JSON.stringify(c)); }
 function aktivAm(d) { var c = cfg(); return !!(c.von && c.bis && d >= c.von && d <= c.bis); }
 
-window.tlReise = { aktivAm: aktivAm, zeitraum: function () { var c = cfg(); return c.von ? { von: c.von, bis: c.bis } : null; } };
+window.tlReise = { aktivAm: aktivAm, zeitraum: function () { var c = cfg(); return c.von ? { von: c.von, bis: c.bis } : null; },
+                   basis: function () { return cfg().basis.filter(function (b) { return b.menge > 0; }); } };
 
 /* ─── Reisetage markieren (tl-d.trip), je Tag einmal ─── */
 function setTrip(date, val) {

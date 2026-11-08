@@ -456,6 +456,48 @@ window.foodAdd = function (pid, menge) {
   showFlash(pr.n + " ✓");
 };
 
+/* 08.11.: Einmal-Posten ohne Produkt (Restaurant, Schätzung per speise.js).
+   Werte je Portion, Menge 1 – änderbar über ✎. Der Tag wird automatisch
+   als „geschätzt“ markiert, damit er aus dem Waagen-Abgleich fällt. */
+window.foodAddFrei = function (o) {
+  var d = curDate(), arr = dayItems(d).slice();
+  var r1 = function (v) { v = Number(v); return isFinite(v) && v >= 0 ? Math.round(v * 10) / 10 : 0; };
+  arr.push({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    pid: null, n: String(o.n || "Gericht").slice(0, 60), menge: 1, unit: "Portion", ref: 1,
+    kcal: r1(o.kcal), kh: r1(o.kh), f: r1(o.f), p: r1(o.p), est: 1
+  });
+  putItems(d, arr);
+  var de = dailyEntry(d), neuEst = !(de && de.est);
+  if (neuEst && typeof window.toggleEst === "function") mitDailyDatum(d, function () { window.toggleEst(); });
+  fOpen = null; fSearch = "";
+  buildFood();
+  showFlash(neuEst ? "Eingetragen · Tag als geschätzt markiert" : "Eingetragen ✓");
+};
+
+/* 08.11.: Freies Budget für Empfehlungen unterwegs (speise.js):
+   Rest des Tages minus der noch fehlenden Basis-Posten – an Reisetagen die
+   Reise-Basis. Was für heute schon als ausfallend markiert ist, wird nicht
+   reserviert. */
+window.foodBudgetFrei = function () {
+  var d = curDate(), items = dayItems(d), s = sumDay(items), c = cfg(), g = c.goal;
+  var reiseTag = !!(window.tlReise && window.tlReise.aktivAm(d));
+  var basis = reiseTag && window.tlReise.basis ? window.tlReise.basis()
+            : c.basis.filter(function (b) { return b.on; });
+  var res = { kcal: 0, kh: 0, f: 0, p: 0 }, fehlt = [];
+  basis.forEach(function (b) {
+    var pr = prod(b.pid); if (!pr || !(b.menge > 0)) return;
+    if (items.some(function (x) { return x.pid === b.pid; })) return;
+    fehlt.push(pr.n);
+    ["kcal", "kh", "f", "p"].forEach(function (k) { res[k] += (Number(pr[k]) || 0) * b.menge / (pr.ref || 1); });
+  });
+  var rest = {}, frei = {};
+  ["kcal", "kh", "f", "p"].forEach(function (k) {
+    rest[k] = Math.round(g[k] - s[k]); frei[k] = Math.round(rest[k] - res[k]);
+  });
+  return { datum: d, ziel: g, bisher: s, rest: rest, reserviert: res, frei: frei, fehlt: fehlt, reise: reiseTag };
+};
+
 /* Menge eines erfassten Postens ändern. Die Werte je ref bleiben
    stehen (der Tag soll sich nicht rückwirkend an neue Produktwerte
    anpassen), nur die Menge ändert sich. */
@@ -868,6 +910,7 @@ window.foodRezSaveDay = function () {
   var rest = {};
   c.basis.forEach(function (b) { if (b.on) rest[b.pid] = (rest[b.pid] || 0) + 1; });
   var items = dayItems(curDate()).filter(function (it) {
+    if (!it.pid) return false;            // 08.11.: Einmal-Posten haben kein Produkt
     if (rest[it.pid]) { rest[it.pid]--; return false; }
     return true;
   });

@@ -15,6 +15,9 @@
 
    Genutzt von scan.js (Ergebnis-Panel), tracker.js (Formular
    „Eigenes Produkt“ und „Etikett“ beim aufgeklappten Produkt).
+   08.11.: tlLabel.vision({ prompt, image, tool, maxTokens, busy }) ist die
+   allgemeine Schnittstelle (Schlüssel, Anfrage, Fehler, Tool-/JSON-Antwort);
+   speise.js nutzt sie für Speisekarte und Gericht.
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
@@ -119,6 +122,73 @@ function shrink(file) {
 }
 
 /* ─── API ─────────────────────────────────────────── */
+function call(key, o) {
+  var content = [];
+  if (o.image) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: o.image } });
+  content.push({ type: "text", text: o.prompt });
+  return fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: o.maxTokens || 2000,
+      tools: [o.tool],
+      tool_choice: { type: "auto" },
+      messages: [{ role: "user", content: content }]
+    })
+  }).then(function (r) {
+    return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, d: d }; });
+  });
+}
+
+/* Rohdaten (tool_use-Input oder JSON im Text) aus der Antwort */
+function rawInput(d) {
+  var c = (d && d.content) || [];
+  var t = c.filter(function (b) { return b.type === "tool_use"; })[0];
+  var x = t && t.input;
+  if (!x) {
+    var txt = c.filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("\n");
+    var m = txt.match(/\{[\s\S]*\}/);
+    try { x = m ? JSON.parse(m[0]) : null; } catch (e) { x = null; }
+  }
+  return x || null;
+}
+
+/* Allgemeiner Aufruf: holt den Schlüssel, zeigt die Laufanzeige, meldet
+   Fehler per Flash und liefert den Tool-Input (oder null). */
+function vision(o) {
+  return getKey().then(function (k) {
+    if (!k) return null;
+    busy(true, o.busy || "Wird gelesen …");
+    return call(k, o).then(function (res) {
+      busy(false);
+      if (res.status === 401) { localStorage.removeItem(KEY); flash("Schlüssel ungültig – beim nächsten Mal neu eingeben"); return null; }
+      if (res.status === 429 || res.status === 529) { flash("Claude ist gerade ausgelastet – gleich nochmal"); return null; }
+      if (res.status !== 200) {
+        var m = res.d && res.d.error && res.d.error.message;
+        flash("Fehler " + res.status + (m ? ": " + m.slice(0, 80) : "")); return null;
+      }
+      var x = rawInput(res.d);
+      if (!x) flash("Keine verwertbare Antwort");
+      return x;
+    });
+  }).catch(function (e) {
+    busy(false);
+    flash("Anfrage fehlgeschlagen" + (e && e.message ? ": " + e.message.slice(0, 60) : ""));
+    return null;
+  });
+}
+
+/* Foto aufnehmen und verkleinert als Base64 liefern (null bei Abbruch) */
+function photo() {
+  return pickPhoto().then(function (f) { return f ? shrink(f) : null; });
+}
+
 function ask(key, b64) {
   return fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -195,6 +265,7 @@ function read() {
   });
 }
 
-window.tlLabel = { read: read, parse: parse, hasKey: function () { return !!localStorage.getItem(KEY); },
+window.tlLabel = { read: read, parse: parse, vision: vision, photo: photo, key: getKey,
+                   hasKey: function () { return !!localStorage.getItem(KEY); },
                    forgetKey: function () { localStorage.removeItem(KEY); } };
 })();

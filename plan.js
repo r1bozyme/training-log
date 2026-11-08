@@ -249,6 +249,7 @@ const PLAN = {
 // swipe.js (05.11.): Wischen zwischen den Unteransichten eines Bereichs, nach nav.js.
 // diag.js (08.11.): Fehlerprotokoll + navigator.storage.persist(), Karte „Diagnose“ unten im Werte-Tab – als erstes Modul.
 // label.js (08.11.): Nährwerte vom Etikett-Foto per Claude, vor scan.js.
+// speise.js (08.11.): Speisekarte / Gericht schätzen als Einmal-Posten; braucht label.js und tracker.js, tlReise nur zur Laufzeit; vor scan.js.
 // scan.js (08.11.): Barcode-Scanner (Heute › Produkte und Vorrat), nach tracker.js und vorrat.js.
 // vorrat-core.js + vorrat.js (31.10.): Vorrat & Einkauf (Ernährung › Vorrat · Einkauf), vor nav.js.
 // 08.11.: Sofort-Updates. GitHub Pages lässt Dateien bis zu 10 min im
@@ -260,7 +261,7 @@ const PLAN = {
 // dem nächsten Start aktuell. Nach 2,5 s (offline, langsames Netz) wird
 // ohne Abgleich geladen, wie bisher.
 (function () {
-  var MODS = ["diag.js", "dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"];
+  var MODS = ["diag.js", "dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "speise.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"];
   var done = false;
   function load() {
     if (done) return; done = true;
