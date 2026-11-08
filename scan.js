@@ -84,8 +84,9 @@ function open(m) {
 function idle(msg) {
   var hint = mode === "vorrat"
     ? "Packungen nacheinander vor die Kamera halten – jede bucht +1 im Vorrat."
-    : "Barcode in den Rahmen halten.";
+    : "Barcode in den Rahmen halten – oder direkt das Etikett fotografieren.";
   panel('<div class="sc-st">' + (msg || hint) + '</div>' + logHTML() +
+    (mode === "food" && window.tlLabel ? '<button class="sc-btn prim" data-a="labelonly">📷 Etikett fotografieren</button>' : "") +
     '<div class="sc-row"><button class="sc-btn" data-a="manual">EAN eintippen</button>' +
     (mode === "vorrat" && log.length ? '<button class="sc-btn" data-a="undo">Letzte zurück</button>' : "") + '</div>' +
     (mode === "vorrat" && log.length ? '<button class="sc-btn prim" data-a="close">Fertig</button>' : ""));
@@ -283,6 +284,13 @@ function onClick(e) {
     window.tlLabel.read().then(function (x) {
       if (x) window.foodNewPrefill({ ean: c0, name: x.name || base.name, ml: x.ml, kcal: x.kcal, kh: x.kh, f: x.f, p: x.p, off: false });
       else window.foodNewPrefill(base);
+    });
+  }
+  else if (a === "labelonly") {
+    /* 08.11.: Etikett direkt, ohne Barcode (lose Ware, Code unleserlich) */
+    close(true);
+    window.tlLabel.read().then(function (x) {
+      if (x) window.foodNewPrefill({ ean: null, name: x.name, ml: x.ml, kcal: x.kcal, kh: x.kh, f: x.f, p: x.p, off: false });
     });
   }
   else if (a === "link") linkPicker();
