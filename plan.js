@@ -250,9 +250,30 @@ const PLAN = {
 // label.js (08.11.): Nährwerte vom Etikett-Foto per Claude, vor scan.js.
 // scan.js (08.11.): Barcode-Scanner (Heute › Produkte und Vorrat), nach tracker.js und vorrat.js.
 // vorrat-core.js + vorrat.js (31.10.): Vorrat & Einkauf (Ernährung › Vorrat · Einkauf), vor nav.js.
-["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"].forEach(function (src) {
-  var s = document.createElement("script");
-  s.src = src;
-  s.async = false;
-  document.head.appendChild(s);
-});
+// 08.11.: Sofort-Updates. GitHub Pages lässt Dateien bis zu 10 min im
+// Browser-Cache – nach einem Push kam die neue Version deshalb mal sofort,
+// mal erst nach Minuten. Jetzt fragt der Loader jedes Modul vorher mit
+// cache:"no-cache" an (ETag-Abgleich, unverändert = kurze 304-Antwort) und
+// frischt so den Cache auf; die <script>-Tags laden danach die aktuelle
+// Fassung. index.html und plan.js werden mit aufgefrischt und sind damit ab
+// dem nächsten Start aktuell. Nach 2,5 s (offline, langsames Netz) wird
+// ohne Abgleich geladen, wie bisher.
+(function () {
+  var MODS = ["dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js"];
+  var done = false;
+  function load() {
+    if (done) return; done = true;
+    MODS.forEach(function (src) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      document.head.appendChild(s);
+    });
+  }
+  if (!window.fetch || !window.Promise) { load(); return; }
+  setTimeout(load, 2500);
+  Promise.all(MODS.map(function (src) {
+    return fetch(src, { cache: "no-cache" }).then(function (r) { return r.ok ? r.text() : null; }).catch(function () { return null; });
+  })).then(load, load);
+  ["./", "index.html", "plan.js"].forEach(function (u) { fetch(u, { cache: "no-cache" }).catch(function () {}); });
+})();

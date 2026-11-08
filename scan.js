@@ -305,5 +305,53 @@ function onClick(e) {
 
 document.addEventListener("visibilitychange", function () { if (document.hidden && ov) close(true); });
 
+/* ─── Schwebender Scan-Knopf (08.11.) ─────────────────
+   Ernährung › Heute: über „Tag ▴“, öffnet den Scanner (Modus food).
+   Ernährung › Vorrat: an der Stelle von „Tag ▴“, startet „Einkauf scannen“.
+   Versteckt, solange das Tag-Menü offen ist. Die Ansichten werden über
+   die Klasse .active erkannt (MutationObserver), ohne showView zu umschließen. */
+var fab = null;
+function fabCss() {
+  if (document.getElementById("scanfab-css")) return;
+  var s = document.createElement("style"); s.id = "scanfab-css";
+  s.textContent =
+    ".scanfab { position:fixed; right:max(16px, calc(50% - 224px)); z-index:102; width:52px; height:52px; border:none; border-radius:50%;" +
+    " background:var(--neutral); color:#FFF; font-size:24px; line-height:52px; text-align:center; padding:0;" +
+    " box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; }" +
+    ".scanfab[hidden] { display:none; }" +
+    ".scanfab.hi { bottom:calc(136px + var(--sb)); } .scanfab.lo { bottom:calc(76px + var(--sb)); }" +
+    "body.scanfab-on #view-food.ffab-on { padding-bottom:136px; } body.scanfab-on #view-vorrat { padding-bottom:76px; }";
+  document.head.appendChild(s);
+}
+function isOn(id) { var v = document.getElementById(id); return !!(v && v.classList.contains("active")); }
+function fabSync() {
+  if (!fab) return;
+  var food = isOn("view-food"), vr = isOn("view-vorrat");
+  var tag = food && document.querySelector("#f-act .ffab");   // „Tag ▴“ gibt es erst mit Posten
+  var menu = !!(tag && tag.classList.contains("open"));
+  var show = (food || vr) && !menu;
+  fab.hidden = !show;
+  fab.className = "scanfab " + (tag ? "hi" : "lo");
+  fab.setAttribute("data-m", vr ? "vorrat" : "food");
+  fab.setAttribute("aria-label", vr ? "Einkauf scannen" : "Barcode scannen");
+  document.body.classList.toggle("scanfab-on", show);
+}
+function fabInit() {
+  var app = document.getElementById("app");
+  if (!app || fab) return;
+  fabCss();
+  fab = document.createElement("button");
+  fab.type = "button"; fab.textContent = "▦"; fab.hidden = true;
+  fab.onclick = function () { open(fab.getAttribute("data-m")); };
+  document.body.appendChild(fab);
+  var t = 0;
+  new MutationObserver(function () {
+    if (t) return;
+    t = requestAnimationFrame(function () { t = 0; fabSync(); });
+  }).observe(app, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+  fabSync();
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fabInit); else fabInit();
+
 window.tlScan = { open: open, close: close, parseOff: parseOff };
 })();
