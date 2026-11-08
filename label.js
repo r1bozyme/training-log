@@ -34,7 +34,8 @@ var PROMPT = [
   "- Nimm die 100-g/100-ml-Spalte, nicht die Portionsspalte. Gibt es nur Werte je Portion und ist die Portionsgröße in g/ml angegeben, rechne auf 100 um und schreib das in hinweis.",
   "- Gibt es „unzubereitet“ und „zubereitet“, nimm unzubereitet und erwähne es in hinweis.",
   "- name: Produktname, falls auf dem Foto erkennbar, sonst leer.",
-  "- Ist die Tabelle nicht sicher lesbar, setze lesbar = false und rate nicht."
+  "- Ist die Tabelle nicht sicher lesbar, setze lesbar = false und rate nicht.",
+  "Antworte ausschließlich mit dem Aufruf von naehrwerte, ohne weiteren Text."
 ].join("\n");
 
 var TOOL = {
@@ -129,9 +130,11 @@ function ask(key, b64) {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 600,
+      max_tokens: 2000,   // Luft, falls das Modell vorher nachdenkt
       tools: [TOOL],
-      tool_choice: { type: "tool", name: "naehrwerte" },
+      /* 08.11.: erzwungener Tool-Aufruf (type "tool") wird von diesem Modell
+         abgelehnt (400) – deshalb auto + klare Anweisung, Text-JSON als Rückfall */
+      tool_choice: { type: "auto" },
       messages: [{ role: "user", content: [
         { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
         { type: "text", text: PROMPT }
@@ -143,9 +146,16 @@ function ask(key, b64) {
 }
 
 function parse(d) {
-  var t = (d && d.content || []).filter(function (c) { return c.type === "tool_use"; })[0];
-  if (!t || !t.input) return null;
-  var x = t.input, r1 = function (v) { v = Number(v); return isFinite(v) && v >= 0 ? Math.round(v * 10) / 10 : null; };
+  var c = (d && d.content) || [];
+  var t = c.filter(function (b) { return b.type === "tool_use"; })[0];
+  var x = t && t.input;
+  if (!x) {   // Rückfall: JSON im Text
+    var txt = c.filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("\n");
+    var m = txt.match(/\{[\s\S]*\}/);
+    try { x = m ? JSON.parse(m[0]) : null; } catch (e) { x = null; }
+  }
+  if (!x) return null;
+  var r1 = function (v) { v = Number(v); return isFinite(v) && v >= 0 ? Math.round(v * 10) / 10 : null; };
   return {
     lesbar: x.lesbar !== false,
     name: String(x.name || "").trim(),
