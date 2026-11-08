@@ -516,10 +516,41 @@ window.foodTrip = function () {
   buildFood();
 };
 
+/* 08.11.: × löscht sofort, aber mit 6 s „Rückgängig“ – ein Fehltipp
+   kostet keinen Posten mehr. Nur der letzte Löschvorgang ist rückholbar. */
+var fUndo = null;
 window.foodDel = function (id) {
-  var d = curDate();
-  putItems(d, dayItems(d).filter(function (x) { return x.id !== id; }));
+  var d = curDate(), arr = dayItems(d), idx = -1, it = null;
+  arr.forEach(function (x, i) { if (x.id === id) { idx = i; it = x; } });
+  if (!it) return;
+  putItems(d, arr.filter(function (x) { return x.id !== id; }));
   buildFood();
+  undoShow(d, it, idx);
+};
+function undoHide() {
+  if (fUndo && fUndo.t) clearTimeout(fUndo.t);
+  fUndo = null;
+  var el = document.getElementById("f-undo"); if (el) el.remove();
+}
+function undoShow(d, it, idx) {
+  undoHide();
+  fUndo = { d: d, it: it, idx: idx, t: 0 };
+  var el = document.createElement("div");
+  el.id = "f-undo";
+  el.innerHTML = "<span>„" + esc(it.n) + "“ gelöscht</span><button onclick=\"foodUndo()\">Rückgängig</button>";
+  document.body.appendChild(el);
+  requestAnimationFrame(function () { el.classList.add("show"); });
+  fUndo.t = setTimeout(undoHide, 6000);
+}
+window.foodUndo = function () {
+  if (!fUndo) return;
+  var u = fUndo; undoHide();
+  var arr = dayItems(u.d).slice();
+  if (arr.some(function (x) { return x.id === u.it.id; })) return;
+  arr.splice(Math.min(u.idx, arr.length), 0, u.it);
+  putItems(u.d, arr);
+  buildFood();
+  showFlash("Wiederhergestellt ✓");
 };
 
 window.foodBasis = function () {
@@ -693,6 +724,41 @@ window.foodProdLabel = function (pid) {
   });
 };
 
+/* 08.11.: Erfasste Posten tragen die Nährwerte als Kopie (it.kcal …).
+   Nach einer Korrektur bleiben offene Tage – meist der heutige – sonst
+   mit den alten Werten stehen, inklusive Tagessumme. Abgeschlossene Tage
+   bleiben bewusst, wie sie gewertet wurden. */
+function propagateValues(pid, neu) {
+  var log = loadFood(), tage = [], anz = 0;
+  Object.keys(log).forEach(function (d) {
+    var de = dailyEntry(d);
+    if (de && de.kcal) return;
+    var k = (log[d] || []).filter(function (it) { return it.pid === pid; }).length;
+    if (k) { tage.push(d); anz += k; }
+  });
+  if (!anz) return;
+  var heute = todayStr();
+  var wo = tage.length === 1 && tage[0] === heute ? "von heute"
+         : tage.length === 1 ? "vom " + fmtDate(tage[0])
+         : "aus " + tage.length + " offenen Tagen";
+  tlAsk.confirm({
+    title: "Posten anpassen?",
+    text: anz + (anz === 1 ? " erfasster Posten " : " erfasste Posten ") + wo + " noch mit den alten Werten. Auf die neuen Werte umstellen?\nAbgeschlossene Tage bleiben unverändert.",
+    ok: "Umstellen"
+  }).then(function (yes) {
+    if (!yes) return;
+    var log2 = loadFood();
+    tage.forEach(function (d) {
+      (log2[d] || []).forEach(function (it) {
+        if (it.pid !== pid) return;
+        ["kcal", "kh", "f", "p"].forEach(function (k) { it[k] = neu[k]; });
+      });
+    });
+    saveLog(log2); buildFood();
+    showFlash(anz + " Posten umgestellt ✓");
+  });
+}
+
 window.foodProdEdit = function (pid, ev, pre) {
   if (ev && ev.stopPropagation) ev.stopPropagation();
   var pr = prod(pid);
@@ -749,6 +815,7 @@ window.foodProdEdit = function (pid, ev, pre) {
       if (fSearch && pr.n.toLowerCase().indexOf(fSearch.toLowerCase()) !== -1) fSearch = name;
     }
     saveCfg(c); buildFood();
+    if (n) setTimeout(function () { propagateValues(pid, neu); }, 350);
     showFlash(best ? "Werte bestätigt ✓"
             : nameNeu && n ? "Name und Werte geändert ✓"
             : nameNeu ? "Umbenannt" + (tage ? " · " + tage + " erfasste Posten angepasst" : "") + " ✓"
@@ -1498,6 +1565,13 @@ var CSS = [
 ".ffab.open { background:var(--surface); color:var(--text); border:1.5px solid var(--border); }",
 ".ffm { font-size:11px; font-weight:600; opacity:.7; margin-left:4px; }",
 ".ffov { position:fixed; inset:0; z-index:101; background:rgba(26,26,26,.18); }",
+"#f-undo { position:fixed; bottom:calc(84px + var(--sb)); left:max(16px, calc(50% - 224px)); right:max(124px, calc(50% - 116px)); transform:translateY(8px); z-index:200;",
+"  background:var(--neutral); color:#FFF; padding:6px 6px 6px 16px; border-radius:24px; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:space-between; gap:10px;",
+"  opacity:0; transition:opacity .2s, transform .2s; white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.18); }",
+"#f-undo.show { opacity:1; transform:translateY(0); }",
+"#f-undo span { min-width:0; }",
+"#f-undo span { overflow:hidden; text-overflow:ellipsis; }",
+"#f-undo button { border:0; border-radius:18px; padding:8px 14px; background:#FFF; color:var(--neutral); font-weight:700; font-size:13px; font-family:var(--fb); }",
 ".ffmenu { position:fixed; right:max(16px, calc(50% - 224px)); bottom:calc(136px + var(--sb)); z-index:102; width:min(300px, calc(100% - 32px));",
 "  background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.16); padding:6px; }",
 ".ffopt { display:block; width:100%; text-align:left; border:none; background:transparent; padding:11px 12px; border-radius:10px; font-family:var(--fb); cursor:pointer; }",
