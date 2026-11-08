@@ -17,7 +17,7 @@
    Erkennung über die eingebaute BarcodeDetector-API (Chrome Android),
    ohne Bibliothek. Fehlt sie, bleibt die Eingabe per Hand.
    Die Zuordnung EAN → Produkt liegt in tl-fg unter "ean" (im Backup).
-   Etikett-Foto (Claude-Vision über Proxy) folgt als zweiter Schritt.
+   Etikett-Foto: label.js (Claude liest die Nährwerttabelle).
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
@@ -219,7 +219,10 @@ function showResult(code, r) {
       '<div class="sc-mac">' + m("kcal", "kcal") + m("kh", "KH g") + m("f", "Fett g") + m("p", "Prot. g") + "</div>" +
       '<div class="sc-dim">Wird als geschätzt (?) gespeichert, bis du die Werte am Etikett bestätigst.</div>';
   }
-  h += '<button class="sc-btn prim" data-a="new">Als neues Produkt anlegen</button>' +
+  var found = !r.err && !r.none, lbl = !!window.tlLabel;
+  h += (lbl && !found ? '<button class="sc-btn prim" data-a="label">📷 Etikett fotografieren</button>' : "") +
+    '<button class="sc-btn' + (found || !lbl ? " prim" : "") + '" data-a="new">' + (found ? "Als neues Produkt anlegen" : "Werte selbst eintragen") + '</button>' +
+    (lbl && found ? '<button class="sc-btn" data-a="label">📷 Lieber vom Etikett lesen</button>' : "") +
     '<button class="sc-btn" data-a="link">Mit vorhandenem Produkt verknüpfen</button>' +
     '<button class="sc-btn" data-a="again">Nochmal scannen</button>';
   panel(h);
@@ -270,6 +273,16 @@ function onClick(e) {
     window.foodNewPrefill({
       ean: code, name: r.name || "", ml: !!r.ml,
       kcal: r.kcal, kh: r.kh, f: r.f, p: r.p, off: !r.none && !r.err
+    });
+  }
+  else if (a === "label") {
+    /* Foto statt Open Food Facts: Werte gelten als vom Etikett (kein chk).
+       Foto abgebrochen → Formular trotzdem öffnen, EAN geht nicht verloren. */
+    var r0 = cur.r, c0 = cur.code; close(true);
+    var base = { ean: c0, name: r0.name || "", ml: !!r0.ml, kcal: r0.kcal, kh: r0.kh, f: r0.f, p: r0.p, off: !r0.none && !r0.err };
+    window.tlLabel.read().then(function (x) {
+      if (x) window.foodNewPrefill({ ean: c0, name: x.name || base.name, ml: x.ml, kcal: x.kcal, kh: x.kh, f: x.f, p: x.p, off: false });
+      else window.foodNewPrefill(base);
     });
   }
   else if (a === "link") linkPicker();

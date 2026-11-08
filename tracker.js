@@ -285,7 +285,7 @@ var CAT_RULES = [
   ["Milch",                /käse|kaese|quark|joghurt|jogurt|skyr|milch(?!reis)|mozzarella|feta|halloumi|ricotta|frischkäse|parmesan|pecorino|kefir|butterm/i],
   ["Süßes & Snacks",       /kuchen|keks|schoko|riegel|\beis\b|gummi|chips|(?<!laugen)croissant|plätzchen|waffel|muffin|donut|brownie|praline|süß/i],
   ["Gerichte / Unterwegs", /pizza|burger|pommes|döner|doener|wrap|bowl|curry|pfanne|fried|sushi|chicken|nuggets|lasagne|menü|restaurant|kantine/i],
-  ["Brot/KH",              /brot|brötchen|roggen|vollkorn|dinkel|semmel|breze|brezel|laugen|toast|nudel|pasta|reis|kartoffel|gnocchi|couscous|bulgur|quinoa|knäcke|tortilla/i],
+  ["Brot/KH",              /hafer(?!milch|drink)|flocken|müsli|muesli|granola|brot|brötchen|roggen|vollkorn|dinkel|semmel|breze|brezel|laugen|toast|nudel|pasta|reis|kartoffel|gnocchi|couscous|bulgur|quinoa|knäcke|tortilla/i],
   ["Protein",              /tofu|tempeh|hummus|seitan|linsen|bohnen|erbsen|kichererb|edamame|protein|whey|soja|\bei\b|eier/i],
   ["Obst/Gem.",            /apfel|birne|beere|banane|orange|mango|traube|kiwi|obst|spinat|brokkoli|paprika|tomate|gurke|salat|gemüse|gemuese|möhre|karotte|zucchini|pilz/i],
   ["Fett",                 /öl\b|oel\b|nuss|nüsse|mandel|butter|avocado|erdnuss|tahin|samen|kerne/i],
@@ -623,6 +623,15 @@ window.foodScanShow = function (pid) {
   var e = document.getElementById("fq-" + pid);
   if (e) { e.scrollIntoView({ block: "center" }); }
 };
+window.foodNewLabel = function () {
+  tlLabel.read().then(function (r) {
+    if (!r) return;
+    var e = document.getElementById("fn-name"), nm = e ? e.value.trim() : "";
+    window.foodNewPrefill({ ean: fPre && fPre.ean, name: nm || r.name, ml: r.ml,
+      kcal: r.kcal, kh: r.kh, f: r.f, p: r.p, off: false });
+    if (!r.hinweis) showFlash("Vom Etikett übernommen – kurz prüfen");
+  });
+};
 window.foodNewPrefill = function (o) {
   fAddTab = "p"; fNewOpen = true; fPre = o; fSearch = "";
   buildFood();
@@ -674,7 +683,17 @@ function renameLogged(pid, name) {
   return n;
 }
 
-window.foodProdEdit = function (pid, ev) {
+/* 08.11.: Etikett-Foto → Werte vorbelegt im Korrektur-Formular (nur Produkte je 100 g/ml) */
+window.foodProdLabel = function (pid) {
+  var pr = prod(pid); if (!pr || pr.ref !== 100) return;
+  tlLabel.read().then(function (r) {
+    if (!r) return;
+    if (r.ml !== (pr.unit === "ml")) showFlash("Achtung: Etikett je 100 " + (r.ml ? "ml" : "g") + ", Produkt je 100 " + (pr.unit === "ml" ? "ml" : "g"));
+    window.foodProdEdit(pid, null, r);
+  });
+};
+
+window.foodProdEdit = function (pid, ev, pre) {
   if (ev && ev.stopPropagation) ev.stopPropagation();
   var pr = prod(pid);
   if (!pr) return;
@@ -685,9 +704,13 @@ window.foodProdEdit = function (pid, ev) {
   var felder = [["kcal","Kalorien","kcal"],["kh","Kohlenhydrate","g"],["f","Fett","g"],["p","Protein","g"]];
   tlAsk.form({
     title: pr.n, ok: "Speichern",
-    text: "Name und Nährwerte je " + einheit + (pr.chk ? ". Geschätzt – Speichern ohne Änderung bestätigt die Werte als geprüft." : ""),
+    text: pre ? "Vom Etikett gelesen (je " + einheit + ") – bitte kurz mit dem Foto vergleichen."
+              : "Name und Nährwerte je " + einheit + (pr.chk ? ". Geschätzt – Speichern ohne Änderung bestätigt die Werte als geprüft." : ""),
     fields: [{ key: "name", label: "Name", type: "text", value: pr.n }].concat(
-      felder.map(function (f) { return { key: f[0], label: f[1], type: "num", value: pr[f[0]], suffix: f[2] }; }))
+      felder.map(function (f) {
+        var v = pre && pre[f[0]] !== null && pre[f[0]] !== undefined ? pre[f[0]] : pr[f[0]];
+        return { key: f[0], label: f[1], type: "num", value: v, suffix: f[2] };
+      }))
   }).then(function (r) {
     if (!r) return;
     var name = String(r.name || "").replace(/\s+/g, " ").trim();
@@ -985,6 +1008,7 @@ function row(p, sec) {
         '<div class="fpmacro">Je ' + (p.ref === 100 ? "100 " + (p.unit === "ml" ? "ml" : "g") : p.unit) + ": " +
           n1(p.kh) + " g KH · " + n1(p.f) + " g F · " + n1(p.p) + " g P" +
           ' <button class="fowndel" onclick="foodProdEdit(\'' + p.id + '\',event)">bearbeiten</button>' +
+          (p.ref === 100 && window.tlLabel ? ' <button class="fowndel" onclick="foodProdLabel(\'' + p.id + '\')">📷 Etikett</button>' : "") +
           (isOwn(p) ? ' <button class="fowndel" onclick="foodOwnDel(\'' + p.id + '\')">löschen</button>' : "") +
         "</div>" +
         (isOwn(p) ? '<div class="fcatrow"><label>Kategorie</label><select onchange="foodOwnCat(\'' + p.id + '\',this.value)">' +
@@ -1277,6 +1301,7 @@ window.buildFood = function () {
         '<div><label>Fett g</label><input type="number" id="fn-f" inputmode="decimal" step="any"></div>' +
         '<div><label>Prot. g</label><input type="number" id="fn-p" inputmode="decimal" step="any"></div>' +
       "</div>" +
+      (window.tlLabel ? '<button class="fbtn2" style="width:100%;margin-bottom:8px" onclick="foodNewLabel()">📷 Werte vom Etikett</button>' : "") +
       '<button class="fbtn2 prim" onclick="foodNewSave()">Produkt speichern</button>' +
       '<div class="fhint">Bleibt dauerhaft in der Liste. Für einmalige Sachen – Restaurant, Einladung – reicht ein Eintrag mit geschätzten Werten; er ist nachträglich löschbar.</div>' +
       "</div>";
