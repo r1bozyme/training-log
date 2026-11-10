@@ -13,6 +13,8 @@
                Dauerbetrieb: jede erkannte Packung bucht +1, mit
                Rückgängig für die letzte Buchung. Dieselbe Packung
                zählt erst wieder, nachdem der Code 1 s aus dem Bild war.
+               10.11.: Mehrere gleiche Packungen (5× Skyr) – einmal
+               scannen, dann in der Liste mit + / − die Anzahl setzen.
 
    Erkennung über die eingebaute BarcodeDetector-API (Chrome Android),
    ohne Bibliothek. Fehlt sie, bleibt die Eingabe per Hand.
@@ -55,6 +57,13 @@ function css() {
     "#scan-ov select, #scan-ov input { width:100%; margin-top:10px; padding:12px; border-radius:12px; border:1px solid #3A3E48; background:#262931; color:#fff; font-size:15px; box-sizing:border-box; }",
     "#scan-ov .sc-log { margin-top:10px; font-size:14px; }",
     "#scan-ov .sc-log div { padding:6px 0; border-top:1px solid #2C3039; display:flex; justify-content:space-between; gap:8px; }",
+    "#scan-ov .sc-log div.sc-li { align-items:center; padding:5px 0; }",
+    "#scan-ov .sc-li .sc-ln { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }",
+    "#scan-ov .sc-li.cur .sc-ln { font-weight:600; }",
+    "#scan-ov .sc-stp { display:flex; align-items:center; gap:4px; flex:none; }",
+    "#scan-ov .sc-stp button { width:44px; height:40px; border:0; border-radius:10px; background:#2C3039; color:#fff; font-size:20px; line-height:1; padding:0; }",
+    "#scan-ov .sc-stp button.pl { background:#0077AA; }",
+    "#scan-ov .sc-stp b { min-width:34px; text-align:center; font-size:16px; }",
     "#scan-ov .sc-row { display:flex; gap:8px; } #scan-ov .sc-row .sc-btn { flex:1; }"
   ].join("\n");
   document.head.appendChild(s);
@@ -97,8 +106,14 @@ function logHTML() {
   if (mode !== "vorrat" || !log.length) return "";
   var agg = {}, order = [];
   log.forEach(function (x) { if (!agg[x.pid]) { agg[x.pid] = { n: x.n, k: 0 }; order.push(x.pid); } agg[x.pid].k++; });
+  /* zuletzt gebuchtes Produkt oben, damit + / − ohne Scrollen erreichbar ist */
+  var lastPid = log[log.length - 1].pid;
+  order.sort(function (a, b) { return a === lastPid ? -1 : b === lastPid ? 1 : 0; });
   return '<div class="sc-log">' + order.map(function (pid) {
-    return "<div><span>" + esc(agg[pid].n) + "</span><span>+" + agg[pid].k + "</span></div>";
+    return '<div class="sc-li' + (pid === lastPid ? " cur" : "") + '"><span class="sc-ln">' + esc(agg[pid].n) + "</span>" +
+      '<span class="sc-stp"><button data-a="minus" data-pid="' + esc(pid) + '" aria-label="eine weniger">−</button>' +
+      "<b>" + agg[pid].k + "</b>" +
+      '<button class="pl" data-a="plus" data-pid="' + esc(pid) + '" aria-label="eine mehr">+</button></span></div>';
   }).join("") + "</div>";
 }
 
@@ -168,7 +183,7 @@ function vorratHit(code) {
   var n = window.vrScanPlus ? window.vrScanPlus(pid) : null;
   if (!n) { idle("Vorrat nicht bereit."); return; }
   log.push({ pid: pid, n: n });
-  idle("<strong>+1 " + esc(n) + "</strong>");
+  idle("<strong>+1 " + esc(n) + "</strong>" + '<div class="sc-dim">Mehrere gleiche? Mit + weiterzählen.</div>');
 }
 
 /* ─── Modus Ernährung ─────────────────────────────── */
@@ -270,6 +285,26 @@ function onClick(e) {
     var x = log.pop(); if (!x) return;
     if (window.vrScanPlus) window.vrScanPlus(x.pid, -1);
     idle("Zurückgenommen: " + esc(x.n));
+  }
+  else if (a === "plus" || a === "minus") {
+    /* 10.11.: Anzahl je Produkt direkt setzen, statt jede Packung einzeln zu scannen */
+    var sp = b.getAttribute("data-pid"), i, nm = null;
+    if (a === "plus") {
+      nm = window.vrScanPlus ? window.vrScanPlus(sp) : null;
+      if (!nm) return;
+      log.push({ pid: sp, n: nm });
+    } else {
+      for (i = log.length - 1; i >= 0; i--) if (log[i].pid === sp) break;
+      if (i < 0) return;
+      nm = log[i].n;
+      if (window.vrScanPlus) window.vrScanPlus(sp, -1);
+      log.splice(i, 1);
+      /* Reihenfolge der Liste halten: das Produkt bleibt oben, solange es noch gebucht ist */
+      for (i = log.length - 1; i >= 0; i--) if (log[i].pid === sp) { log.push(log.splice(i, 1)[0]); break; }
+    }
+    var cnt = log.filter(function (x) { return x.pid === sp; }).length;
+    if (navigator.vibrate) navigator.vibrate(15);
+    idle(cnt ? "<strong>" + cnt + "× " + esc(nm) + "</strong>" : "Zurückgenommen: " + esc(nm));
   }
   else if (a === "new") {
     var r = cur.r, code = cur.code; close(true);
