@@ -8,9 +8,18 @@
    Einträge im selben Fenster (robuster als Anfang gegen Ende).
 
    Energiedichte 7.000 kcal/kg: Mischwert für einen Lean Bulk (reines Fett
-   ~9.400, Muskel mit Wasser ~1.800). Die Unsicherheit der Steigung wird
-   als Band ausgewiesen (±1 Standardfehler) – bei 2–3 Wochen Daten ist
-   das Band breit, das ist Absicht.
+   ~9.400, Muskel mit Wasser ~1.800).
+
+   Band (10.11.2026, vorher nur der Trend): drei unabhängige Unsicherheiten,
+   quadratisch addiert, jeweils ±1 Standardfehler in kcal/Tag:
+     Trend    Standardfehler der Steigung × Energiedichte
+     Zufuhr   Streuung der sauberen Tage / √Anzahl
+     Auswahl  Die Zufuhr stammt nur aus sauberen Tagen, das Gewicht aus
+              allen. Annahme: nicht saubere Tage (geschätzt, Reise, ohne
+              Erfassung) weichen im Schnitt um bis zu ±300 kcal ab
+              → Anteil nicht sauberer Tage × 300.
+   Anlass: Oktober, letzte 28 Tage und September lagen ~200 kcal
+   auseinander, bei ausgewiesenen ±67 bis ±92. Der Mittelwert ist unverändert.
 
    Fenster: die letzten 28 Tage (bis gestern) und – sobald 14 Tage alt –
    „seit Zielwechsel“ (goalSince aus tl-fg, z. B. 08.11.: 3.200 kcal).
@@ -21,7 +30,7 @@
 (function (root) {
 "use strict";
 
-var RHO = 7000, MIN_TAGE = 10, MIN_W = 6;
+var RHO = 7000, MIN_TAGE = 10, MIN_W = 6, ABW = 300;
 
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 function addDays(s, n) { var d = new Date(s + "T12:00:00"); d.setDate(d.getDate() + n); return iso(d); }
@@ -47,7 +56,12 @@ function calc(food, days, weights, von, bis) {
   var ws = (weights || []).filter(function (w) { return w.date >= von && w.date <= bis && isFinite(+w.kg); })
     .map(function (w) { return [dnum(w.date), +w.kg]; });
   var out = { von: von, bis: bis, nTage: kc.length, nW: ws.length };
+  out.nFenster = Math.max(1, dnum(bis) - dnum(von) + 1);
   if (kc.length) out.zufuhr = kc.reduce(function (a, b) { return a + b; }, 0) / kc.length;
+  if (kc.length >= 2) {
+    var qs = kc.reduce(function (a, k) { return a + (k - out.zufuhr) * (k - out.zufuhr); }, 0);
+    out.seZufuhr = Math.sqrt(qs / (kc.length - 1) / kc.length);
+  }
   if (ws.length >= 3) {
     var mx = ws.reduce(function (a, p) { return a + p[0]; }, 0) / ws.length;
     var my = ws.reduce(function (a, p) { return a + p[1]; }, 0) / ws.length;
@@ -63,12 +77,15 @@ function calc(food, days, weights, von, bis) {
   out.ok = out.nTage >= MIN_TAGE && out.nW >= MIN_W && typeof out.trendWoche === "number";
   if (out.ok) {
     out.erhaltung = out.zufuhr - out.trendWoche / 7 * RHO;
-    out.band = out.seWoche / 7 * RHO;
+    out.bandTrend = out.seWoche / 7 * RHO;
+    out.bandZufuhr = out.seZufuhr || 0;
+    out.bandAuswahl = Math.max(0, 1 - out.nTage / out.nFenster) * ABW;
+    out.band = Math.sqrt(out.bandTrend * out.bandTrend + out.bandZufuhr * out.bandZufuhr + out.bandAuswahl * out.bandAuswahl);
   }
   return out;
 }
 
-var api = { calc: calc, RHO: RHO, addDays: addDays, iso: iso };
+var api = { calc: calc, RHO: RHO, ABW: ABW, addDays: addDays, iso: iso };
 if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
 root.tlEnergie = api;
 
@@ -85,8 +102,9 @@ function block(r, titel) {
   }
   return '<div class="eb-b"><div class="eb-t">' + titel + '</div>' +
     '<div class="eb-v">≈ ' + fmt(r.erhaltung) + ' kcal <span class="eb-pm">± ' + fmt(r.band) + '</span></div>' +
-    '<div class="fhint" style="margin-top:4px">Zufuhr Ø ' + fmt(r.zufuhr) + ' kcal an ' + r.nTage + ' sauberen Tagen · Trend ' +
-    kgw(r.trendWoche) + ' (' + r.nW + ' Wiegungen)</div></div>';
+    '<div class="fhint" style="margin-top:4px">Zufuhr Ø ' + fmt(r.zufuhr) + ' kcal an ' + r.nTage + ' sauberen von ' + r.nFenster + ' Tagen · Trend ' +
+    kgw(r.trendWoche) + ' (' + r.nW + ' Wiegungen)</div>' +
+    '<div class="fhint" style="margin-top:2px">Band: Trend ± ' + fmt(r.bandTrend) + ' · Zufuhr ± ' + fmt(r.bandZufuhr) + ' · Auswahl ± ' + fmt(r.bandAuswahl) + '</div></div>';
 }
 
 function render() {
@@ -105,7 +123,8 @@ function render() {
       ' kcal → erwartet ' + kgw(erw) + '. Zielkorridor Lean Bulk: +0,1 bis +0,35 kg/Woche.</div>';
   }
   h += '<div class="fhint">Rechnung: Zufuhr − Trend × 7.000 kcal/kg. Saubere Tage = abgeschlossen, nicht „geschätzt“, nicht „Reise“. ' +
-    'Das Band ist die Unsicherheit des Trends – bei wenigen Wiegungen breit.</div>';
+    'Das Band fasst drei Unsicherheiten zusammen: Gewichtstrend, Streuung der Zufuhr und Auswahl – die Zufuhr stammt nur aus sauberen Tagen, ' +
+    'das Gewicht aus allen (Annahme: die übrigen Tage weichen um bis zu ±' + ABW + ' kcal ab).</div>';
   box.innerHTML = '<div class="fsec"><div class="fsub">Energiebilanz · geschätzte Erhaltung</div>' + h + '</div>';
 }
 
