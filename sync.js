@@ -505,10 +505,7 @@ function init() {
   hookStorage();
   mount();
 
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) { origShow(v); if (v === "log") { mount(); render(); } };
-  }
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "log") { mount(); render(); } });
 
   window.addEventListener("online", function () { if (cfg().dirty) sync(false); });
   /* Beim Verlassen sofort sichern statt die 8 s abzuwarten – die

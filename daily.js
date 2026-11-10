@@ -4,7 +4,7 @@
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Injiziert CSS + Markup selbst in den Werte-Tab und
-// erweitert showView() sowie exportCSV().
+// hört auf den Ansichtswechsel (tl:view) und erweitert exportCSV().
 //
 // Bewusst minimal gehalten: kein Zahlenfeld für Kalorien
 // (das wäre Tracking durch die Hintertür), keine Makros,
@@ -551,14 +551,8 @@ function init() {
   const wSec = view.querySelector(".sec");
   if (wSec) { wSec.style.paddingTop = "0"; wSec.id = "d-weightsec"; }
 
-  // showView erweitern
-  const origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) {
-      origShow(v);
-      if (v === "weight") buildDaily();
-    };
-  }
+  // Ansichtswechsel (view.js)
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") buildDaily(); });
 
   // saveWeight erweitern – nach dem Wiegen muss das Band nachziehen
   const origSaveW = window.saveWeight;

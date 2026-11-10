@@ -384,9 +384,8 @@ function render() {
 }
 
 /* ─── Init ─────────────────────────────────────── */
-/* Eigene Ansicht "health" (Körper → Tracker, 22.10.). Wie tracker.js mit
-   view-food: die Grundfassung von showView schaltet bei "health" alle
-   eigenen Views ab, hier wird nur die eigene dazugeschaltet. */
+/* Eigene Ansicht "health" (Körper → Tracker, 22.10.). Umgeschaltet wird
+   sie von showView in view.js, hier wird nur beim Wechsel gerendert. */
 function init() {
   var app = document.getElementById("app");
   if (!app || document.getElementById("gh-sec")) return;
@@ -402,18 +401,12 @@ function init() {
 
   var back = takeRedirect();
 
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) {
-      var res = origShow.apply(this, arguments);
-      view.classList.toggle("active", v === "health");
-      if (v === "health") {
-        render();
-        if (token() && Date.now() - lastFetch > 10 * 60000) refresh(false);
-      }
-      return res;
-    };
-  }
+  document.addEventListener("tl:view", function (e) {
+    if (e.detail.view === "health") {
+      render();
+      if (token() && Date.now() - lastFetch > 10 * 60000) refresh(false);
+    }
+  });
 
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") render();

@@ -296,17 +296,10 @@ function init() {
   var ek = mk("einkauf", "EINKAUF", "ek-cont");
   var vr = mk("vorrat", "VORRAT", "vr-cont");
 
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) {
-      var res = origShow.apply(this, arguments);
-      vr.classList.toggle("active", v === "vorrat");
-      ek.classList.toggle("active", v === "einkauf");
-      if (v === "vorrat") buildVorrat();
-      if (v === "einkauf") buildEinkauf();
-      return res;
-    };
-  }
+  document.addEventListener("tl:view", function (e) {
+    if (e.detail.view === "vorrat") buildVorrat();
+    if (e.detail.view === "einkauf") buildEinkauf();
+  });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") rerender(); });
 }
 

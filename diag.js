@@ -19,6 +19,16 @@
 (function () {
 "use strict";
 
+/* Übergang 10.11.: Die Module hören seit heute auf tl:view (view.js) statt
+   showView zu umschließen. Kommt plan.js noch aus dem Browser-Cache und
+   kennt view.js nicht, wird es hier nachgeladen – sonst bliebe der
+   Ansichtswechsel für einen Start ohne Wirkung. Entfällt mit Schritt 3. */
+if (!window.tlViewCore && !document.querySelector('script[src="view.js"]')) {
+  var vs = document.createElement("script");
+  vs.src = "view.js"; vs.async = false;
+  document.head.appendChild(vs);
+}
+
 var KEY = "tl-err", MAX = 25;
 var persisted = null, est = null, allOpen = false, box = null;
 
@@ -141,10 +151,7 @@ function init() {
   var st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
   box = document.createElement("div"); box.id = "dg-cont";
   wv.appendChild(box);
-  var orig = window.showView;
-  if (typeof orig === "function") {
-    window.showView = function (v) { var r = orig.apply(this, arguments); if (v === "weight") render(); return r; };
-  }
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") render(); });
   render();
   checkStorage();
 }

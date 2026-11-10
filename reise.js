@@ -239,10 +239,7 @@ function init() {
   if (typeof origBasis === "function") {
     window.foodBasis = function () { if (aktivAm(trackerDatum())) return basisEintragen(); return origBasis.apply(this, arguments); };
   }
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) { var r = origShow.apply(this, arguments); if (v === "food" || v === "add") tick(); return r; };
-  }
+  document.addEventListener("tl:view", function (e) { var v = e.detail.view; if (v === "food" || v === "add") tick(); });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") tick(); });
   tick();
 }

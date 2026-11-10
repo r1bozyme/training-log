@@ -134,10 +134,7 @@ function mount() {
 /* ─── Init ──────────────────────────────────────────────── */
 function init() {
   mount();
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) { origShow(v); if (v === "log") { mount(); render(); } };
-  }
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "log") { mount(); render(); } });
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", function (e) {
       if (e.data && e.data.type === "tl-go") go(e.data.go);

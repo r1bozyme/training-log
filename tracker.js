@@ -1762,20 +1762,9 @@ function init() {
     if (planBtn) nav.insertBefore(b, planBtn); else nav.appendChild(b);
   }
 
-  /* showView erweitern. Die Fassung in index.html kennt nur ihre
-     fünf Views und schaltet bei "food" schlicht alle ab – genau
-     das ist hier erwünscht. Danach den eigenen Tab setzen. */
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) {
-      origShow(v);
-      var fv = document.getElementById("view-food");
-      var fn = document.getElementById("nav-food");
-      if (fv) fv.classList.toggle("active", v === "food");
-      if (fn) fn.classList.toggle("active", v === "food");
-      if (v === "food") buildFood();
-    };
-  }
+  /* Ansichtswechsel: showView (view.js) schaltet view-food selbst um
+     und meldet den Wechsel, hier wird nur gerendert. */
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "food") buildFood(); });
 
   buildFood();
 

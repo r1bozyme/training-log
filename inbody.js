@@ -232,10 +232,7 @@ function init() {
   var todo = document.getElementById("d-todo");
   if (todo && todo.parentNode) todo.parentNode.insertBefore(box, todo.nextSibling);
   else wv.insertBefore(box, wv.firstChild);
-  var orig = window.showView;
-  if (typeof orig === "function") {
-    window.showView = function (v) { var r = orig.apply(this, arguments); if (v === "weight") render(); return r; };
-  }
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") render(); });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") render(); });
   render();
 }

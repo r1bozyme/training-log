@@ -15,7 +15,7 @@
    Ein Tipp auf einen Bereich öffnet die Ansicht, die dort zuletzt
    offen war (nur für diese Sitzung).
 
-   Lädt als letztes Modul: äußerste showView-Schicht.
+   Lädt als letztes Modul und hört auf den Ansichtswechsel (tl:view, view.js).
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
@@ -135,15 +135,7 @@ function init() {
     if (v && v.classList.contains("active")) cur = id;
   });
 
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) {
-      var r = origShow.apply(this, arguments);
-      cur = v;
-      sync();
-      return r;
-    };
-  }
+  document.addEventListener("tl:view", function (e) { cur = e.detail.view; sync(); });
 
   sync();
 }

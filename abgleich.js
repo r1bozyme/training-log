@@ -97,10 +97,7 @@ function init() {
   fv.insertBefore(box, fv.firstChild);
   var day = document.getElementById("f-day");
   if (day) day.addEventListener("change", render);
-  var orig = window.showView;
-  if (typeof orig === "function") {
-    window.showView = function (v) { var r = orig.apply(this, arguments); if (v === "food") render(); return r; };
-  }
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "food") render(); });
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") { render(); setTimeout(function () { pruefen(false); }, 3000); }
   });

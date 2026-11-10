@@ -245,17 +245,12 @@ function init() {
                  + '<div class="dsec" id="ou-sec"><div id="ou-cont"></div></div>';
   while (wrap.lastChild) view.insertBefore(wrap.lastChild, view.firstChild);
 
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) {
-      var res = origShow.apply(this, arguments);
-      if (v === "health") {
-        render();
-        if (Date.now() - lastFetch > 10 * 60000) refresh(false);
-      }
-      return res;
-    };
-  }
+  document.addEventListener("tl:view", function (e) {
+    if (e.detail.view === "health") {
+      render();
+      if (Date.now() - lastFetch > 10 * 60000) refresh(false);
+    }
+  });
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible" && Date.now() - lastFetch > 30 * 60000) refresh(false);
   });

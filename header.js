@@ -15,7 +15,7 @@
 // Farbe: gelb = offen, grün = Erhöhung fällig, Einheitsfarbe am
 // Eintrag-Tab, sonst neutral. Nichts zu sagen → Chip verschwindet.
 //
-// Lädt als letztes Modul und umschließt showView als äußerste Schicht.
+// Hört auf den Ansichtswechsel (tl:view, view.js).
 // Liest nur – geschrieben wird nichts.
 // ═══════════════════════════════════════════════════
 
@@ -254,15 +254,7 @@ function init() {
     if (v && v.classList.contains("active")) cur = id;
   });
 
-  var origShow = window.showView;
-  if (typeof origShow === "function") {
-    window.showView = function (v) {
-      var r = origShow.apply(this, arguments);
-      cur = v;
-      render();
-      return r;
-    };
-  }
+  document.addEventListener("tl:view", function (e) { cur = e.detail.view; render(); });
 
   // Jede Speicherung der App (tl-*) zieht den Chip nach – Training,
   // Essen, Werte, Steifigkeit. Statt jede Funktion einzeln zu umschließen.
