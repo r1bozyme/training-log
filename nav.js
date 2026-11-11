@@ -137,6 +137,11 @@ function init() {
 
   document.addEventListener("tl:view", function (e) { cur = e.detail.view; sync(); });
 
+  /* 11.11.: App startet im Log statt im Eintrag (index.html öffnet
+     view-add). Über showView, damit alle Module ihren Log-Teil zeichnen;
+     Sprünge aus Erinnerungen (push.js, ?go=…) kommen danach. */
+  if (cur === "add") { window.showView("log"); return; }
+
   sync();
 }
 
