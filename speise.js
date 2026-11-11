@@ -59,8 +59,13 @@ function open(html) {
   ov.innerHTML = '<div class="sp-sh">' + html + "</div>";
   ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
   document.body.appendChild(ov);
+  if (window.tlBackLayer) backRel = window.tlBackLayer(function () { backRel = null; close(); });   // 11.11.: Android-Zurück
 }
-function close() { if (ov) { ov.remove(); ov = null; } }
+var backRel = null;
+function close() {
+  if (backRel) { var r = backRel; backRel = null; r(); }
+  if (ov) { ov.remove(); ov = null; }
+}
 function set(html) { if (ov) ov.querySelector(".sp-sh").innerHTML = html; }
 
 /* ─── Budget ──────────────────────────────────────── */

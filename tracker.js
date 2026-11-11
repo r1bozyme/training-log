@@ -1148,7 +1148,7 @@ window.foodDay = function (delta) {
   var nd = shiftDay(curDate(), delta);
   if (nd > todayStr()) return;
   el.value = nd;
-  fMoreOpen = false; fMittagOpen = false;
+  fMoreOpen = false; fMittagOpen = false; fMoreLayer();
   el.dispatchEvent(new Event("change"));   // buildFood + abgleich.js
 };
 function renderDayNav(d) {
@@ -1165,7 +1165,14 @@ function renderDayNav(d) {
 window.foodTab = function (t) { fAddTab = t; buildFood(); };
 window.foodAllToggle = function () { fAllOpen = !fAllOpen; renderPicker(); };
 window.foodMittagToggle = function () { fMittagOpen = !fMittagOpen; buildFood(); };
-window.foodMoreToggle = function () { fMoreOpen = !fMoreOpen; buildFood(); };
+/* 11.11.: Tag-Menü als Ebene für Android-Zurück (back.js) */
+var fMoreRel = null;
+function fMoreLayer() {
+  if (fMoreOpen && !fMoreRel && window.tlBackLayer) {
+    fMoreRel = window.tlBackLayer(function () { fMoreRel = null; fMoreOpen = false; buildFood(); });
+  } else if (!fMoreOpen && fMoreRel) { var r = fMoreRel; fMoreRel = null; r(); }
+}
+window.foodMoreToggle = function () { fMoreOpen = !fMoreOpen; fMoreLayer(); buildFood(); };
 window.foodGrpToggle = function (gid) { fGrpOpen[gid] = !fGrpOpen[gid]; buildFood(); };
 
 /* ─── Render: Gesamt ────────────────────────────────────── */

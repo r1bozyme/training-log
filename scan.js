@@ -86,6 +86,7 @@ function open(m) {
     '<div class="sc-panel"></div>';
   ov.addEventListener("click", onClick);
   document.body.appendChild(ov);
+  if (window.tlBackLayer) backRel = window.tlBackLayer(function () { backRel = null; close(); });   // 11.11.: Android-Zurück schließt nur den Scanner
   idle();
   start();
 }
@@ -117,7 +118,9 @@ function logHTML() {
   }).join("") + "</div>";
 }
 
+var backRel = null;
 function close(silent) {
+  if (backRel) { var r = backRel; backRel = null; r(); }
   if (timer) { clearTimeout(timer); timer = null; }
   if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
   if (ov) { ov.remove(); ov = null; }
