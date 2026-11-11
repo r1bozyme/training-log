@@ -247,7 +247,7 @@ const PLAN = {
 // reise.js (03.11.): Reise-Modus, Karte oben in Ernährung › Heute; studio.js fragt tlReise.
 // inbody.js (03.11.): InBody-Bereitschaftscheck, Karte oben im Werte-Tab ab 6 Tage vor dem Termin.
 // swipe.js (05.11.): Wischen zwischen den Unteransichten eines Bereichs, nach nav.js.
-// back.js (11.11.): Android-Zurück in „＋ Eintrag“ führt zur vorherigen Ansicht statt aus der App.
+// back.js (11.11.): Android-Zurück führt in allen Ansichten zur vorherigen Ansicht, unterste Ebene Log.
 // diag.js (08.11.): Fehlerprotokoll + navigator.storage.persist(), Karte „Diagnose“ unten im Werte-Tab – als erstes Modul.
 // label.js (08.11.): Nährwerte vom Etikett-Foto per Claude, vor scan.js.
 // speise.js (08.11.): Speisekarte / Gericht schätzen als Einmal-Posten; braucht label.js und tracker.js, tlReise nur zur Laufzeit; vor scan.js.
