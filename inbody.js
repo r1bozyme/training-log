@@ -18,6 +18,19 @@
    ok · offen (liegt noch in der Zukunft) · fehlt (nicht erfasst) · nein.
 
    Rechenkern auch per require nutzbar (Auswerteskript in training-log-data).
+
+   12.11.2026 – Messungen erfassen: Gewicht, Skelettmuskelmasse (SMM) und
+   Körperfett (KFA) je Messung unter "tl-ib" (im Backup, sync.js):
+     [{ id, date, kg, smm, kfa, src: "foto"|"hand"|"start", bed }]
+   bed = Gesamtstatus des Bereitschaftschecks für den Messtag zum Zeitpunkt
+   des Speicherns (ok · offen · fehlt · nein), bei Startbestand leer.
+   Eingabe per Foto (Kamera oder Galerie): tlLabel.vision liest die drei
+   Werte vom Ergebnisbildschirm, danach immer Bestätigung im Formular –
+   mit Warnung, wenn ein Wert stark von der letzten Messung abweicht
+   (Ziffern-Verwechsler). Das Foto wird nicht gespeichert. Handeingabe
+   geht ohne Schlüssel. Abschnitt „InBody“ unten im Werte-Tab, über der
+   Diagnose; am Messtag zusätzlich Knöpfe in der Bereitschaftskarte.
+   Startbestand: die drei gültigen Messungen seit dem Serienneustart 20.08.
    ═══════════════════════════════════════════════════ */
 (function (root) {
 "use strict";
@@ -123,6 +136,202 @@ function result() {
   return check(t, heute(), readJSON("tl-f", {}), readJSON("tl-d", []), readJSON("tl-e", []), dl);
 }
 
+/* ─── Messungen ──────────────────────────────────── */
+var MKEY = "tl-ib";
+var START = [
+  { date: "2026-08-20", kg: 73.7, smm: 36.7, kfa: 13.0 },
+  { date: "2026-09-06", kg: 73.5, smm: 36.6, kfa: 13.2 },
+  { date: "2026-09-27", kg: 72.8, smm: 36.4, kfa: 12.8 }
+];
+/* plausibler Bereich je Wert, und ab welcher Abweichung zur letzten Messung gewarnt wird */
+var FELD = {
+  kg:  { min: 40, max: 160, warn: 2.5, name: "Gewicht", einheit: "kg" },
+  smm: { min: 15, max: 60,  warn: 1.2, name: "SMM",     einheit: "kg" },
+  kfa: { min: 3,  max: 50,  warn: 2.5, name: "KFA",     einheit: "Punkte" }
+};
+var PROMPT = [
+  "Das Foto zeigt den Ergebnisbildschirm (oder Ausdruck) eines InBody-Körperanalysegeräts, meist deutsch.",
+  "Lies drei Werte und rufe das Werkzeug inbody auf:",
+  "- gewicht = „Gewicht (kg)“.",
+  "- smm = „Skelettmuskelmasse (kg)“ bzw. SMM. NICHT fettfreie Masse, NICHT Weichteil- oder Muskelmasse gesamt.",
+  "- kfa = „Körperfett (%)“ bzw. PBF, der Prozentwert. NICHT die Körperfettmasse in kg.",
+  "Regeln:",
+  "- Lies die große Zahl direkt beim Namen des Werts, nicht die Skala oder den Balken daneben.",
+  "- Das Dezimaltrennzeichen kann Punkt oder Komma sein; gib Zahlen mit einer Nachkommastelle zurück.",
+  "- Größe, Alter und ID in der Kopfzeile sind keine Messwerte.",
+  "- Ist ein Wert verdeckt, unscharf oder gespiegelt und nicht sicher lesbar, setze lesbar = false und rate nicht.",
+  "Antworte ausschließlich mit dem Aufruf von inbody, ohne weiteren Text."
+].join("\n");
+var TOOL = {
+  name: "inbody",
+  description: "Gewicht, Skelettmuskelmasse und Körperfettanteil vom InBody-Ergebnis",
+  input_schema: {
+    type: "object",
+    properties: {
+      lesbar:  { type: "boolean", description: "alle drei Werte sicher gelesen" },
+      gewicht: { type: "number", description: "kg" },
+      smm:     { type: "number", description: "Skelettmuskelmasse in kg" },
+      kfa:     { type: "number", description: "Körperfett in Prozent" },
+      hinweis: { type: "string", description: "kurze Anmerkung, falls etwas unsicher ist" }
+    },
+    required: ["lesbar", "gewicht", "smm", "kfa"]
+  }
+};
+
+function flash(t) { if (typeof showFlash === "function") showFlash(t); }
+function f1(n) { return (Math.round(n * 10) / 10).toFixed(1).replace(".", ","); }
+function sg(n) { n = Math.round(n * 10) / 10; return (n > 0 ? "+" : n < 0 ? "−" : "±") + f1(Math.abs(n)); }
+function dmy(s) { return s.slice(8, 10) + "." + s.slice(5, 7) + "." + s.slice(0, 4); }
+function mess() { var a = readJSON(MKEY, null); return Array.isArray(a) ? a : []; }
+function saveMess(a) {
+  a.sort(function (x, y) { return x.date < y.date ? -1 : x.date > y.date ? 1 : 0; });
+  localStorage.setItem(MKEY, JSON.stringify(a));
+}
+function seed() {
+  if (localStorage.getItem(MKEY) !== null) return;
+  var t = Date.now();
+  saveMess(START.map(function (m, i) { return { id: t + i, date: m.date, kg: m.kg, smm: m.smm, kfa: m.kfa, src: "start" }; }));
+}
+function inRange(k, v) { return typeof v === "number" && isFinite(v) && v >= FELD[k].min && v <= FELD[k].max; }
+/* letzte Messung vor dem Datum (sonst die jüngste überhaupt) */
+function vorher(date, a) {
+  var p = null;
+  a.forEach(function (x) { if (x.date < date) p = x; });
+  return p;
+}
+function abweichung(m, ref) {
+  if (!ref) return [];
+  return ["kg", "smm", "kfa"].filter(function (k) {
+    return inRange(k, m[k]) && Math.abs(m[k] - ref[k]) > FELD[k].warn;
+  }).map(function (k) { return FELD[k].name + " " + sg(m[k] - ref[k]) + " " + FELD[k].einheit; });
+}
+/* "12.11.2026", "12.11.26", "12.11." (laufendes Jahr) → "2026-11-12" | null */
+function parseDatum(s) {
+  var m = String(s || "").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})?$/);
+  if (!m) return null;
+  var y = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : new Date().getFullYear();
+  var d = new Date(y, Number(m[2]) - 1, Number(m[1]), 12);
+  if (d.getMonth() !== Number(m[2]) - 1 || d.getDate() !== Number(m[1])) return null;
+  return iso(d);
+}
+function bedingung(date) {
+  try {
+    var dl = (typeof PLAN !== "undefined" && PLAN.deload) ? PLAN.deload : null;
+    return check(date, date, readJSON("tl-f", {}), readJSON("tl-d", []), readJSON("tl-e", []), dl).gesamt;
+  } catch (e) { return null; }
+}
+
+/* Formular: immer der letzte Schritt vor dem Speichern, auch nach dem Foto */
+function edit(m, note) {
+  if (!root.tlAsk) return Promise.resolve();
+  var a = mess(), ref = vorher(m.date, a) || a[a.length - 1] || null, ab = abweichung(m, ref);
+  var text = m.src === "foto" ? "Vom Foto gelesen – bitte mit dem Display vergleichen." : "Werte vom InBody-Ergebnisbildschirm.";
+  if (ab.length) text += "\n⚠ Weicht stark von der Messung am " + dm(ref.date) + " ab: " + ab.join(" · ") + ". Ziffern prüfen.";
+  if (note) text += "\n" + note;
+  var val = function (k) { return typeof m[k] === "number" && isFinite(m[k]) ? m[k] : null; };
+  return root.tlAsk.form({
+    title: "InBody-Messung", text: text, ok: "Speichern",
+    fields: [
+      { key: "date", label: "Datum", type: "text", value: dmy(m.date), placeholder: "TT.MM.JJJJ" },
+      { key: "kg",  label: "Gewicht", type: "num", suffix: "kg", value: val("kg"), placeholder: "73,4" },
+      { key: "smm", label: "Skelettmuskelmasse", type: "num", suffix: "kg", value: val("smm"), placeholder: "36,7" },
+      { key: "kfa", label: "Körperfett", type: "num", suffix: "%", value: val("kfa"), placeholder: "13,0" }
+    ]
+  }).then(function (r) {
+    if (!r) return;
+    var date = parseDatum(r.date);
+    var n = { date: date || m.date, kg: r.kg, smm: r.smm, kfa: r.kfa, src: m.src || "hand" };
+    var bad = !date ? "Datum bitte als TT.MM.JJJJ"
+            : date > heute() ? "Das Datum liegt in der Zukunft"
+            : !inRange("kg", n.kg) || !inRange("smm", n.smm) || !inRange("kfa", n.kfa) ? "Bitte alle drei Werte plausibel eintragen" : "";
+    if (bad) { flash(bad); return edit(n, note); }
+    var alle = mess(), alt = alle.filter(function (x) { return x.date === n.date; })[0];
+    var store = function () {
+      var rest = mess().filter(function (x) { return x.date !== n.date; });
+      rest.push({ id: Date.now(), date: n.date, kg: Math.round(n.kg * 10) / 10, smm: Math.round(n.smm * 10) / 10,
+                  kfa: Math.round(n.kfa * 10) / 10, src: n.src, bed: bedingung(n.date) });
+      saveMess(rest);
+      renderMess(); render();
+      flash("Messung gespeichert ✓");
+    };
+    if (!alt) return store();
+    return root.tlAsk.confirm({
+      title: "Ersetzen?",
+      text: "Für den " + dmy(n.date) + " gibt es schon eine Messung (" + f1(alt.kg) + " kg · SMM " + f1(alt.smm) + " · KFA " + f1(alt.kfa) + " %).",
+      ok: "Ersetzen"
+    }).then(function (yes) { if (yes) store(); });
+  });
+}
+
+/* how: "foto" (Kamera) | "galerie" | "hand" */
+root.tlInbodyAdd = function (how) {
+  var leer = { date: heute(), src: "hand" };
+  var L = root.tlLabel;
+  if (how === "hand" || !L || !L.vision || !L.photo) return edit(leer, "");
+  return L.key().then(function (k) {
+    return k ? L.photo(how === "galerie") : null;
+  }).then(function (b64) {
+    if (!b64) return null;
+    return L.vision({ prompt: PROMPT, image: b64, tool: TOOL, maxTokens: 1000, busy: "InBody-Werte werden gelesen …" }).then(function (x) {
+      if (!x) return edit(leer, "Das Foto konnte nicht gelesen werden – Werte bitte von Hand eintragen.");
+      var m = { date: heute(), src: "foto", kg: Number(x.gewicht), smm: Number(x.smm), kfa: Number(x.kfa) };
+      var ok = x.lesbar !== false && inRange("kg", m.kg) && inRange("smm", m.smm) && inRange("kfa", m.kfa);
+      if (!ok) {
+        ["kg", "smm", "kfa"].forEach(function (f) { if (!inRange(f, m[f])) m[f] = null; });
+        return edit(m, "Nicht alles sicher lesbar – fehlende Werte bitte ergänzen." + (x.hinweis ? " " + String(x.hinweis).slice(0, 120) : ""));
+      }
+      return edit(m, x.hinweis ? String(x.hinweis).slice(0, 120) : "");
+    });
+  }).catch(function () { flash("Foto konnte nicht verarbeitet werden"); });
+};
+root.tlInbodyDel = function (id) {
+  var m = mess().filter(function (x) { return x.id === id; })[0];
+  if (!m || !root.tlAsk) return;
+  root.tlAsk.confirm({ title: "Messung löschen?", text: dmy(m.date) + " · " + f1(m.kg) + " kg · SMM " + f1(m.smm) + " · KFA " + f1(m.kfa) + " %", ok: "Löschen", danger: true })
+    .then(function (yes) {
+      if (!yes) return;
+      saveMess(mess().filter(function (x) { return x.id !== id; }));
+      renderMess(); render();
+      flash("Gelöscht");
+    });
+};
+root.tlInbodyMess = mess;
+
+function addBtns() {
+  return '<div class="ib-btns"><button class="ib-b" onclick="tlInbodyAdd(\'foto\')">📷 Foto</button>' +
+    '<button class="ib-b" onclick="tlInbodyAdd(\'galerie\')">Aus Galerie</button>' +
+    '<button class="ib-b" onclick="tlInbodyAdd(\'hand\')">Von Hand</button></div>';
+}
+function werte(m) { return f1(m.kg) + " kg · SMM " + f1(m.smm) + " · KFA " + f1(m.kfa) + " %"; }
+
+function renderMess() {
+  var box = document.getElementById("ib-mess"); if (!box) return;
+  var wv = document.getElementById("view-weight"), dg = document.getElementById("dg-cont");
+  /* bleibt direkt über der Diagnose, auch wenn andere Module danach noch etwas anhängen */
+  if (wv && dg && dg.parentNode === wv && dg.previousElementSibling !== box) wv.insertBefore(box, dg);
+  var a = mess(), last = a[a.length - 1], prev = a[a.length - 2];
+  var h = '<div class="dhead"><div class="dhl">INBODY</div><div class="dhline"></div></div><div class="fsec ib-m">';
+  if (last) {
+    h += '<div class="fsub">Letzte Messung · ' + dmy(last.date) + "</div>" +
+      '<div class="ib-big"><div><b>' + f1(last.kg) + "</b><span>kg Gewicht</span></div><div><b>" + f1(last.smm) +
+      "</b><span>kg Muskel (SMM)</span></div><div><b>" + f1(last.kfa) + "</b><span>% Körperfett</span></div></div>";
+    if (prev) h += '<div class="ib-x">Seit ' + dm(prev.date) + ": " + sg(last.kg - prev.kg) + " kg · SMM " + sg(last.smm - prev.smm) +
+      " kg · KFA " + sg(last.kfa - prev.kfa) + " Punkte</div>";
+  } else {
+    h += '<div class="ib-x">Noch keine Messung erfasst.</div>';
+  }
+  h += addBtns();
+  if (a.length) {
+    h += '<div class="ib-list">' + a.slice().reverse().map(function (m) {
+      var tag = m.bed === "ok" ? '<span class="ib-tag ib-ok">Bedingungen ✓</span>' : m.bed === "nein" ? '<span class="ib-tag ib-nein">Bedingungen ✕</span>' : "";
+      return '<div class="ib-row"><div class="ib-rd">' + dmy(m.date) + '</div><div class="ib-rv">' + werte(m) + tag +
+        '</div><button class="ib-del" aria-label="Messung löschen" onclick="tlInbodyDel(' + m.id + ')">×</button></div>';
+    }).join("") + "</div>";
+  }
+  h += '<div class="fhint">Das Foto wird nur zum Auslesen an Claude geschickt und nicht gespeichert. Unterschiede bis etwa ±0,3 kg SMM liegen im Messrauschen des Geräts.</div></div>';
+  box.innerHTML = h;
+}
+
 var ICON = { ok: "✓", offen: "○", fehlt: "?", nein: "✕" };
 function zeile(st, titel, text) {
   return '<div class="ib-r ib-' + st + '"><span class="ib-i">' + ICON[st] + '</span><div><div class="ib-k">' + titel +
@@ -174,8 +383,17 @@ function render() {
     zeile(K.kh.st, "Normale Kohlenhydrate, 3 Tage davor", t2) +
     zeile(k3.st, "≥ 2 Trainingstage in den 7 Tagen davor", t3) +
     zeile(k4.st, "Ruhetag am Vortag", t4) +
+    messHeute(r.termin, d) +
     '<div class="fhint">Am Morgen: 07:00, nüchtern, vor dem Trinken, nach dem Toilettengang · altes Studio, gleiches Gerät. ' +
     "Kriterien seit 07.08.: Messungen, die sie verfehlen, werden verworfen.</div></div>";
+}
+
+/* Messtag: Werte erfassen oder das Ergebnis zeigen */
+function messHeute(termin, d) {
+  if (d !== 0) return "";
+  var m = mess().filter(function (x) { return x.date === termin; })[0];
+  if (m) return '<div class="ib-done">Messung erfasst: <b>' + werte(m) + "</b></div>";
+  return '<div class="ib-add"><div class="ib-k">Messung erfassen</div>' + addBtns() + "</div>";
 }
 
 root.tlInbodySym = function (v) {
@@ -220,7 +438,23 @@ var CSS = [
   ".ib-btns { display:flex; gap:8px; margin-top:8px; }",
   ".ib-b { flex:1; padding:9px 6px; border-radius:8px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-family:var(--fb); font-size:12.5px; font-weight:700; }",
   ".ib-b.on { border-color:#B8DCB8; background:var(--go-bg); color:var(--go); }",
-  ".ib-b.on.no { border-color:#E8B4AC; background:#FBE9E7; color:#A33A2A; }"
+  ".ib-b.on.no { border-color:#E8B4AC; background:#FBE9E7; color:#A33A2A; }",
+  /* Messungen */
+  ".ib-m { margin-top:0; }",
+  ".ib-big { display:flex; gap:8px; margin-bottom:8px; }",
+  ".ib-big > div { flex:1; min-width:0; }",
+  ".ib-big b { display:block; font-family:var(--fd); font-size:30px; letter-spacing:1px; line-height:1.1; color:var(--text); font-weight:400; font-variant-numeric:tabular-nums; }",
+  ".ib-big span { display:block; font-size:11px; color:var(--muted); line-height:1.3; margin-top:2px; }",
+  ".ib-list { margin-top:14px; border-top:1px solid var(--border); }",
+  ".ib-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }",
+  ".ib-rd { flex:0 0 78px; font-size:12.5px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; }",
+  ".ib-rv { flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--text); font-variant-numeric:tabular-nums; }",
+  ".ib-tag { display:block; font-size:11px; font-weight:600; margin-top:2px; }",
+  ".ib-tag.ib-ok { color:var(--go); } .ib-tag.ib-nein { color:#A33A2A; }",
+  ".ib-del { flex:0 0 32px; height:32px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:16px; line-height:1; }",
+  ".ib-add { padding:10px 0 2px; border-top:1px solid var(--border); }",
+  ".ib-done { padding:10px 0 2px; border-top:1px solid var(--border); font-size:13px; color:var(--muted); }",
+  ".ib-done b { color:var(--text); font-variant-numeric:tabular-nums; }"
 ].join("\n");
 
 function init() {
@@ -232,9 +466,15 @@ function init() {
   var todo = document.getElementById("d-todo");
   if (todo && todo.parentNode) todo.parentNode.insertBefore(box, todo.nextSibling);
   else wv.insertBefore(box, wv.firstChild);
-  document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") render(); });
-  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") render(); });
+  /* Messungen: eigener Abschnitt unten, über der Diagnose */
+  seed();
+  var mb = document.createElement("div"); mb.id = "ib-mess";
+  var dg = document.getElementById("dg-cont");
+  if (dg && dg.parentNode === wv) wv.insertBefore(mb, dg); else wv.appendChild(mb);
+  document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") { render(); renderMess(); } });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { render(); renderMess(); } });
   render();
+  renderMess();
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();

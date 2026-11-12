@@ -96,10 +96,11 @@ function getKey() {
 }
 
 /* ─── Foto ────────────────────────────────────────── */
-function pickPhoto() {
+function pickPhoto(gallery) {
   return new Promise(function (res) {
     var i = document.createElement("input");
-    i.type = "file"; i.accept = "image/*"; i.setAttribute("capture", "environment");
+    i.type = "file"; i.accept = "image/*";
+    if (!gallery) i.setAttribute("capture", "environment");   // ohne capture bietet Android Galerie/Dateien an
     i.style.display = "none";
     var done = false;
     var fin = function (f) { if (done) return; done = true; i.remove(); res(f || null); };
@@ -184,9 +185,10 @@ function vision(o) {
   });
 }
 
-/* Foto aufnehmen und verkleinert als Base64 liefern (null bei Abbruch) */
-function photo() {
-  return pickPhoto().then(function (f) { return f ? shrink(f) : null; });
+/* Foto aufnehmen – oder mit gallery = true ein vorhandenes wählen – und
+   verkleinert als Base64 liefern (null bei Abbruch) */
+function photo(gallery) {
+  return pickPhoto(gallery).then(function (f) { return f ? shrink(f) : null; });
 }
 
 function ask(key, b64) {
