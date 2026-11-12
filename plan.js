@@ -25,9 +25,6 @@
 // bereits auf dem neuen Gewicht gefahren, dort steht jetzt der
 // tatsächliche Stand statt des veralteten Plangewichts.
 //
-// 05.09.: Nur der Modul-Loader unten wurde erweitert (tracker.js).
-// An den Plandaten ist nichts geändert.
-//
 // REVIEW 30.09. (Oktober-Revision):
 // · Latzug und Ruderzug fest zurück in jede Pull-Einheit. Beide mit
 //   progression.ab = "2026-10-01": Wiedereinstieg nach 3,5 bzw. 6
@@ -221,47 +218,22 @@ const PLAN = {
 // Begründung: Der Quadrizeps wird von der Beinpresse mitgetragen, die
 // Hamstrings hatten in der bisherigen Rotation nur ~1×/Woche Reiz.
 
-// Lädt die Zusatzmodule nach (daily.js = Kalorien/Steifigkeit,
-// sync.js = GitHub-Backup, progress.js = Erhöhungs-Signal,
-// tracker.js = Makro-Tracking/Abendpensum).
-// Liegt hier, weil GitHub keine Teil-Updates erlaubt und index.html dadurch
-// unangetastet bleibt. async=false erzwingt die Ausführungsreihenfolge –
-// sync.js muss nach daily.js laufen, damit es showView/exportCSV aussen umschliesst.
-// progress.js danach: es umschliesst refreshHint/renderLog/saveEntry.
-// tracker.js zuletzt: es umschliesst showView als aeusserste Schicht und
-// braucht setKcal aus daily.js fuer den Knopf "Tag abschliessen".
-// dialog.js zuerst (02.10.): tlAsk ersetzt confirm/prompt/alert in tracker.js und sync.js.
-// push.js (02.10.): Erinnerungen, nutzt tlSync und showView("food").
-// header.js ganz zuletzt (03.10.): Status-Chip oben rechts, äußerste showView-Schicht.
-// Beim nächsten index.html-Commit sauber als eigene <script>-Tags dorthin ziehen
-// und diesen Block entfernen.
-// ghealth.js (22.10.): Google Health (Schritte, Schlaf, Ruhepuls, HRV) als eigene Ansicht "health".
-// oura.js (05.11.): Oura-Ring aus oura/data.json (Daten-Repo), erster Abschnitt in "health", ersetzt Google Health sobald live.
-// scrub.js (28.10.): Verlaufsgraphen per Gedrückthalten abtasten (Datum + Wert).
-// nav.js (22.10.): Bereiche Training / Ernährung / Körper mit Chips – wirklich ganz außen, als Letztes.
-// studio.js (18.10.): Studio pro Eintrag, vor progress.js (das window.tlStudio nutzt).
-// uebung.js (22.10.): Testübungen per Freitext + Umzug der Overhead-Einträge, nach progress.js.
-// abgleich.js (31.10.): Essen-Tab – fehlende Tage aus dem Backup einzeln zurückholen, Hinweis „Gestern nicht abgeschlossen“.
-// push.js (31.10.): Chrome-Push entfernt, nur noch Sprungziele + ntfy-Status/An-Aus.
-// energie.js (31.10.): Energiebilanz-Schätzer, Karte unter Ernährung › Heute.
-// reise.js (03.11.): Reise-Modus, Karte oben in Ernährung › Heute; studio.js fragt tlReise.
-// inbody.js (03.11.): InBody-Bereitschaftscheck, Karte oben im Werte-Tab ab 6 Tage vor dem Termin.
-// swipe.js (05.11.): Wischen zwischen den Unteransichten eines Bereichs, nach nav.js.
-// back.js (11.11.): Android-Zurück führt in allen Ansichten zur vorherigen Ansicht, unterste Ebene Log.
-// diag.js (08.11.): Fehlerprotokoll + navigator.storage.persist(), Karte „Diagnose“ unten im Werte-Tab – als erstes Modul.
-// label.js (08.11.): Nährwerte vom Etikett-Foto per Claude, vor scan.js.
-// speise.js (08.11.): Speisekarte / Gericht schätzen als Einmal-Posten; braucht label.js und tracker.js, tlReise nur zur Laufzeit; vor scan.js.
-// scan.js (08.11.): Barcode-Scanner (Heute › Produkte und Vorrat), nach tracker.js und vorrat.js.
-// view.js (10.11.): showView als Ereignis "tl:view" statt Umschließen – als allererstes Modul, vor diag.js.
-// vorrat-core.js + vorrat.js (31.10.): Vorrat & Einkauf (Ernährung › Vorrat · Einkauf), vor nav.js.
-// 08.11.: Sofort-Updates. GitHub Pages lässt Dateien bis zu 10 min im
-// Browser-Cache – nach einem Push kam die neue Version deshalb mal sofort,
-// mal erst nach Minuten. Jetzt fragt der Loader jedes Modul vorher mit
-// cache:"no-cache" an (ETag-Abgleich, unverändert = kurze 304-Antwort) und
-// frischt so den Cache auf; die <script>-Tags laden danach die aktuelle
-// Fassung. index.html und plan.js werden mit aufgefrischt und sind damit ab
-// dem nächsten Start aktuell. Nach 2,5 s (offline, langsames Netz) wird
-// ohne Abgleich geladen, wie bisher.
+// ─── Modul-Loader ─────────────────────────────────────
+// Lädt die Zusatzmodule in fester Reihenfolge (async=false). Seit dem
+// 10.11. hört jedes Modul auf das Ereignis "tl:view" (view.js), statt
+// showView zu umschließen – die Reihenfolge zählt nur noch dort, wo ein
+// Modul beim Laden auf ein anderes zugreift:
+//   view.js zuerst (showView), dann diag.js (Fehlerprotokoll ab Start),
+//   dialog.js vor allen, die tlAsk nutzen; daily.js vor sync.js;
+//   studio.js → progress.js → uebung.js; tracker.js vor speise/scan;
+//   vorrat-core.js → vorrat.js; label.js → speise.js → scan.js;
+//   nav.js, swipe.js, back.js als Letzte (brauchen alle Ansichten).
+// Was jedes Modul macht, steht in seinem eigenen Kopf.
+// Sofort-Updates (08.11.): GitHub Pages hält Dateien bis zu 10 min im
+// Browser-Cache. Deshalb wird jedes Modul vorher mit cache:"no-cache"
+// abgeglichen (unverändert = kurze 304-Antwort); index.html und plan.js
+// gelten damit ab dem nächsten Start. Nach 2,5 s ohne Antwort (offline)
+// wird ohne Abgleich geladen.
 (function () {
   var MODS = ["view.js", "diag.js", "dialog.js", "daily.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "speise.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js", "back.js"];
   var done = false;
