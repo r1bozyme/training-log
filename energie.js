@@ -120,7 +120,7 @@ function render() {
   if (best && g) {
     var diff = g - best.erhaltung, erw = diff * 7 / RHO;
     h += '<div class="fhint">Ziel ' + fmt(g) + ' kcal = ' + (diff >= 0 ? "Überschuss" : "Defizit") + ' ≈ ' + fmt(Math.abs(diff)) +
-      ' kcal → erwartet ' + kgw(erw) + '. Zielkorridor Lean Bulk: +0,1 bis +0,35 kg/Woche.</div>';
+      ' kcal → erwartet ' + kgw(erw) + '. Zielkorridor Lean Bulk: +0,1 bis +0,25 kg/Woche, Ziel +0,2.</div>';
   }
   h += '<div class="fhint">Rechnung: Zufuhr − Trend × 7.000 kcal/kg. Saubere Tage = abgeschlossen, nicht „geschätzt“, nicht „Reise“. ' +
     'Das Band fasst drei Unsicherheiten zusammen: Gewichtstrend, Streuung der Zufuhr und Auswahl – die Zufuhr stammt nur aus sauberen Tagen, ' +

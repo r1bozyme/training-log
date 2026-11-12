@@ -889,8 +889,10 @@ function buildStats() {
 }
 
 // ─── GEWICHT ─────────────────────────────────────────
-// Zielkorridor Lean Bulk: 0,05–0,15 kg/Woche (~0,2–0,6 kg/Monat)
-const W_MIN = 0.05, W_MAX = 0.15;
+// Zielkorridor Lean Bulk: 0,1–0,25 kg/Woche, Ziel 0,2 (~0,4–1,1 kg/Monat).
+// 12.11.2026 angehoben von 0,05–0,15: erstes Trainingsjahr, SMM seit August
+// unverändert. Untergrenze = Schwelle der Nachlege-Regel im Tracker.
+const W_MIN = 0.1, W_MAX = 0.25, W_ZIEL = 0.2;
 const W_TAU = 10;   // Glättungskonstante in Tagen
 const W_WIN = 28;   // Regressionsfenster in Tagen
 let wRange = 90;    // sichtbarer Zeitraum in Tagen (0 = alles)
@@ -1157,7 +1159,7 @@ function buildWeight() {
     </div>`).join("")}
   </div>`;
 
-  html += `<div class="wnote">⚖️ Immer unter gleichen Bedingungen wiegen: morgens, nüchtern, nach dem Toilettengang, vor dem Trinken. Die Trendlinie glättet Tagesschwankungen über eine Zeitkonstante von ${W_TAU} Tagen – nur sie zählt, nicht der Einzelwert.<br><br>Zielkorridor Lean Bulk: <strong>${fmtNum(W_MIN, 2)}–${fmtNum(W_MAX, 2)} kg/Woche</strong>. Gewichtsdaten sind im CSV-Export im Log-Tab enthalten.</div>`;
+  html += `<div class="wnote">⚖️ Immer unter gleichen Bedingungen wiegen: morgens, nüchtern, nach dem Toilettengang, vor dem Trinken. Die Trendlinie glättet Tagesschwankungen über eine Zeitkonstante von ${W_TAU} Tagen – nur sie zählt, nicht der Einzelwert.<br><br>Zielkorridor Lean Bulk: <strong>${fmtNum(W_MIN, 2)}–${fmtNum(W_MAX, 2)} kg/Woche</strong>, Ziel ${fmtNum(W_ZIEL, 1)}. Gewichtsdaten sind im CSV-Export im Log-Tab enthalten.</div>`;
 
   html += startEditor();
 
