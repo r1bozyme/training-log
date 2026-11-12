@@ -673,6 +673,9 @@ const CSS = `
 .pgh-s { flex: 1; min-width: 0; font-size: 13px; color: var(--text); }
 .pgh-s span { font-size: 11px; color: var(--muted); font-weight: 700; margin-left: 4px; }
 .pgh-n { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.last-entry.show > div:last-child { min-width: 0; }
+.last-not { font-size: 12px; color: var(--muted); margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.last-not-d { color: var(--dim); font-size: 11px; }
 `;
 
 let timerEndAt = 0;
@@ -759,6 +762,25 @@ function init() {
       dataEl.textContent = (last.gewicht ? last.gewicht + " kg" : "") + (sets ? "  ·  " + sets + " Wdh" : "");
       dataEl.innerHTML += studioTag(last);
       if (last.erhoehen) dataEl.innerHTML += ' <span class="last-up">↑ erhöhen!</span>';
+      // Kommentar (z. B. Maschineneinstellung): vom letzten Training, sonst der
+      // jüngste Kommentar dieser Übung aus demselben Studio – dann mit Datum.
+      let notEl = document.getElementById("last-not");
+      if (!notEl) {
+        notEl = document.createElement("div");
+        notEl.id = "last-not";
+        notEl.className = "last-not";
+        dataEl.parentNode.appendChild(notEl);
+      }
+      const mitNotiz = pool.filter(function (e) { return String(e.notiz || "").trim(); });
+      const n = mitNotiz.length ? mitNotiz[mitNotiz.length - 1] : null;
+      if (n) {
+        notEl.innerHTML = "💬 " + escA(String(n.notiz).trim()) +
+          (n === last ? "" : ' <span class="last-not-d">· ' + escA(fmtDate(n.date)) + "</span>");
+        notEl.style.display = "";
+      } else {
+        notEl.textContent = "";
+        notEl.style.display = "none";
+      }
     };
   }
 
