@@ -241,6 +241,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .wlegend { display: flex; gap: 12px; font-size: 10px; color: var(--muted); font-weight: 600; }
 .wlegend span { display: flex; align-items: center; gap: 4px; }
 .wdot { width: 14px; height: 2.5px; border-radius: 2px; display: inline-block; }
+.wdot-fc { height: 8px; background: rgba(46,125,50,.18); border: 1px solid rgba(46,125,50,.45); box-sizing: border-box; }
+.wfc { font-size: 11.5px; color: var(--muted); padding: 8px 4px 2px; font-variant-numeric: tabular-nums; }
+.wfc b { color: #2E7D32; font-weight: 700; }
 .wsvg { width: 100%; height: auto; display: block; }
 .wrange { display: flex; gap: 6px; padding: 12px 20px 0; }
 .wrbtn { flex: 1; padding: 8px 0; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-family: var(--fb); font-weight: 600; font-size: 12px; cursor: pointer; transition: all .15s; }
@@ -893,6 +896,14 @@ function buildStats() {
 // 12.11.2026 angehoben von 0,05–0,15: erstes Trainingsjahr, SMM seit August
 // unverändert. Untergrenze = Schwelle der Nachlege-Regel im Tracker.
 const W_MIN = 0.1, W_MAX = 0.25, W_ZIEL = 0.2;
+// Prognose-Trichter im Verlauf: vom letzten Trendpunkt so viele Tage nach vorn
+const W_FC_TAGE = 28;
+function wForecast(cur) {
+  const wo = W_FC_TAGE / 7, d = new Date(cur.date + "T12:00:00");
+  d.setDate(d.getDate() + W_FC_TAGE);
+  const iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  return { day: cur.day + W_FC_TAGE, date: iso, lo: cur.trend + W_MIN * wo, ziel: cur.trend + W_ZIEL * wo, hi: cur.trend + W_MAX * wo };
+}
 const W_TAU = 10;   // Glättungskonstante in Tagen
 const W_WIN = 28;   // Regressionsfenster in Tagen
 let wRange = 90;    // sichtbarer Zeitraum in Tagen (0 = alles)
@@ -1040,8 +1051,10 @@ function fmtNum(n, dec) {
 
 function weightChart(pts) {
   const W = 320, H = 180, padL = 34, padR = 8, padT = 10, padB = 20;
-  const days = pts.map(p => p.day);
-  const vals = pts.flatMap(p => [p.kg, p.trend]);
+  const lastP = pts[pts.length - 1];
+  const fc = wForecast(lastP);
+  const days = pts.map(p => p.day).concat(fc.day);
+  const vals = pts.flatMap(p => [p.kg, p.trend]).concat(fc.lo, fc.hi);
   const dMin = Math.min(...days), dMax = Math.max(...days);
   const vMin = Math.min(...vals),  vMax = Math.max(...vals);
   const span = Math.max(vMax - vMin, 1.2);
@@ -1060,10 +1073,15 @@ function weightChart(pts) {
 
   const raw   = pts.map(p => X(p.day).toFixed(1) + "," + Y(p.kg).toFixed(1)).join(" ");
   const trend = pts.map(p => X(p.day).toFixed(1) + "," + Y(p.trend).toFixed(1)).join(" ");
-  const lastP = pts[pts.length - 1];
+
+  // Trichter: Korridor W_MIN–W_MAX ab dem letzten Trendpunkt, Ziellinie gestrichelt
+  const x0 = X(lastP.day).toFixed(1), y0 = Y(lastP.trend).toFixed(1), x1 = X(fc.day).toFixed(1);
+  const funnel = `<line x1="${x0}" y1="${padT}" x2="${x0}" y2="${H - padB}" stroke="#E4E4E4" stroke-width="1" stroke-dasharray="2 3"/>
+    <polygon points="${x0},${y0} ${x1},${Y(fc.hi).toFixed(1)} ${x1},${Y(fc.lo).toFixed(1)}" fill="#2E7D32" fill-opacity="0.13" stroke="#2E7D32" stroke-opacity="0.35" stroke-width="1" stroke-linejoin="round"/>
+    <line x1="${x0}" y1="${y0}" x2="${x1}" y2="${Y(fc.ziel).toFixed(1)}" stroke="#2E7D32" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>`;
 
   const lblFirst = fmtDate(pts[0].date).slice(0, 6);
-  const lblLast  = fmtDate(lastP.date).slice(0, 6);
+  const lblLast  = fmtDate(fc.date).slice(0, 6);
 
   const scrub = scrubAttr(pts.map(p => ({
     x: X(p.day), y: [Y(p.kg), Y(p.trend)], c: ["#BBBBBB", "#1A1A1A"],
@@ -1072,6 +1090,7 @@ function weightChart(pts) {
 
   return `<svg class="wsvg" viewBox="0 0 ${W} ${H}"${scrub}>
     ${grid}
+    ${funnel}
     <polyline points="${raw}" fill="none" stroke="#D8D8D8" stroke-width="1.5" stroke-linejoin="round"/>
     <polyline points="${trend}" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="${X(lastP.day).toFixed(1)}" cy="${Y(lastP.trend).toFixed(1)}" r="3.5" fill="#1A1A1A"/>
@@ -1131,15 +1150,18 @@ function buildWeight() {
   <div class="wverdict ${verdictCls}">${verdict}</div>`;
 
   if (pts.length >= 2) {
+    const fc = wForecast(cur);
     html += `<div class="wchart">
       <div class="wchart-hd">
         <div class="wchart-t">VERLAUF</div>
         <div class="wlegend">
           <span><i class="wdot" style="background:#D8D8D8"></i>Messung</span>
           <span><i class="wdot" style="background:#1A1A1A"></i>Trend</span>
+          <span><i class="wdot wdot-fc"></i>Korridor</span>
         </div>
       </div>
       ${weightChart(pts)}
+      <div class="wfc">In 4 Wochen (${fmtDate(fc.date).slice(0, 6)}): Ziel ≈ <b>${fmtNum(fc.ziel, 1)} kg</b> · Korridor ${fmtNum(fc.lo, 1)}–${fmtNum(fc.hi, 1)}</div>
     </div>`;
   }
 
