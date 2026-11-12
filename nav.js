@@ -8,9 +8,9 @@
      Körper     Werte · Tracker
 
    Die Views bleiben, wie sie sind (add, log, stats, plan, food,
-   weight, health). Die alten Knöpfe der .bnav bleiben im DOM, aber
-   unsichtbar – index.html und die Module schalten deren .active
-   weiter um, ohne Null-Prüfung. Gesteuert wird nur über showView.
+   weight, health). Die alten fünf Knöpfe der .bnav sind seit dem 12.11.
+   aus index.html entfernt; die Leiste ist dort leer und wird hier
+   gefüllt. Gesteuert wird nur über showView (view.js).
 
    Ein Tipp auf einen Bereich öffnet die Ansicht, die dort zuletzt
    offen war (nur für diese Sitzung).
@@ -39,7 +39,7 @@ function areaOf(v) {
 }
 
 var CSS = [
-  /* alte Knöpfe aus, neue Bereichsknöpfe größer (schlägt die 10px aus tracker.js) */
+  /* nur Bereichsknöpfe zeigen (falls index.html noch mit den alten Knöpfen aus dem Cache kommt), größer als die 10px aus tracker.js */
   ".bnav .nbtn:not(.nav3) { display:none; }",
   ".bnav .nbtn.nav3 { font-size:13px; padding:12px 0; letter-spacing:0; }",
 

@@ -1757,18 +1757,6 @@ function init() {
     if (moved) saveOwn(own);
   } catch (e) { /* unkritisch */ }
 
-  // Nav-Knopf vor "Plan" einhängen
-  var nav = document.querySelector(".bnav");
-  var planBtn = document.getElementById("nav-plan");
-  if (nav && !document.getElementById("nav-food")) {
-    var b = document.createElement("button");
-    b.className = "nbtn";
-    b.id = "nav-food";
-    b.textContent = "Essen";
-    b.onclick = function () { showView("food"); };
-    if (planBtn) nav.insertBefore(b, planBtn); else nav.appendChild(b);
-  }
-
   /* Ansichtswechsel: showView (view.js) schaltet view-food selbst um
      und meldet den Wechsel, hier wird nur gerendert. */
   document.addEventListener("tl:view", function (e) { if (e.detail.view === "food") buildFood(); });

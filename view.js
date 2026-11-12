@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
    view.js – Ansichtswechsel als Ereignis (10.11.2026)
 
-   Ersetzt showView() aus index.html vollständig:
+   Einzige showView() der App (die alte in index.html ist seit dem 12.11. entfernt):
      1. schaltet alle Ansichten (.view mit id="view-…") generisch um,
         auch die von Modulen angelegten (food, vorrat, einkauf, health),
      2. ruft die drei Grund-Renderer aus index.html (Log, Stats, Werte),
@@ -17,8 +17,8 @@
    auf (früher brach er alle äußeren Schichten mit ab) und landet im
    Fehlerprotokoll (diag.js).
 
-   Lädt als erstes Modul. Hängt nicht davon ab, ob index.html die alten
-   Knöpfe der unteren Leiste (nav-…) noch enthält.
+   Lädt als erstes Modul. Die untere Leiste und die Chips zeichnet nav.js;
+   die alten fünf Knöpfe (nav-…) sind seit dem 12.11. aus index.html entfernt.
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
@@ -33,8 +33,6 @@ function showView(v) {
   var i;
   var views = document.querySelectorAll('.view[id^="view-"]');
   for (i = 0; i < views.length; i++) views[i].classList.toggle("active", views[i].id === "view-" + v);
-  var btns = document.querySelectorAll('.bnav .nbtn[id^="nav-"]');
-  for (i = 0; i < btns.length; i++) btns[i].classList.toggle("active", btns[i].id === "nav-" + v);
   try {
     if (v === "log")    call("renderLog");
     if (v === "stats")  call("buildStats");

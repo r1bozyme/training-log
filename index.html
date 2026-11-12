@@ -395,13 +395,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 
 <div class="flash" id="flash"></div>
 
-<div class="bnav">
-  <button class="nbtn active" id="nav-add" onclick="showView('add')">＋ Eintrag</button>
-  <button class="nbtn" id="nav-log" onclick="showView('log')">Log</button>
-  <button class="nbtn" id="nav-stats" onclick="showView('stats')">Stats</button>
-  <button class="nbtn" id="nav-weight" onclick="showView('weight')">Gewicht</button>
-  <button class="nbtn" id="nav-plan" onclick="showView('plan')">Plan</button>
-</div>
+<!-- Untere Leiste: die drei Bereiche (Training · Ernährung · Körper) hängt nav.js ein. -->
+<div class="bnav"></div>
 
 <script src="plan.js"></script>
 <script>
@@ -435,8 +430,8 @@ document.addEventListener("DOMContentLoaded", () => {
   fillUebung("Push");
   refreshHint();
   buildPlan();
-  // Start immer im Eintrag-Tab (frueher: Log, sobald Eintraege vorhanden).
-  // Spruenge aus Benachrichtigungen setzt push.js danach separat.
+  // view-add ist nur bis zum Laden der Module sichtbar: nav.js wechselt
+  // beim Start ins Log, Sprünge aus Erinnerungen setzt push.js danach.
 });
 
 // ─── STORAGE ─────────────────────────────────────────
@@ -591,31 +586,10 @@ function saveEntry() {
 }
 
 // ─── TIMER ───────────────────────────────────────────
-function startTimer() {
-  const name = document.getElementById("f-uebung").value;
-  const ex   = PLAN[curEinheit].find(x => x.name === name);
-  const p    = PAUSE[(ex && ex.typ) || "isolation"] || PAUSE.isolation;
-  timerTotal = p.secs;
-  timerLeft  = p.secs;
-  timerState = "running";
-  renderTimer();
-  clearInterval(timerIv);
-  timerIv = setInterval(() => {
-    timerLeft--;
-    document.getElementById("timer-disp").textContent = fmtTime(timerLeft);
-    if (timerLeft <= 0) {
-      clearInterval(timerIv);
-      timerState = "done";
-      renderTimer();
-      if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
-      showFlash("Pause vorbei – nächster Satz! 💪");
-    }
-  }, 1000);
-}
-
+// startTimer() kommt aus progress.js (zeitstempelbasiert, Signalton, Wake Lock).
 function toggleTimer() {
   if (timerState === "idle") {
-    startTimer();
+    if (typeof startTimer === "function") startTimer();   // progress.js, lädt kurz nach dem Start
   } else if (timerState === "running") {
     clearInterval(timerIv);
     timerState = "idle";
@@ -1224,15 +1198,8 @@ function exportCSV() {
 }
 
 // ─── VIEWS ───────────────────────────────────────────
-function showView(v) {
-  ["add", "log", "stats", "weight", "plan"].forEach(id => {
-    document.getElementById("view-" + id).classList.toggle("active", id === v);
-    document.getElementById("nav-"  + id).classList.toggle("active", id === v);
-  });
-  if (v === "log")    renderLog();
-  if (v === "stats")  buildStats();
-  if (v === "weight") buildWeight();
-}
+// showView(v) kommt aus view.js: schaltet die Ansicht um, ruft renderLog /
+// buildStats / buildWeight und meldet den Wechsel als Ereignis "tl:view".
 
 // ─── UTILS ───────────────────────────────────────────
 function todayStr() { return new Date().toISOString().split("T")[0]; }

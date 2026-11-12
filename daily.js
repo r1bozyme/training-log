@@ -542,10 +542,6 @@ function init() {
 
   document.getElementById("d-date").value = todayStr();
 
-  // Tab heißt nicht mehr nur "Gewicht"
-  const nav = document.getElementById("nav-weight");
-  if (nav) nav.textContent = "Werte";
-
   // Wiegen-Block sitzt unter dem GEWICHT-Kopf – oberen Abstand rausnehmen
   // und als Sprungziel markieren.
   const wSec = view.querySelector(".sec");
