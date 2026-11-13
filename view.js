@@ -51,6 +51,10 @@ window.tlScrollTop = function () {
   var hdr = document.querySelector("#app .hdr");
   var chips = document.getElementById("chipnav");
   var keep = hdr ? hdr.offsetTop + hdr.offsetHeight + (chips ? parseFloat(getComputedStyle(chips).marginTop) || 0 : 0) : 0;
-  window.scrollTo(0, keep && window.scrollY >= keep ? keep : 0);
+  var weg = keep && window.scrollY >= keep;
+  /* Kurze Ansichten (Einkauf, Tracker …) lassen sich sonst nicht so weit
+     scrollen – dann unten so viel Platz geben, dass der Kopf weg bleiben kann. */
+  document.body.style.minHeight = weg ? (keep + window.innerHeight) + "px" : "";
+  window.scrollTo(0, weg ? keep : 0);
 };
 })();
