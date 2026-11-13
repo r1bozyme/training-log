@@ -214,14 +214,20 @@ function openItems() {
 
 window.dailyOpenItems = openItems;   // header.js: Chip im Werte-Tab
 
-window.jumpOpen = function () {
-  const items = openItems();
-  if (!items.length) return;
-  const sec = document.getElementById(items[0].id);
+// Sprung zu einem Abschnitt; eine zur Zeile geschrumpfte Karte wird dabei aufgeklappt.
+const KARTE = { "d-kcalsec": "kcal", "d-stiffsec": "stiff", "d-thumbsec": "thumb" };
+window.tlJump = function (id) {
+  if (KARTE[id] && window.tlWerte && document.querySelector("#" + id + " .wt-mini")) tlWerte.show(KARTE[id]);
+  const sec = document.getElementById(id);
   if (!sec) return;
   sec.scrollIntoView({ behavior: "smooth", block: "center" });
   sec.classList.add("dflash");
   setTimeout(function () { sec.classList.remove("dflash"); }, 1700);
+};
+
+window.jumpOpen = function () {
+  const items = openItems();
+  if (items.length) tlJump(items[0].id);
 };
 
 // ─── WERTE-KARTEN (13.11.: einheitlicher Aufbau, werte.js) ───
@@ -274,7 +280,7 @@ function buildTodo() {
   el.className = "dtodo" + (items.length ? "" : " done");
   el.onclick = items.length ? window.jumpOpen : null;
   el.innerHTML = (items.length
-      ? `<div class="dtrow"><span class="dtl">Heute offen</span><span class="dtv">${items.map(i => i.label).join(" · ")}</span><span class="dta">→</span></div>`
+      ? `<div class="dtrow"><span class="dtl">Heute offen</span><span class="dtv">${items.map(i => `<button type="button" class="dtj" onclick="event.stopPropagation();tlJump('${i.id}')">${i.label}</button>`).join(" · ")}</span><span class="dta">→</span></div>`
       : "")
     + (supOn ? `<div class="dtsup">${supOk}</div>` : supBtn);
 }
@@ -508,6 +514,7 @@ const CSS = `
 .dtrow { display: flex; align-items: center; gap: 10px; min-height: 22px; }
 .dtodo .dtl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
 .dtodo .dtv { font-size: 13.5px; font-weight: 700; color: var(--text); flex: 1; }
+.dtj { border: none; background: transparent; padding: 4px 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 3px; }
 .dtodo .dta { font-size: 16px; color: var(--muted); flex-shrink: 0; }
 .dtodo .dsupbtn { margin-top: 10px; padding: 12px 0; font-size: 13px; }
 .dtodo .dtrow + .dsupbtn { margin-top: 10px; }
@@ -593,6 +600,15 @@ const MARKUP = `
 
 // ─── INIT ──────────────────────────────────────
 function init() {
+  // 13.11.: Kommt plan.js noch aus dem Browser-Cache, kennt es werte.js nicht
+  // (Karten fehlten, Datum ungestaltet). Dann hier nachladen und neu zeichnen.
+  if (!window.tlWerte && !document.querySelector('script[src="werte.js"]')) {
+    const ws = document.createElement("script");
+    ws.src = "werte.js";
+    ws.onload = function () { buildDaily(); };
+    document.head.appendChild(ws);
+  }
+
   const view = document.getElementById("view-weight");
   if (!view || document.getElementById("d-date")) return;
 
