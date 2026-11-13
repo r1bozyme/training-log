@@ -188,6 +188,11 @@ function fmtClock(iso) {
 // ─── OFFEN-BAND ──────────────────────────────────
 // Wiegen laut Plan Di + Fr (nuechtern, morgens). Gewichte liegen
 // in tl-w – hier nur lesend, das Schreiben bleibt in index.html.
+// 13.11.: Ab 11 Uhr ist nüchtern-morgens vorbei – ein späterer Wert wäre
+// nicht vergleichbar. Dann gilt das Wiegen als verpasst und nicht mehr offen.
+const WIEGEN_BIS = 11;
+function weighLate() { return new Date().getHours() >= WIEGEN_BIS; }
+window.tlWeighLate = weighLate;
 function weighDue(dateStr) {
   const dow = new Date(dateStr + "T12:00:00").getDay();   // 0 = So
   return dow === 2 || dow === 5;
@@ -206,7 +211,7 @@ function openItems() {
   // Reihenfolge = Tagesablauf: morgens Steifigkeit, dann Wiegen, abends Kalorien
   if (!d || typeof d.rate !== "number") out.push({ label: "Steifigkeit", id: "d-stiffsec" });
   if (!d || typeof d.hgL !== "number" || typeof d.hgR !== "number") out.push({ label: "Handgelenk", id: "d-thumbsec" });
-  if (weighDue(t) && !hasWeight(t))     out.push({ label: "Wiegen",      id: "d-weightsec" });
+  if (weighDue(t) && !hasWeight(t) && !weighLate()) out.push({ label: "Wiegen", id: "d-weightsec" });
   if (!d || !d.sup)                     out.push({ label: "Einnahme",    id: "d-supsec" });
   if (!d || !d.kcal)                    out.push({ label: "Kalorien",    id: "d-kcalsec" });
   return out;
@@ -338,10 +343,11 @@ window.buildDaily = function () {
 
   const stiffOpen = !(day && typeof day.rate === "number");
   const thumbOpen = !(day && typeof day.hgL === "number" && typeof day.hgR === "number");
-  const weighOpen = isToday && weighDue(t) && !hasWeight(t);
+  const weighOpen = isToday && weighDue(t) && !hasWeight(t) && !weighLate();
+  const weighMissed = isToday && weighDue(t) && !hasWeight(t) && weighLate();
   const focus = isToday && (stiffOpen || thumbOpen || weighOpen);
   // Zustand für die übrigen Karten (gewicht.js, inbody.js, diag.js)
-  window.tlWerteState = function () { return { date: date, isToday: isToday, focus: focus, weighOpen: weighOpen, sehnenOpen: isToday && (stiffOpen || thumbOpen) }; };
+  window.tlWerteState = function () { return { date: date, isToday: isToday, focus: focus, weighOpen: weighOpen, weighMissed: weighMissed, sehnenOpen: isToday && (stiffOpen || thumbOpen) }; };
   if (!focus) W.resetShown();
   const isMini = (k, open) => focus && !open && !W.isShown(k);
   const fold = (html, k, open) => focus && !open && W.isShown(k) ? W.foldable(html, k) : html;

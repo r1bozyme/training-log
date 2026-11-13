@@ -81,7 +81,8 @@ function build() {
       (S.weighOpen ? "" : '<button type="button" class="wt-done" onclick="tlWerte.edit(\'weight\', false)">Fertig</button>') +
       '</div>';
   } else {
-    var val = onDate ? kgStr(onDate.kg) + " kg" : "Nächste Messung " + naechsteMessung(date);
+    var val = onDate ? kgStr(onDate.kg) + " kg"
+      : (S.weighMissed ? "Heute verpasst · nächste Messung " : "Nächste Messung ") + naechsteMessung(date);
     h += '<div class="wt-today"><div class="wt-tl">' + (onDate ? lab : "Wiegen") + '</div><div class="wt-tv' + (onDate ? "" : " dim") + '">' + val + '</div>' +
       '<button type="button" class="wt-ed" aria-label="Gewicht eintragen" onclick="tlWerte.edit(\'weight\')">' + (onDate ? "✎" : "＋") + '</button></div>';
   }
