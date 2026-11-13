@@ -147,7 +147,7 @@ function onEnd() {
       reset(g.el, g.fixed);
       document.body.classList.add("sw-on");
       window.showView(g.row[n]);
-      window.scrollTo(0, 0);
+      (window.tlScrollTop || function () { window.scrollTo(0, 0); })();
       var nv = document.getElementById("view-" + g.row[n]);
       if (nv) {
         nv.classList.remove("sw-in-l", "sw-in-r");

@@ -104,7 +104,7 @@ function init() {
       var here = areaOf(cur);
       if (here && here.id === a.id) target = a.views[0][0];
       window.showView(target);
-      window.scrollTo(0, 0);
+      (window.tlScrollTop || function () { window.scrollTo(0, 0); })();
     };
     areaBtns[a.id] = b;
     nav.appendChild(b);
@@ -116,7 +116,7 @@ function init() {
   bar.className = "chipnav";
   bar.addEventListener("click", function (e) {
     var b = e.target.closest("button[data-v]");
-    if (b && b.dataset.v !== cur) { window.showView(b.dataset.v); window.scrollTo(0, 0); }
+    if (b && b.dataset.v !== cur) { window.showView(b.dataset.v); (window.tlScrollTop || function () { window.scrollTo(0, 0); })(); }
   });
   var hdr = app.querySelector(".hdr");
   if (hdr && hdr.nextSibling) app.insertBefore(bar, hdr.nextSibling); else app.insertBefore(bar, app.firstChild);
@@ -126,7 +126,7 @@ function init() {
   fab.type = "button";
   fab.className = "navfab";
   fab.textContent = "＋ Eintrag";
-  fab.onclick = function () { window.showView("add"); window.scrollTo(0, 0); };
+  fab.onclick = function () { window.showView("add"); (window.tlScrollTop || function () { window.scrollTo(0, 0); })(); };
   document.body.appendChild(fab);
 
   /* Aktive Ansicht beim Start übernehmen */

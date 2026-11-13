@@ -94,7 +94,7 @@ window.addEventListener("popstate", function () {
   }
   fromPop = true;
   try { window.showView(s.tlView); } finally { fromPop = false; }
-  window.scrollTo(0, 0);
+  (window.tlScrollTop || function () { window.scrollTo(0, 0); })();
 });
 
 document.addEventListener("tl:view", function (e) {

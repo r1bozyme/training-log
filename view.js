@@ -43,4 +43,14 @@ function showView(v) {
 }
 
 window.showView = showView;
+
+/* 13.11.: Nach einem Ansichtswechsel nach oben – aber war der Kopf
+   („Training Log“) schon weggescrollt, bleibt er weg: die neue Ansicht
+   beginnt direkt unter den Chips. */
+window.tlScrollTop = function () {
+  var hdr = document.querySelector("#app .hdr");
+  var chips = document.getElementById("chipnav");
+  var keep = hdr ? hdr.offsetTop + hdr.offsetHeight + (chips ? parseFloat(getComputedStyle(chips).marginTop) || 0 : 0) : 0;
+  window.scrollTo(0, keep && window.scrollY >= keep ? keep : 0);
+};
 })();
