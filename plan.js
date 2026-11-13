@@ -235,7 +235,7 @@ const PLAN = {
 // gelten damit ab dem nächsten Start. Nach 2,5 s ohne Antwort (offline)
 // wird ohne Abgleich geladen.
 (function () {
-  var MODS = ["view.js", "diag.js", "dialog.js", "werte.js", "daily.js", "gewicht.js", "sync.js", "studio.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "speise.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js", "back.js"];
+  var MODS = ["view.js", "diag.js", "dialog.js", "werte.js", "daily.js", "gewicht.js", "sync.js", "studio.js", "logkarten.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "ghealth.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "speise.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js", "back.js"];
   var done = false;
   function load() {
     if (done) return; done = true;
