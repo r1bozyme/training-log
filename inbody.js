@@ -304,6 +304,43 @@ function addBtns() {
 }
 function werte(m) { return f1(m.kg) + " kg · SMM " + f1(m.smm) + " · KFA " + f1(m.kfa) + " %"; }
 
+/* Verlauf SMM und KFA (13.11.): erscheint ab VERLAUF_AB Messungen, folgt dem
+   Zeitraum oben (werte.js). Gefüllte Punkte = Bedingungen ✓ (gut vergleichbar),
+   hohle Punkte = ohne bestätigte Bedingungen. Je Größe eine eigene Skala. */
+var VERLAUF_AB = 6;
+function dn(s) { return Math.round(new Date(s + "T12:00:00").getTime() / 864e5); }
+function ibLinie(list, key, titel, einheit, farbe, von, bis) {
+  var W = 310, H = 74, X0 = 30, X1 = 304, Y0 = 62, Y1 = 10;
+  var vals = list.map(function (m) { return m[key]; });
+  var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  var pad = Math.max((hi - lo) * 0.2, key === "smm" ? 0.3 : 0.3);
+  lo -= pad; hi += pad;
+  var x = function (d) { return X0 + (dn(d) - dn(von)) / Math.max(1, dn(bis) - dn(von)) * (X1 - X0); };
+  var y = function (v) { return Y0 - (v - lo) / (hi - lo) * (Y0 - Y1); };
+  var s = '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + Y1 + '" y2="' + Y1 + '" stroke="#EEEEEE"/><line x1="' + X0 + '" x2="' + X1 + '" y1="' + Y0 + '" y2="' + Y0 + '" stroke="#EEEEEE"/>' +
+    '<text x="' + (X0 - 4) + '" y="' + (Y1 + 3) + '" text-anchor="end" font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif">' + f1(hi) + '</text>' +
+    '<text x="' + (X0 - 4) + '" y="' + (Y0 + 3) + '" text-anchor="end" font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif">' + f1(lo) + '</text>' +
+    '<polyline points="' + list.map(function (m) { return x(m.date).toFixed(1) + "," + y(m[key]).toFixed(1); }).join(" ") + '" fill="none" stroke="' + farbe + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+    list.map(function (m) {
+      var ok = m.bed === "ok";
+      return '<circle cx="' + x(m.date).toFixed(1) + '" cy="' + y(m[key]).toFixed(1) + '" r="3.5" fill="' + (ok ? farbe : "#FFFFFF") + '" stroke="' + farbe + '" stroke-width="1.5"/>';
+    }).join("");
+  var scrub = typeof window.scrubAttr === "function" ? window.scrubAttr(list.map(function (m) {
+    return { x: x(m.date), y: [y(m[key])], c: [farbe], v: titel + " " + f1(m[key]) + " " + einheit, t: dmy(m.date) + (m.bed === "ok" ? " · Bedingungen ✓" : "") };
+  })) : "";
+  return '<div class="ib-vt">' + titel + ' <span>' + einheit + '</span></div><svg class="wt-chart" style="margin-top:2px" viewBox="0 0 ' + W + ' ' + H + '"' + scrub + '>' + s + '</svg>';
+}
+function ibVerlauf(a, W) {
+  if (a.length < VERLAUF_AB) return "";
+  var t = heute(), tage = W.range();
+  var von = tage ? addDays(t, -(tage - 1)) : a[0].date;
+  var list = a.filter(function (m) { return m.date >= von; });
+  if (list.length < 2) return '<div class="dhint">Im gewählten Zeitraum liegen weniger als zwei Messungen – für den Verlauf 3M oder Alles wählen.</div>';
+  if (list[0].date > von) von = list[0].date;
+  return '<div style="margin-top:12px">' + ibLinie(list, "smm", "Muskelmasse SMM", "kg", "#1A1A1A", von, t) + ibLinie(list, "kfa", "Körperfett", "%", "#B87A15", von, t) +
+    '<div class="wt-leg" style="margin-top:4px"><span>● Bedingungen ✓</span><span>○ ohne Bestätigung</span><span>' + dm(von) + "–" + dm(t) + '</span></div></div>';
+}
+
 /* 13.11.: Im Werte-Tab mit Kartenplatz (daily.js, werte.js) als Karte in der
    Gruppe Energiebilanz – sonst wie bisher als eigener Abschnitt unten. */
 function renderKarte(box, slot) {
@@ -326,6 +363,7 @@ function renderKarte(box, slot) {
   h += '</div></div>';
   if (prev) h += '<div class="wt-today"><div class="wt-tl">Seit ' + dm(prev.date) + '</div><div class="wt-tv">SMM ' + sg(last.smm - prev.smm) +
     ' kg · KFA ' + sg(last.kfa - prev.kfa) + ' Pkt</div></div>';
+  h += ibVerlauf(a, W);
   h += '<div class="wt-in">' + addBtns() + '</div>';
   var open = W.isMore("inbody");
   h += '<button type="button" class="wt-more' + (open ? " open" : "") + '" onclick="tlWerte.more(\'inbody\')">Messungen &amp; Hinweis<span>' + (open ? "▾" : "▸") + '</span></button>';
@@ -456,6 +494,7 @@ root.tlInbodyJump = function () {
 
 var CSS = [
   ".ib-sec { margin-top:16px; }",
+  ".ib-vt { font-size:11px; font-weight:700; color:var(--muted); margin-top:8px; } .ib-vt span { font-weight:600; color:var(--dim); }",
   ".ib-h { font-size:14px; font-weight:700; padding:8px 12px; border-radius:8px; margin-bottom:6px; }",
   ".ib-h.ib-ok { background:var(--go-bg); color:var(--go); }",
   ".ib-h.ib-offen { background:#F2F2F2; color:var(--text); }",
