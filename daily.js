@@ -344,13 +344,20 @@ window.buildDaily = function () {
   const byDate = {}; all.forEach(d => { byDate[d.date] = d; });
   const dow = new Date(date + "T12:00:00").getDay();
   const mon0 = W.addDays(date, -((dow + 6) % 7));
-  const weeks = [3, 2, 1, 0].map(k => W.addDays(mon0, -7 * k));
+  // Zeilen folgen dem Zeitraum oben: 1M = 5 Wochen, 3M = 13, Alles = ab der ersten Erfassung
+  const firstK = all.filter(d => d.kcal).map(d => d.date).sort()[0];
+  let nW = W.range() === 30 ? 5 : W.range() === 90 ? 13 : 4;
+  if (W.range() === 0 && firstK) {
+    const monF = W.addDays(firstK, -((new Date(firstK + "T12:00:00").getDay() + 6) % 7));   // Montag der ersten Woche
+    nW = Math.max(1, Math.round(dayDiff(monF, mon0) / 7) + 1);
+  }
+  const weeks = []; for (let k = nW - 1; k >= 0; k--) weeks.push(W.addDays(mon0, -7 * k));
   const kw = s => { const d = new Date(s + "T12:00:00"); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
                     const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - w1) / 864e5 - 3 + (w1.getDay() + 6) % 7) / 7); };
   let kHit = 0, kLog = 0;
   let grid = `<div></div>${"MDMDFSS".split("").map(c => `<div class="wt-wk c">${c}</div>`).join("")}<div></div>`;
   weeks.forEach((mo, wi) => {
-    const cur = wi === 3;
+    const cur = wi === weeks.length - 1;
     let hit = 0, mark = 0, cells = "";
     for (let i = 0; i < 7; i++) {
       const d = W.addDays(mo, i), e = byDate[d] || {};
@@ -383,7 +390,7 @@ window.buildDaily = function () {
     : `<div class="wt-card">
         <div class="wt-hd"><div class="wt-lbl">Kalorienziel</div><div class="wt-k">
           <span class="wt-kv">${kLog ? kHit + " / " + kLog : "–"}</span>
-          <div class="wt-sub">Tage im Ziel · letzte 3 Wochen</div></div></div>
+          <div class="wt-sub">Tage im Ziel · ${weeks.length > 1 ? (W.range() === 0 ? "seit KW " + kw(weeks[0]) : "letzte " + (weeks.length - 1) + " Wochen") : "laufende Woche"}</div></div></div>
         ${todayRow(lab, kState, !(day && day.kcal), "kcal", "Kalorienziel setzen")}
         ${kEd ? `<div class="wt-in">
           <div class="dstates">${["under", "hit", "over"].map(k =>
