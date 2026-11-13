@@ -339,7 +339,7 @@ function renderKarte(box, slot) {
     }
     h += '<div class="dhint">Das Foto wird nur zum Auslesen an Claude geschickt und nicht gespeichert. Unterschiede bis etwa ±0,3 kg SMM liegen im Messrauschen des Geräts.</div>';
   }
-  box.innerHTML = h + '</div>';
+  box.innerHTML = S.focus && W.isShown("inbody") ? W.foldable(h + '</div>', "inbody") : h + '</div>';
 }
 
 function renderMess() {

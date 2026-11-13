@@ -45,6 +45,12 @@ function isEdit(k) { return !!sess.edit[k]; }
 function edit(k, on) { sess.edit[k] = on === undefined ? !sess.edit[k] : !!on; rebuild(); }
 function isShown(k) { return !!sess.show[k]; }
 function show(k) { sess.show[k] = true; rebuild(); }
+function hide(k) { sess.show[k] = false; sess.edit[k] = false; rebuild(); }
+function resetShown() { sess.show = {}; }   // Morgen-Fokus vorbei: nächstes Mal wieder als Zeile
+/* Aus einer Zeile aufgeklappte Karte: Titel antippen klappt sie wieder zu */
+function foldable(html, k) {
+  return html.replace(/<div class="wt-lbl">([^<]*)<\/div>/, '<button type="button" class="wt-lbl wt-fold" onclick="tlWerte.hide(\'' + k + '\')">$1 <span>▴</span></button>');
+}
 function showEdit(k) { sess.show[k] = true; sess.edit[k] = true; rebuild(); }   // Zeile aufklappen und gleich Eingabe öffnen
 
 /* ─── Ø 7 Tage ──────────────────────────────────── */
@@ -177,6 +183,8 @@ var CSS = [
   ".wt-mv { font-size:12px; color:var(--muted); font-weight:600; }",
   ".wt-mv.warn { color:#9A6410; font-weight:700; }",
   ".wt-mini > span:last-child { color:var(--dim); }",
+  ".wt-fold { border:none; background:transparent; padding:6px 0; margin:-6px 0; text-align:left; font-family:var(--fb); cursor:pointer; }",
+  ".wt-fold span { color:var(--dim); letter-spacing:0; }",
   ".wt-mplus { width:40px; height:32px; margin:-6px -6px -6px 0; border:1.5px solid var(--border); border-radius:10px; background:transparent; font-size:16px; color:var(--text); cursor:pointer; flex-shrink:0; }",
   ".wt-grid { display:grid; grid-template-columns:38px repeat(7, minmax(0,1fr)) 66px; gap:4px; align-items:center; margin-top:12px; }",
   ".wt-c { height:24px; border-radius:5px; background:var(--bg); border:1px solid var(--border); box-sizing:border-box; }",
@@ -197,7 +205,7 @@ document.head.appendChild(s);
 window.tlWerte = {
   isMore: isMore, more: more,
   range: range, setRange: setRange, rangeRow: rangeRow,
-  isEdit: isEdit, edit: edit, isShown: isShown, show: show, showEdit: showEdit,
+  isEdit: isEdit, edit: edit, isShown: isShown, show: show, showEdit: showEdit, hide: hide, resetShown: resetShown, foldable: foldable,
   ma7: ma7, graph: graph, legend: legend,
   addDays: addDays, dm: dm, f1: f1
 };

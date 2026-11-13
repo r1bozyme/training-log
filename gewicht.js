@@ -128,7 +128,7 @@ function build() {
       '. Gewichtsdaten sind im CSV-Export im Log-Tab enthalten.</div>' + startEditor();
   }
   h += '</div>';
-  slot.innerHTML = h;
+  slot.innerHTML = S.focus && !S.weighOpen && W.isShown("weight") ? W.foldable(h, "weight") : h;
 }
 
 var CSS = [

@@ -342,7 +342,9 @@ window.buildDaily = function () {
   const focus = isToday && (stiffOpen || thumbOpen || weighOpen);
   // Zustand für die übrigen Karten (gewicht.js, inbody.js, diag.js)
   window.tlWerteState = function () { return { date: date, isToday: isToday, focus: focus, weighOpen: weighOpen }; };
+  if (!focus) W.resetShown();
   const isMini = (k, open) => focus && !open && !W.isShown(k);
+  const fold = (html, k, open) => focus && !open && W.isShown(k) ? W.foldable(html, k) : html;
   const lab = isToday ? "Heute" : fmtDate(date).slice(0, 6);
 
   // ══ Kalorienziel ══
@@ -410,7 +412,7 @@ window.buildDaily = function () {
         ${W.isMore("kcal") ? `<div class="dhint">Gestrichelt = Werte teilweise geschätzt, blauer Rand = Reisetag. Ab 2 markierten Tagen fällt die Woche im Review aus der Kalibrierung Kalorien gegen Waage – ihre Zahl rechts steht dann in Orange statt Grün.</div><div class="dhint">${kHint}</div>` : ""}
       </div>`;
   const kc = document.getElementById("d-kcalsec");
-  if (kc) kc.innerHTML = kcalHtml;
+  if (kc) kc.innerHTML = fold(kcalHtml, "kcal", false);
 
   // ══ Morgensteifigkeit ══
   const rateAll = all.filter(d => typeof d.rate === "number").sort((a, b) => a.date < b.date ? -1 : 1);
@@ -473,7 +475,7 @@ window.buildDaily = function () {
           </div>` : ""}
       </div>`;
   const sc = document.getElementById("d-stiffsec");
-  if (sc) sc.innerHTML = stiffHtml;
+  if (sc) sc.innerHTML = fold(stiffHtml, "stiff", stiffOpen);
 
   // ══ Handgelenk Daumenseite ══
   const hAll = all.filter(d => typeof d.hgL === "number" || typeof d.hgR === "number").sort((a, b) => a.date < b.date ? -1 : 1);
@@ -514,7 +516,7 @@ window.buildDaily = function () {
             `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">L ${vv(d.hgL)} · R ${vv(d.hgR)}</div></div>`).join("")}</div>` : ""}
       </div>`;
   const hc = document.getElementById("d-thumbsec");
-  if (hc) hc.innerHTML = thumbHtml;
+  if (hc) hc.innerHTML = fold(thumbHtml, "thumb", thumbOpen);
 
   // Übrige Karten (Gewicht, InBody, Diagnose) mitzeichnen
   document.dispatchEvent(new CustomEvent("tl:werte"));
