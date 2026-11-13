@@ -341,7 +341,7 @@ window.buildDaily = function () {
   const weighOpen = isToday && weighDue(t) && !hasWeight(t);
   const focus = isToday && (stiffOpen || thumbOpen || weighOpen);
   // Zustand für die übrigen Karten (gewicht.js, inbody.js, diag.js)
-  window.tlWerteState = function () { return { date: date, isToday: isToday, focus: focus, weighOpen: weighOpen }; };
+  window.tlWerteState = function () { return { date: date, isToday: isToday, focus: focus, weighOpen: weighOpen, sehnenOpen: isToday && (stiffOpen || thumbOpen) }; };
   if (!focus) W.resetShown();
   const isMini = (k, open) => focus && !open && !W.isShown(k);
   const fold = (html, k, open) => focus && !open && W.isShown(k) ? W.foldable(html, k) : html;

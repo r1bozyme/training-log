@@ -86,8 +86,13 @@ function build() {
       '<button type="button" class="wt-ed" aria-label="Gewicht eintragen" onclick="tlWerte.edit(\'weight\')">' + (onDate ? "✎" : "＋") + '</button></div>';
   }
 
-  var kompakt = S.focus && S.weighOpen;   // morgens nur Kennzahl und Eingabe
-  if (kompakt) { slot.innerHTML = h + '</div>'; return; }
+  /* Kompakt nur, solange morgens auch die Sehnen offen sind – dann zählt
+     schnelles Eintragen. „Verlauf zeigen“ holt den Rest trotzdem dazu. */
+  var kompakt = S.focus && S.weighOpen && S.sehnenOpen && !W.isShown("weightfull");
+  if (kompakt) {
+    slot.innerHTML = h + '<button type="button" class="wt-more" onclick="tlWerte.show(\'weightfull\')">Verlauf &amp; Messungen<span>▸</span></button></div>';
+    return;
+  }
   if (!all.length) {
     h += '<div class="dhint">Noch keine Messungen – zweimal pro Woche nüchtern wiegen (Di und Fr).</div>';
   } else {
