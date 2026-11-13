@@ -41,6 +41,9 @@ var layers = [], lid = 0, leaving = {};   // leaving: freigegeben, eigenes histo
   if (a) cur = a.id.slice(5);
 })();
 history.replaceState({ tlView: ROOT, i: 0 }, "");
+/* 13.11.: Bei Zurück stellt der Browser sonst die alte Scrollposition wieder
+   her – nach tlScrollTop, und der Kopf käme zurück. */
+try { history.scrollRestoration = "manual"; } catch (e) {}
 
 function st() { return history.state || {}; }
 

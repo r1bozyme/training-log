@@ -29,8 +29,13 @@ function call(name) {
   if (typeof window[name] === "function") window[name]();
 }
 
+var vorherY = null;   // Scrollposition vor dem letzten Wechsel (tlScrollTop)
+
 function showView(v) {
   var i;
+  /* vor dem Umschalten merken: eine kürzere Ansicht setzt die Position sonst
+     schon zurück, bevor tlScrollTop sie lesen kann */
+  vorherY = window.scrollY;
   var views = document.querySelectorAll('.view[id^="view-"]');
   for (i = 0; i < views.length; i++) views[i].classList.toggle("active", views[i].id === "view-" + v);
   try {
@@ -51,7 +56,10 @@ window.tlScrollTop = function () {
   var hdr = document.querySelector("#app .hdr");
   var chips = document.getElementById("chipnav");
   var keep = hdr ? hdr.offsetTop + hdr.offsetHeight + (chips ? parseFloat(getComputedStyle(chips).marginTop) || 0 : 0) : 0;
-  var weg = keep && window.scrollY >= keep;
+  var y = vorherY !== null ? vorherY : window.scrollY;
+  vorherY = null;
+  /* Kopf gilt als weg, sobald er zur Hälfte hinausgescrollt ist */
+  var weg = !!hdr && y >= hdr.offsetTop + hdr.offsetHeight / 2;
   /* Kurze Ansichten (Einkauf, Tracker …) lassen sich sonst nicht so weit
      scrollen – dann unten so viel Platz geben, dass der Kopf weg bleiben kann. */
   document.body.style.minHeight = weg ? (keep + window.innerHeight) + "px" : "";
