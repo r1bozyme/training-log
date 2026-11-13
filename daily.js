@@ -215,7 +215,7 @@ function openItems() {
 window.dailyOpenItems = openItems;   // header.js: Chip im Werte-Tab
 
 // Sprung zu einem Abschnitt; eine zur Zeile geschrumpfte Karte wird dabei aufgeklappt.
-const KARTE = { "d-kcalsec": "kcal", "d-stiffsec": "stiff", "d-thumbsec": "thumb" };
+const KARTE = { "d-kcalsec": "kcal", "d-weightsec": "weight", "wt-ibsec": "inbody", "d-stiffsec": "stiff", "d-thumbsec": "thumb" };
 window.tlJump = function (id) {
   if (KARTE[id] && window.tlWerte && document.querySelector("#" + id + " .wt-mini")) tlWerte.show(KARTE[id]);
   const sec = document.getElementById(id);
@@ -231,11 +231,14 @@ window.jumpOpen = function () {
 };
 
 // ─── WERTE-KARTEN (13.11.: einheitlicher Aufbau, werte.js) ───
-// Reihenfolge: Kalorienziel · Morgensteifigkeit · Handgelenk.
+// Gruppen Energiebilanz (Kalorienziel · Gewicht [gewicht.js] · InBody
+// [inbody.js]) und Sehnen (Steifigkeit · Handgelenk), Diagnose als Zeile.
 // Jede Karte: Kennzahl Ø 7 Tage mit Vorwoche, Zeile „Heute“ mit ✎,
 // Verlauf (Zeitraum oben), aufklappbare Einzelwerte & Erläuterung.
 // Fehlt morgens Steifigkeit oder Handgelenk, steht die Skala direkt in
-// der Karte und die übrigen Karten schrumpfen auf eine Zeile.
+// der Karte und die übrigen Karten schrumpfen auf eine Zeile. Offene Karten
+// zeigen morgens nur Kennzahl und Eingabe (kompakt), Graph und Einzelwerte
+// kommen zurück, sobald alles erfasst ist.
 const WTAGE = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
 const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 function longDate(s) { const d = new Date(s + "T12:00:00"); return WTAGE[d.getDay()] + ", " + d.getDate() + ". " + MONATE[d.getMonth()]; }
@@ -335,7 +338,10 @@ window.buildDaily = function () {
 
   const stiffOpen = !(day && typeof day.rate === "number");
   const thumbOpen = !(day && typeof day.hgL === "number" && typeof day.hgR === "number");
-  const focus = isToday && (stiffOpen || thumbOpen);
+  const weighOpen = isToday && weighDue(t) && !hasWeight(t);
+  const focus = isToday && (stiffOpen || thumbOpen || weighOpen);
+  // Zustand für die übrigen Karten (gewicht.js, inbody.js, diag.js)
+  window.tlWerteState = function () { return { date: date, isToday: isToday, focus: focus, weighOpen: weighOpen }; };
   const isMini = (k, open) => focus && !open && !W.isShown(k);
   const lab = isToday ? "Heute" : fmtDate(date).slice(0, 6);
 
@@ -450,9 +456,8 @@ window.buildDaily = function () {
           <div class="drends"><span>0 = nichts</span><span>erste ~20 Schritte</span><span>10 = maximal</span></div>
           ${stiffOpen ? "" : `<button type="button" class="wt-done" onclick="tlWerte.edit('stiff', false)">Fertig</button>`}</div>`
           : todayRow(lab, sNow, false, "stiff", "Steifigkeit ändern")}
-        ${sChart}
-        ${moreBtn("stiff", "Einzelwerte &amp; Erläuterung")}
-        ${W.isMore("stiff") ? `<div class="dhint">${verdict}</div>${tHint}
+        ${focus && stiffOpen ? "" : sChart + moreBtn("stiff", "Einzelwerte &amp; Erläuterung")}
+        ${!(focus && stiffOpen) && W.isMore("stiff") ? `<div class="dhint">${verdict}</div>${tHint}
           <div style="margin-top:12px">${recent.map(d => {
             const mins2 = typeof d.stiff === "number" ? ` · ${d.stiff} Min` : "";
             const clock = fmtClock(d.ratedAt);
@@ -501,9 +506,8 @@ window.buildDaily = function () {
           <div class="drends"><span>0 = nichts</span><span>10 = maximal</span></div>
           ${thumbOpen ? "" : `<button type="button" class="wt-done" onclick="tlWerte.edit('thumb', false)">Fertig</button>`}</div>`
           : todayRow(lab, hNow, false, "thumb", "Handgelenk ändern")}
-        ${hChart}
-        ${moreBtn("thumb", "Einzelwerte &amp; Erläuterung")}
-        ${W.isMore("thumb") ? `<div class="dhint">${anyPrev
+        ${focus && thumbOpen ? "" : hChart + moreBtn("thumb", "Einzelwerte &amp; Erläuterung")}
+        ${!(focus && thumbOpen) && W.isMore("thumb") ? `<div class="dhint">${anyPrev
             ? `Steigt eine Seite um ≥ 0,5 gegenüber der Vorwoche, war die Belastung zu hoch. Dann die zuletzt geänderte Übung zurücknehmen – immer nur eine Variable pro Einheit.`
             : `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln und keine Übung umstellen.`}</div>
           <div style="margin-top:12px">${recentH.map(d =>
@@ -511,6 +515,9 @@ window.buildDaily = function () {
       </div>`;
   const hc = document.getElementById("d-thumbsec");
   if (hc) hc.innerHTML = thumbHtml;
+
+  // Übrige Karten (Gewicht, InBody, Diagnose) mitzeichnen
+  document.dispatchEvent(new CustomEvent("tl:werte"));
 };
 
 // ─── CSS ───────────────────────────────────────
@@ -599,22 +606,27 @@ const MARKUP = `
 </div>
 <div class="dtodo" id="d-todo"></div>
 <div class="wt-range" id="wt-range"></div>
+<div class="dhead"><div class="dhl">ENERGIEBILANZ</div><div class="dhline"></div></div>
 <div class="wt-wrap" id="d-kcalsec"></div>
+<div class="wt-wrap" id="d-weightsec"></div>
+<div class="wt-wrap" id="wt-ibsec"></div>
+<div class="dhead"><div class="dhl">SEHNEN</div><div class="dhline"></div></div>
 <div class="wt-wrap" id="d-stiffsec"></div>
 <div class="wt-wrap" id="d-thumbsec"></div>
-<div class="dhead"><div class="dhl">GEWICHT</div><div class="dhline"></div></div>
 `;
 
 // ─── INIT ──────────────────────────────────────
 function init() {
   // 13.11.: Kommt plan.js noch aus dem Browser-Cache, kennt es werte.js nicht
   // (Karten fehlten, Datum ungestaltet). Dann hier nachladen und neu zeichnen.
-  if (!window.tlWerte && !document.querySelector('script[src="werte.js"]')) {
+  ["werte.js", "gewicht.js"].forEach(function (src) {
+    if (document.querySelector('script[src="' + src + '"]')) return;
     const ws = document.createElement("script");
-    ws.src = "werte.js";
+    ws.src = src;
+    ws.async = false;
     ws.onload = function () { buildDaily(); };
     document.head.appendChild(ws);
-  }
+  });
 
   const view = document.getElementById("view-weight");
   if (!view || document.getElementById("d-date")) return;
@@ -634,10 +646,7 @@ function init() {
     if (window.tlWerte && typeof setWRange === "function" && typeof wRange !== "undefined" && wRange !== tlWerte.range()) setWRange(tlWerte.range());
   } catch (e) { /* Gewichtsteil fehlt – unkritisch */ }
 
-  // Wiegen-Block sitzt unter dem GEWICHT-Kopf – oberen Abstand rausnehmen
-  // und als Sprungziel markieren.
-  const wSec = view.querySelector(".sec");
-  if (wSec) { wSec.style.paddingTop = "0"; wSec.id = "d-weightsec"; }
+  // Gewicht: Kartenplatz d-weightsec im Markup, die Karte zeichnet gewicht.js
 
   // Ansichtswechsel (view.js)
   document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") buildDaily(); });
@@ -645,7 +654,7 @@ function init() {
   // saveWeight erweitern – nach dem Wiegen muss das Band nachziehen
   const origSaveW = window.saveWeight;
   if (typeof origSaveW === "function") {
-    window.saveWeight = function () { origSaveW.apply(this, arguments); buildTodo(); };
+    window.saveWeight = function () { origSaveW.apply(this, arguments); buildDaily(); };
   }
 
   // exportCSV erweitern

@@ -86,7 +86,9 @@ var CSS = [
   ".dg-err b { color:var(--text); font-weight:600; display:block; }",
   ".dg-btns { display:flex; gap:8px; margin-top:12px; }",
   ".dg-btns button { flex:1; padding:9px; border-radius:10px; border:1px solid var(--border); background:transparent; font-size:13px; font-family:var(--fb); color:var(--text); }",
-  ".dg-note { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.45; }"
+  ".dg-note { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.45; }",
+  "#dg-cont .wt-mini { margin-bottom:24px; }",
+  ".dg-card.wt-dg { margin-top:12px; }"
 ].join("\n");
 
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]; }); }
@@ -100,9 +102,17 @@ function render() {
   var wv = document.getElementById("view-weight");
   if (wv && box.parentNode === wv && wv.lastElementChild !== box) wv.appendChild(box);   // bleibt ganz unten
   var errs = read().slice().reverse(), ls = lsBytes();
+  /* 13.11.: im neuen Werte-Tab eine Zeile, aufgeklappt bei Fehlern oder auf Tipp */
+  var W = window.tlWerte, karte = W && document.getElementById("d-kcalsec");
+  if (karte && !errs.length && !W.isMore("diag")) {
+    box.innerHTML = '<div class="wt-mini" onclick="tlWerte.more(\'diag\')"><div class="wt-lbl">Diagnose</div><div class="wt-mv">Fehler: keine</div><span>▸</span></div>';
+    return;
+  }
   var sp = persisted === true ? '<span class="dg-ok">dauerhaft ✓</span>'
          : persisted === false ? '<span class="dg-warn">nicht garantiert</span>' : "–";
-  var h = '<div class="dhead"><div class="dhl">DIAGNOSE</div><div class="dhline"></div></div><div class="dg-card">' +
+  var h = (karte ? '<div class="dg-card wt-dg"><div class="wt-hd" onclick="' + (errs.length ? "" : "tlWerte.more('diag')") + '" style="padding:10px 0 4px;cursor:pointer"><div class="wt-lbl">Diagnose</div>' +
+        (errs.length ? "" : '<span style="color:var(--muted)">▾</span>') + '</div>'
+      : '<div class="dhead"><div class="dhl">DIAGNOSE</div><div class="dhline"></div></div><div class="dg-card">') +
     '<div class="dg-row"><span>Speicher</span>' + sp + "</div>" +
     '<div class="dg-row"><span>Belegt</span><span>Training Log ' + kb(ls.tl) + " · Cockpit " + kb(ls.fc) +
       (est && est.usage ? " · gesamt " + mb(est.usage) : "") + "</span></div>" +
@@ -142,6 +152,7 @@ function init() {
   box = document.createElement("div"); box.id = "dg-cont";
   wv.appendChild(box);
   document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") render(); });
+  document.addEventListener("tl:werte", render);   // Werte-Tab neu gezeichnet (daily.js)
   render();
   checkStorage();
 }

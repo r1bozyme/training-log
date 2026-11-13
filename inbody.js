@@ -304,8 +304,48 @@ function addBtns() {
 }
 function werte(m) { return f1(m.kg) + " kg · SMM " + f1(m.smm) + " · KFA " + f1(m.kfa) + " %"; }
 
+/* 13.11.: Im Werte-Tab mit Kartenplatz (daily.js, werte.js) als Karte in der
+   Gruppe Energiebilanz – sonst wie bisher als eigener Abschnitt unten. */
+function renderKarte(box, slot) {
+  var W = window.tlWerte, S = typeof window.tlWerteState === "function" ? window.tlWerteState() : {};
+  if (box.parentNode !== slot) slot.appendChild(box);
+  var a = mess(), last = a[a.length - 1], prev = a[a.length - 2];
+  if (S.focus && !W.isShown("inbody")) {
+    box.innerHTML = '<div class="wt-mini" onclick="tlWerte.show(\'inbody\')"><div class="wt-lbl">InBody</div><div class="wt-mv">' +
+      (last ? "SMM " + f1(last.smm) + " · KFA " + f1(last.kfa) + " %" : "–") + '</div><span>▸</span></div>';
+    return;
+  }
+  var h = '<div class="wt-card"><div class="wt-hd"><div class="wt-lbl">InBody</div><div class="wt-k">';
+  if (last) {
+    h += '<span class="wt-ks">SMM</span><span class="wt-kv">' + f1(last.smm) + '</span>' +
+         '<span class="wt-ks">KFA</span><span class="wt-kv">' + f1(last.kfa) + '</span>' +
+         '<div class="wt-sub">kg · % · Messung ' + dmy(last.date) + ' · ' + f1(last.kg) + ' kg</div>';
+  } else {
+    h += '<span class="wt-kv">–</span><div class="wt-sub">noch keine Messung</div>';
+  }
+  h += '</div></div>';
+  if (prev) h += '<div class="wt-today"><div class="wt-tl">Seit ' + dm(prev.date) + '</div><div class="wt-tv">SMM ' + sg(last.smm - prev.smm) +
+    ' kg · KFA ' + sg(last.kfa - prev.kfa) + ' Pkt</div></div>';
+  h += '<div class="wt-in">' + addBtns() + '</div>';
+  var open = W.isMore("inbody");
+  h += '<button type="button" class="wt-more' + (open ? " open" : "") + '" onclick="tlWerte.more(\'inbody\')">Messungen &amp; Hinweis<span>' + (open ? "▾" : "▸") + '</span></button>';
+  if (open) {
+    if (a.length) {
+      h += '<div class="ib-list">' + a.slice().reverse().map(function (m) {
+        var tag = m.bed === "ok" ? '<span class="ib-tag ib-ok">Bedingungen ✓</span>' : m.bed === "nein" ? '<span class="ib-tag ib-nein">Bedingungen ✕</span>' : "";
+        return '<div class="ib-row"><div class="ib-rd">' + dmy(m.date) + '</div><div class="ib-rv">' + werte(m) + tag +
+          '</div><button class="ib-del" aria-label="Messung löschen" onclick="tlInbodyDel(' + m.id + ')">×</button></div>';
+      }).join("") + "</div>";
+    }
+    h += '<div class="dhint">Das Foto wird nur zum Auslesen an Claude geschickt und nicht gespeichert. Unterschiede bis etwa ±0,3 kg SMM liegen im Messrauschen des Geräts.</div>';
+  }
+  box.innerHTML = h + '</div>';
+}
+
 function renderMess() {
   var box = document.getElementById("ib-mess"); if (!box) return;
+  var slot = document.getElementById("wt-ibsec");
+  if (slot && window.tlWerte) { renderKarte(box, slot); return; }
   var wv = document.getElementById("view-weight"), dg = document.getElementById("dg-cont");
   /* bleibt direkt über der Diagnose, auch wenn andere Module danach noch etwas anhängen */
   if (wv && dg && dg.parentNode === wv && dg.previousElementSibling !== box) wv.insertBefore(box, dg);
@@ -472,6 +512,7 @@ function init() {
   var dg = document.getElementById("dg-cont");
   if (dg && dg.parentNode === wv) wv.insertBefore(mb, dg); else wv.appendChild(mb);
   document.addEventListener("tl:view", function (e) { if (e.detail.view === "weight") { render(); renderMess(); } });
+  document.addEventListener("tl:werte", renderMess);   // Werte-Tab neu gezeichnet (daily.js)
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { render(); renderMess(); } });
   render();
   renderMess();

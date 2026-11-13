@@ -45,6 +45,7 @@ function isEdit(k) { return !!sess.edit[k]; }
 function edit(k, on) { sess.edit[k] = on === undefined ? !sess.edit[k] : !!on; rebuild(); }
 function isShown(k) { return !!sess.show[k]; }
 function show(k) { sess.show[k] = true; rebuild(); }
+function showEdit(k) { sess.show[k] = true; sess.edit[k] = true; rebuild(); }   // Zeile aufklappen und gleich Eingabe öffnen
 
 /* ─── Ø 7 Tage ──────────────────────────────────── */
 /* vals: { "2026-11-13": 1, … } → Schnitt der Werte in [d−6, d], null ohne Wert */
@@ -144,7 +145,7 @@ var CSS = [
   ".wt-date { display:flex; align-items:center; justify-content:space-between; margin:14px 12px 0; }",
   ".wt-date > button { width:44px; height:44px; border:none; background:transparent; font-size:22px; color:var(--muted); cursor:pointer; }",
   ".wt-date > button:disabled { color:var(--dim); cursor:default; }",
-  ".wt-dt { position:relative; font-family:var(--fd); font-size:22px; letter-spacing:1.5px; color:var(--text); padding:6px 4px; }",
+  ".wt-dt { position:relative; font-family:var(--fd); font-size:21px; letter-spacing:1px; color:var(--text); padding:6px 4px; white-space:nowrap; }",
   ".wt-dt.past { color:#2F5D8A; }",
   ".wt-dt input { position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; padding:0; border:none; cursor:pointer; }",
   ".wt-range { display:flex; justify-content:flex-end; gap:6px; margin:14px 20px 0; }",
@@ -176,6 +177,7 @@ var CSS = [
   ".wt-mv { font-size:12px; color:var(--muted); font-weight:600; }",
   ".wt-mv.warn { color:#9A6410; font-weight:700; }",
   ".wt-mini > span:last-child { color:var(--dim); }",
+  ".wt-mplus { width:40px; height:32px; margin:-6px -6px -6px 0; border:1.5px solid var(--border); border-radius:10px; background:transparent; font-size:16px; color:var(--text); cursor:pointer; flex-shrink:0; }",
   ".wt-grid { display:grid; grid-template-columns:38px repeat(7, minmax(0,1fr)) 66px; gap:4px; align-items:center; margin-top:12px; }",
   ".wt-c { height:24px; border-radius:5px; background:var(--bg); border:1px solid var(--border); box-sizing:border-box; }",
   ".wt-c.hit { background:#4FA34F; border-color:#4FA34F; } .wt-c.under { background:#E8A33D; border-color:#E8A33D; } .wt-c.over { background:#D96A6A; border-color:#D96A6A; }",
@@ -195,7 +197,7 @@ document.head.appendChild(s);
 window.tlWerte = {
   isMore: isMore, more: more,
   range: range, setRange: setRange, rangeRow: rangeRow,
-  isEdit: isEdit, edit: edit, isShown: isShown, show: show,
+  isEdit: isEdit, edit: edit, isShown: isShown, show: show, showEdit: showEdit,
   ma7: ma7, graph: graph, legend: legend,
   addDays: addDays, dm: dm, f1: f1
 };
