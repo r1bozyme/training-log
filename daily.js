@@ -48,6 +48,11 @@
 // Slot "supps") kommt nur, wenn der Haken bis dahin fehlt.
 // Export: Spalte "Einnahme" in sync.js.
 //
+// KARTEN (13.11.): einheitlicher Aufbau nach dem Mockup „Werte-Tab –
+// vereinheitlicht“, Werkzeuge in werte.js. Datum mit ‹ ›, Heute-Box mit
+// Einnahme-Haken, Reihenfolge Kalorienziel · Steifigkeit · Handgelenk.
+// Daten, Keys und Export unverändert.
+//
 // Deep-Links (Abkürzung, nicht mehr tragende Schicht):
 //   ?v=stiff | ?v=weight | ?v=kcal
 // ═══════════════════════════════════════════════════
@@ -219,20 +224,83 @@ window.jumpOpen = function () {
   setTimeout(function () { sec.classList.remove("dflash"); }, 1700);
 };
 
+// ─── WERTE-KARTEN (13.11.: einheitlicher Aufbau, werte.js) ───
+// Reihenfolge: Kalorienziel · Morgensteifigkeit · Handgelenk.
+// Jede Karte: Kennzahl Ø 7 Tage mit Vorwoche, Zeile „Heute“ mit ✎,
+// Verlauf (Zeitraum oben), aufklappbare Einzelwerte & Erläuterung.
+// Fehlt morgens Steifigkeit oder Handgelenk, steht die Skala direkt in
+// der Karte und die übrigen Karten schrumpfen auf eine Zeile.
+const WTAGE = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+function longDate(s) { const d = new Date(s + "T12:00:00"); return WTAGE[d.getDay()] + ", " + d.getDate() + ". " + MONATE[d.getMonth()]; }
+
+window.tlDailyShift = function (n) {
+  const el = document.getElementById("d-date");
+  if (!el) return;
+  const t = todayStr();
+  let v = window.tlWerte ? tlWerte.addDays(dailyDate(), n) : t;
+  if (v > t) v = t;
+  el.value = v;
+  buildDaily();
+};
+
+function supLabel(day) {
+  return "✓ Supplements " + (day.sup === "manual" ? "nachgetragen" : fmtClock(day.sup));
+}
+
 function buildTodo() {
   const el = document.getElementById("d-todo");
   if (!el) return;
-  const items = openItems();
+  const t = todayStr(), date = dailyDate(), day = getDay(date);
+  const supOn = !!(day && day.sup);
+  const supOk  = `<button type="button" id="d-supsec" class="dsupok" onclick="event.stopPropagation();toggleSup()">${supOn ? supLabel(day) : ""}</button>`;
+  const supBtn = `<button type="button" id="d-supsec" class="dsupbtn" onclick="event.stopPropagation();toggleSup()">Supplements &amp; Medikamente abhaken</button>`;
 
-  if (!items.length) {
-    el.className = "dtodo done";
-    el.innerHTML = `<span class="dtl">Heute vollständig</span><span class="dtv">✓</span>`;
+  if (date !== t) {
+    el.className = "dtodo past";
+    el.onclick = null;
+    el.innerHTML = `<div class="dtrow"><span class="dtl">Nachtragen</span><span class="dtv">${fmtDate(date)}</span>`
+      + `<button type="button" class="dtback" onclick="event.stopPropagation();tlDailyShift(9999)">Zu heute</button></div>`
+      + (supOn ? `<div class="dtsup">${supOk}</div>` : supBtn);
     return;
   }
-  el.className = "dtodo";
-  el.innerHTML = `<span class="dtl">Heute offen</span>`
-    + `<span class="dtv">${items.map(i => i.label).join(" · ")}</span>`
-    + `<span class="dta">→</span>`;
+  const items = openItems().filter(i => i.label !== "Einnahme");
+  if (!items.length && supOn) {
+    el.className = "dtodo done";
+    el.onclick = null;
+    el.innerHTML = `<div class="dtrow"><span class="dtl">Heute vollständig</span><span class="dtv"></span>${supOk}</div>`;
+    return;
+  }
+  el.className = "dtodo" + (items.length ? "" : " done");
+  el.onclick = items.length ? window.jumpOpen : null;
+  el.innerHTML = (items.length
+      ? `<div class="dtrow"><span class="dtl">Heute offen</span><span class="dtv">${items.map(i => i.label).join(" · ")}</span><span class="dta">→</span></div>`
+      : "")
+    + (supOn ? `<div class="dtsup">${supOk}</div>` : supBtn);
+}
+
+function sign1(x) { return (x >= 0 ? "+" : "−") + fmtNum(Math.abs(x), 1); }
+// Farbe nach dem angezeigten (gerundeten) Wert, sonst stünde „−0,5“ ungefärbt da
+function deltaCls(dl) { if (dl === null) return ""; const r = Math.round(dl * 10) / 10; return r <= -0.5 ? "good" : r >= 0.5 ? "warn" : ""; }
+function scale(prefix, cur, fn) {
+  return `<div class="drscale">${[0,1,2,3,4,5,6,7,8,9,10].map(v =>
+    `<button class="drbtn${cur === v ? " on" : ""}" id="${prefix}-${v}" onclick="${fn}(${v})">${v}</button>`).join("")}</div>`;
+}
+function moreBtn(key, label) {
+  const on = tlWerte.isMore(key);
+  return `<button type="button" class="wt-more${on ? " open" : ""}" onclick="tlWerte.more('${key}')">${label}<span>${on ? "▾" : "▸"}</span></button>`;
+}
+function todayRow(label, value, dim, edKey, edTitle) {
+  return `<div class="wt-today"><div class="wt-tl">${label}</div><div class="wt-tv${dim ? " dim" : ""}">${value}</div>`
+    + (edKey ? `<button type="button" class="wt-ed" aria-label="${edTitle}" onclick="tlWerte.edit('${edKey}')">${tlWerte.isEdit(edKey) ? "✕" : "✎"}</button>` : "")
+    + `</div>`;
+}
+function mini(key, label, text, warn) {
+  return `<div class="wt-mini" onclick="tlWerte.show('${key}')"><div class="wt-lbl">${label}</div><div class="wt-mv${warn ? " warn" : ""}">${text}</div><span>▸</span></div>`;
+}
+function avgWin(arr, key, date, lo, hi) {
+  const v = arr.filter(d => typeof d[key] === "number" && dayDiff(d.date, date) >= lo && dayDiff(d.date, date) < hi).map(d => d[key]);
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
 }
 
 // ─── RENDER ────────────────────────────────────
@@ -240,179 +308,215 @@ window.buildDaily = function () {
   const date = dailyDate();
   const day  = getDay(date);
   const all  = loadDaily();
+  const t    = todayStr();
+  const isToday = date === t;
+  const W = window.tlWerte;
+
+  // ── Datum ‹ › ──
+  const dl = document.getElementById("wt-dtl");
+  if (dl) dl.textContent = longDate(date);
+  const dt = document.getElementById("wt-dt");
+  if (dt) dt.className = "wt-dt" + (isToday ? "" : " past");
+  const di = document.getElementById("d-date");
+  if (di) di.max = t;
+  const nx = document.getElementById("wt-next");
+  if (nx) nx.disabled = isToday;
+  const rg = document.getElementById("wt-range");
+  if (rg && W) rg.innerHTML = W.rangeRow();
 
   buildTodo();
+  if (!W) return;
 
-  // ── Kalorien-Haken ──
-  ["under", "hit", "over"].forEach(st => {
-    const b = document.getElementById("dc-" + st);
-    if (b) b.className = "dsbtn" + (day && day.kcal === st ? " on-" + st : "");
+  const stiffOpen = !(day && typeof day.rate === "number");
+  const thumbOpen = !(day && typeof day.hgL === "number" && typeof day.hgR === "number");
+  const focus = isToday && (stiffOpen || thumbOpen);
+  const isMini = (k, open) => focus && !open && !W.isShown(k);
+  const lab = isToday ? "Heute" : fmtDate(date).slice(0, 6);
+
+  // ══ Kalorienziel ══
+  const KL = { under: "darunter", hit: "Ziel", over: "darüber" };
+  const byDate = {}; all.forEach(d => { byDate[d.date] = d; });
+  const dow = new Date(date + "T12:00:00").getDay();
+  const mon0 = W.addDays(date, -((dow + 6) % 7));
+  const weeks = [3, 2, 1, 0].map(k => W.addDays(mon0, -7 * k));
+  const kw = s => { const d = new Date(s + "T12:00:00"); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+                    const w1 = new Date(d.getFullYear(), 0, 4); return 1 + Math.round(((d - w1) / 864e5 - 3 + (w1.getDay() + 6) % 7) / 7); };
+  let kHit = 0, kLog = 0;
+  let grid = `<div></div>${"MDMDFSS".split("").map(c => `<div class="wt-wk c">${c}</div>`).join("")}<div></div>`;
+  weeks.forEach((mo, wi) => {
+    const cur = wi === 3;
+    let hit = 0, mark = 0, cells = "";
+    for (let i = 0; i < 7; i++) {
+      const d = W.addDays(mo, i), e = byDate[d] || {};
+      if (e.kcal) { if (!cur) { kLog++; if (e.kcal === "hit") kHit++; } if (e.kcal === "hit") hit++; }
+      if (e.est || e.trip) mark++;
+      const cls = d > t ? "fut" : [e.kcal || "", e.est ? "est" : "", e.trip ? "trip" : "", d === date ? "sel" : ""].join(" ");
+      cells += `<div class="wt-c ${cls}"></div>`;
+    }
+    const tag = cur ? `<div class="wt-wk">läuft</div>`
+      : `<div class="wt-wk${mark >= 2 ? " warn" : hit >= 5 ? " good" : ""}">${hit}/7 im Ziel</div>`;
+    grid += `<div class="wt-wk">KW ${kw(mo)}</div>${cells}${tag}`;
   });
-
-  const eb = document.getElementById("dc-est");
-  if (eb) eb.className = "destbtn" + (day && day.est ? " on" : "");
-  const tb = document.getElementById("dc-trip");
-  if (tb) tb.className = "destbtn trip" + (day && day.trip ? " on" : "");
-
-  // ── Einnahme ──
-  const sb = document.getElementById("dsup-btn");
-  if (sb) {
-    const on = !!(day && day.sup);
-    sb.className = "dsupbtn" + (on ? " on" : "");
-    sb.innerHTML = on
-      ? "✓ Eingenommen" + (day.sup === "manual" ? " <span>nachgetragen</span>" : " <span>" + fmtClock(day.sup) + "</span>")
-      : "Noch nicht eingenommen – abhaken";
-  }
-
-  const win  = lastNDays(14, date);
-  const dots = win.map(d => {
-    const e = all.find(x => x.date === d);
-    return `<div class="ddot ${e && e.kcal ? e.kcal : ""}${e && e.est ? " est" : ""}${e && e.trip ? " trip" : ""}"></div>`;
-  }).join("");
-  const mitMarke = win.some(d => { const e = all.find(x => x.date === d); return e && (e.est || e.trip); });
-  const legende  = mitMarke ? `<div class="dleg">gestrichelt = geschätzt · blauer Rahmen = Reise</div>` : "";
-
-  const logged = win.filter(d => { const e = all.find(x => x.date === d); return e && e.kcal; });
-  const nHit   = logged.filter(d => all.find(x => x.date === d).kcal === "hit").length;
+  const kState = day && day.kcal
+    ? KL[day.kcal] + (day.est ? " · geschätzt" : "") + (day.trip ? " · Reise" : "")
+    : (day && (day.est || day.trip) ? [day.est ? "geschätzt" : "", day.trip ? "Reise" : ""].filter(Boolean).join(" · ") + " · noch offen"
+       : isToday ? "abends über „Tag abschließen“" : "nicht gesetzt");
 
   let kHint;
-  if (logged.length < 5) {
-    kHint = `Noch zu wenige Tage erfasst. Die Woche zählt, nicht der Einzeltag – ein Tag unter Ziel ist ohne Bedeutung, wenn die Wochensumme stimmt.`;
-  } else if (nHit / logged.length >= 0.7) {
-    kHint = `<strong>${nHit} von ${logged.length}</strong> erfassten Tagen im Ziel. Das trägt – der Gewichtstrend ist der Gegencheck.`;
-  } else {
-    kHint = `Nur <strong>${nHit} von ${logged.length}</strong> erfassten Tagen im Ziel. Wenn der Gewichtstrend gleichzeitig flach liegt, ist die Zufuhr die Ursache, nicht das Training.`;
+  {
+    const win = lastNDays(14, date);
+    const logged = win.filter(d => byDate[d] && byDate[d].kcal);
+    const nHit = logged.filter(d => byDate[d].kcal === "hit").length;
+    if (logged.length < 5) kHint = `Noch zu wenige Tage erfasst. Die Woche zählt, nicht der Einzeltag – ein Tag unter Ziel ist ohne Bedeutung, wenn die Wochensumme stimmt.`;
+    else if (nHit / logged.length >= 0.7) kHint = `<strong>${nHit} von ${logged.length}</strong> erfassten Tagen der letzten zwei Wochen im Ziel. Das trägt – der Gewichtstrend ist der Gegencheck.`;
+    else kHint = `Nur <strong>${nHit} von ${logged.length}</strong> erfassten Tagen der letzten zwei Wochen im Ziel. Wenn der Gewichtstrend gleichzeitig flach liegt, ist die Zufuhr die Ursache, nicht das Training.`;
   }
+  const kEd = W.isEdit("kcal");
+  const kcalHtml = isMini("kcal", false)
+    ? mini("kcal", "Kalorienziel", kLog ? `${kHit} / ${kLog} im Ziel` : "–")
+    : `<div class="wt-card">
+        <div class="wt-hd"><div class="wt-lbl">Kalorienziel</div><div class="wt-k">
+          <span class="wt-kv">${kLog ? kHit + " / " + kLog : "–"}</span>
+          <div class="wt-sub">Tage im Ziel · letzte 3 Wochen</div></div></div>
+        ${todayRow(lab, kState, !(day && day.kcal), "kcal", "Kalorienziel setzen")}
+        ${kEd ? `<div class="wt-in">
+          <div class="dstates">${["under", "hit", "over"].map(k =>
+            `<button class="dsbtn${day && day.kcal === k ? " on-" + k : ""}" id="dc-${k}" onclick="setKcal('${k}')">${KL[k]}</button>`).join("")}</div>
+          <button class="destbtn${day && day.est ? " on" : ""}" id="dc-est" onclick="toggleEst()">Werte teilweise geschätzt</button>
+          <button class="destbtn trip${day && day.trip ? " on" : ""}" id="dc-trip" onclick="toggleTrip()">Reisetag</button>
+          <button type="button" class="wt-done" onclick="tlWerte.edit('kcal', false)">Fertig</button></div>` : ""}
+        <div class="wt-grid">${grid}</div>
+        ${W.legend([["Ziel", "#4FA34F"], ["darunter", "#E8A33D"], ["darüber", "#D96A6A"]])}
+        ${moreBtn("kcal", "Legende &amp; Erläuterung")}
+        ${W.isMore("kcal") ? `<div class="dhint">Gestrichelt = Werte teilweise geschätzt, blauer Rand = Reisetag. Ab 2 markierten Tagen fällt die Woche im Review aus der Kalibrierung Kalorien gegen Waage – ihre Zahl rechts steht dann in Orange statt Grün.</div><div class="dhint">${kHint}</div>` : ""}
+      </div>`;
+  const kc = document.getElementById("d-kcalsec");
+  if (kc) kc.innerHTML = kcalHtml;
 
-  const dcc = document.getElementById("dc-cont");
-  if (dcc) dcc.innerHTML = `<div class="ddots">${dots}</div>${legende}<div class="dhint">${kHint}</div>`;
-
-  // ── Morgensteifigkeit: Bewertung 0–10 (Primärgröße) ──
-  for (let v = 0; v <= 10; v++) {
-    const b = document.getElementById("dr-" + v);
-    if (b) b.className = "drbtn" + (day && day.rate === v ? " on" : "");
-  }
-
-  const sEl = document.getElementById("d-stiff");
-  if (sEl) sEl.value = (day && typeof day.stiff === "number") ? day.stiff : "";
-
+  // ══ Morgensteifigkeit ══
   const rateAll = all.filter(d => typeof d.rate === "number").sort((a, b) => a.date < b.date ? -1 : 1);
-  let sHtml;
+  const rv = {}; rateAll.forEach(d => { rv[d.date] = d.rate; });
+  const a1 = avgWin(rateAll, "rate", date, 0, 7), a2 = avgWin(rateAll, "rate", date, 7, 14);
+  const sDelta = a1 !== null && a2 !== null ? a1 - a2 : null;
+  const sEd = stiffOpen || W.isEdit("stiff");
+  let verdict;
+  if (sDelta === null) verdict = `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln.`;
+  else if (sDelta <= -0.5) verdict = `<strong>Fallend.</strong> Die Last passt – 24-Stunden-Regel erfüllt. Bleibt der 7-Tage-Schnitt mehrere Tage unter 2, darf das Gewicht hoch.`;
+  else if (sDelta >= 0.5) verdict = `<strong>Steigend.</strong> Die letzte Einheit war zu viel – Gewicht oder Satzzahl beim nächsten Mal zurücknehmen.`;
+  else verdict = `<strong>Konstant.</strong> Last ist tragfähig, aber noch keine Verbesserung. Über 6–8 Wochen ohne Rückgang: erneut orthopädisch vorstellen, Frage nach Sonographie.`;
 
-  if (!rateAll.length) {
-    sHtml = `<div class="dhint">Direkt nach dem Aufstehen auf den ersten ~20 Schritten bewerten. 0 = nichts zu spüren, 10 = maximal steif. Immer dieselbe Belastung, unabhängig davon, wie der Morgen weiterläuft – das ist der Grund für die Skala statt der Uhr.</div>`;
-  } else {
-    const cur7  = rateAll.filter(d => dayDiff(d.date, date) >= 0 && dayDiff(d.date, date) < 7);
-    const prev7 = rateAll.filter(d => dayDiff(d.date, date) >= 7 && dayDiff(d.date, date) < 14);
-    const avg   = a => a.length ? a.reduce((s, d) => s + d.rate, 0) / a.length : null;
-    const a1 = avg(cur7), a2 = avg(prev7);
-    const delta = (a1 !== null && a2 !== null) ? a1 - a2 : null;
-
-    let dCls = "", dStr = "–", verdict;
-    if (delta === null) {
-      verdict = `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln.`;
-    } else if (delta <= -0.5) {
-      dCls = "good"; dStr = fmtNum(delta, 1);
-      verdict = `<strong>Fallend.</strong> Die Last passt – 24-Stunden-Regel erfüllt. Bleibt der 7-Tage-Schnitt mehrere Tage unter 2, darf das Gewicht hoch.`;
-    } else if (delta >= 0.5) {
-      dCls = "warn"; dStr = "+" + fmtNum(delta, 1);
-      verdict = `<strong>Steigend.</strong> Die letzte Einheit war zu viel – Gewicht oder Satzzahl beim nächsten Mal zurücknehmen.`;
-    } else {
-      dStr = (delta >= 0 ? "+" : "") + fmtNum(delta, 1);
-      verdict = `<strong>Konstant.</strong> Last ist tragfähig, aber noch keine Verbesserung. Über 6–8 Wochen ohne Rückgang: erneut orthopädisch vorstellen, Frage nach Sonographie.`;
-    }
-
-    // ── Erfassungszeit-Kontrolle ──
-    const recent = rateAll.slice(-7).reverse();
+  const recent = rateAll.filter(d => d.date <= date).slice(-7).reverse();
+  let tHint = "";
+  {
     const mins = recent.map(d => stampMinutes(d.ratedAt)).filter(m => m !== null).sort((a, b) => a - b);
-    let tHint = "";
     if (mins.length >= 3) {
-      const med  = mins[Math.floor(mins.length / 2)];
-      const span = mins[mins.length - 1] - mins[0];
-      const late = mins.filter(m => m > 600).length;
+      const med = mins[Math.floor(mins.length / 2)], span = mins[mins.length - 1] - mins[0], late = mins.filter(m => m > 600).length;
       const hhmm = m => pad2(Math.floor(m / 60)) + ":" + pad2(m % 60);
       tHint = `<div class="dhint">Erfassung im Median um <strong>${hhmm(med)}</strong>, Spannweite ${hhmm(mins[0])}–${hhmm(mins[mins.length - 1])}.`;
-      if (late >= 2) {
-        tHint += ` <strong>${late} der letzten ${mins.length} Ratings entstanden nach 10 Uhr.</strong> So spät ist die Morgensteifigkeit meist abgeklungen – der 7-Tage-Schnitt liegt dann systematisch zu niedrig und der Δ-Vergleich wird unbrauchbar.`;
-      } else if (span > 180) {
-        tHint += ` Die Spannweite von über drei Stunden schwächt den Vergleich – gleiche Uhrzeit ist wichtiger als die exakte Zahl.`;
-      } else {
-        tHint += ` Enges Zeitfenster – die Werte sind untereinander vergleichbar.`;
-      }
+      if (late >= 2) tHint += ` <strong>${late} der letzten ${mins.length} Ratings entstanden nach 10 Uhr.</strong> So spät ist die Morgensteifigkeit meist abgeklungen – der 7-Tage-Schnitt liegt dann systematisch zu niedrig und der Δ-Vergleich wird unbrauchbar.`;
+      else if (span > 180) tHint += ` Die Spannweite von über drei Stunden schwächt den Vergleich – gleiche Uhrzeit ist wichtiger als die exakte Zahl.`;
+      else tHint += ` Enges Zeitfenster – die Werte sind untereinander vergleichbar.`;
       tHint += `</div>`;
     }
-
-    sHtml = `<div class="dkpi">
-      <div class="dkc"><div class="dkn ${a1 !== null && a1 < 2 ? "good" : ""}">${a1 === null ? "–" : fmtNum(a1, 1)}</div><div class="dkl">Ø 7 Tage</div></div>
-      <div class="dkc"><div class="dkn">${a2 === null ? "–" : fmtNum(a2, 1)}</div><div class="dkl">Ø Vorwoche</div></div>
-      <div class="dkc"><div class="dkn ${dCls}">${dStr}</div><div class="dkl">Δ</div></div>
-    </div>
-    <div class="dhint">${verdict}</div>
-    ${tHint}
-    <div style="margin-top:12px">
-      ${recent.map(d => {
-        const m = all.find(x => x.date === d.date);
-        const mins2 = m && typeof m.stiff === "number" ? ` · ${m.stiff} Min` : "";
-        const clock = fmtClock(d.ratedAt);
-        const cls   = (d.ratedAt === "manual" || !d.ratedAt) ? "dsrow-t dim" : "dsrow-t";
-        return `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">${d.rate}/10${mins2}</div><div class="${cls}">${clock || "–"}</div></div>`;
-      }).join("")}
-    </div>`;
   }
+  const sNow = day && typeof day.rate === "number"
+    ? `${day.rate} / 10 · ${fmtClock(day.ratedAt) || "–"}${typeof day.stiff === "number" ? " · " + day.stiff + " Min" : ""}`
+    : "noch offen";
+  const sChart = rateAll.length
+    ? W.graph({ end: date, days: W.range(), label: "Verlauf Morgensteifigkeit",
+        series: [{ vals: rv, kind: "raw", color: "#D8D8D8", width: 1.5, name: "Tag" }, { vals: rv, kind: "avg", color: "#1A1A1A", name: "Ø 7" }] })
+      + W.legend([["Tageswert", "#D8D8D8"], ["Ø 7 Tage", "#1A1A1A"]])
+    : `<div class="dhint">Direkt nach dem Aufstehen auf den ersten ~20 Schritten bewerten. 0 = nichts zu spüren, 10 = maximal steif. Immer dieselbe Belastung, unabhängig davon, wie der Morgen weiterläuft – das ist der Grund für die Skala statt der Uhr.</div>`;
+  const stiffHtml = isMini("stiff", stiffOpen)
+    ? mini("stiff", "Morgensteifigkeit", a1 === null ? "–" : "Ø " + fmtNum(a1, 1) + (sDelta === null ? "" : " · " + sign1(sDelta)))
+    : `<div class="wt-card">
+        <div class="wt-hd"><div class="wt-lbl">Morgensteifigkeit</div><div class="wt-k">
+          <span class="wt-kv">${a1 === null ? "–" : fmtNum(a1, 1)}</span>${sDelta === null ? "" : `<span class="wt-kd ${deltaCls(sDelta)}">${sign1(sDelta)}</span>`}
+          <div class="wt-sub">Ø 7 Tage · Vorwoche ${a2 === null ? "–" : fmtNum(a2, 1)}</div></div></div>
+        ${sEd ? `<div class="wt-in">${scale("dr", day ? day.rate : null, "setRate")}
+          <div class="drends"><span>0 = nichts</span><span>erste ~20 Schritte</span><span>10 = maximal</span></div>
+          ${stiffOpen ? "" : `<button type="button" class="wt-done" onclick="tlWerte.edit('stiff', false)">Fertig</button>`}</div>`
+          : todayRow(lab, sNow, false, "stiff", "Steifigkeit ändern")}
+        ${sChart}
+        ${moreBtn("stiff", "Einzelwerte &amp; Erläuterung")}
+        ${W.isMore("stiff") ? `<div class="dhint">${verdict}</div>${tHint}
+          <div style="margin-top:12px">${recent.map(d => {
+            const mins2 = typeof d.stiff === "number" ? ` · ${d.stiff} Min` : "";
+            const clock = fmtClock(d.ratedAt);
+            const cls = (d.ratedAt === "manual" || !d.ratedAt) ? "dsrow-t dim" : "dsrow-t";
+            return `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">${d.rate}/10${mins2}</div><div class="${cls}">${clock || "–"}</div></div>`;
+          }).join("")}</div>
+          <div class="dmin">
+            <div class="dminl">Optional: Dauer in Minuten (für den Arzttermin)</div>
+            <div class="drow2">
+              <input type="number" id="d-stiff" placeholder="Minuten" inputmode="numeric" step="1" min="0" value="${day && typeof day.stiff === "number" ? day.stiff : ""}">
+              <button class="dsave" onclick="saveStiff()">OK</button>
+            </div>
+          </div>` : ""}
+      </div>`;
+  const sc = document.getElementById("d-stiffsec");
+  if (sc) sc.innerHTML = stiffHtml;
 
-  const dsc = document.getElementById("ds-cont");
-  if (dsc) dsc.innerHTML = sHtml;
-
-  // ── Handgelenk Daumenseite: L/R 0–10, 7-Tage-Trend wie Achilles ──
-  ["L", "R"].forEach(side => {
-    const key = side === "L" ? "hgL" : "hgR";
-    for (let v = 0; v <= 10; v++) {
-      const b = document.getElementById("dh" + side + "-" + v);
-      if (b) b.className = "drbtn" + (day && day[key] === v ? " on" : "");
-    }
-  });
-
-  const hAll = all.filter(d => typeof d.hgL === "number" || typeof d.hgR === "number")
-                  .sort((a, b) => a.date < b.date ? -1 : 1);
-  let hHtml;
-  if (!hAll.length) {
-    hHtml = `<div class="dhint">Morgens, gleiche Zeit wie die Steifigkeit: Daumen gegen leichten Widerstand der anderen Hand strecken und den Schmerz über dem Griffelfortsatz bewerten. Immer derselbe Test. Bewertet wird der 7-Tage-Trend, nicht der einzelne Tag.</div>`;
-  } else {
-    const win = (lo, hi, key) => {
-      const v = hAll.filter(d => typeof d[key] === "number" && dayDiff(d.date, date) >= lo && dayDiff(d.date, date) < hi).map(d => d[key]);
-      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
-    };
-    const f = x => x === null ? "–" : fmtNum(x, 1);
-    const cell = (key, lab) => {
-      const a1 = win(0, 7, key), a2 = win(7, 14, key);
-      const dl = (a1 !== null && a2 !== null) ? a1 - a2 : null;
-      const cls = dl === null ? "" : dl <= -0.5 ? "good" : dl >= 0.5 ? "warn" : "";
-      const ds  = dl === null ? "" : ` <span class="dkn-d ${cls}">${dl >= 0 ? "+" : ""}${fmtNum(dl, 1)}</span>`;
-      return `<div class="dkc"><div class="dkn">${f(a1)}${ds}</div><div class="dkl">${lab} Ø 7 T · Vorw. ${f(a2)}</div></div>`;
-    };
-    const anyPrev = win(7, 14, "hgL") !== null || win(7, 14, "hgR") !== null;
-    const recentH = hAll.slice(-7).reverse();
-    const vv = x => typeof x === "number" ? x : "–";
-    hHtml = `<div class="dkpi">${cell("hgL", "Links")}${cell("hgR", "Rechts")}</div>
-    <div class="dhint">${anyPrev
-      ? `Steigt eine Seite um ≥ 0,5 gegenüber der Vorwoche, war die Belastung zu hoch. Dann die zuletzt geänderte Übung zurücknehmen – immer nur eine Variable pro Einheit.`
-      : `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln und keine Übung umstellen.`}</div>
-    <div style="margin-top:12px">${recentH.map(d =>
-      `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">L ${vv(d.hgL)} · R ${vv(d.hgR)}</div></div>`
-    ).join("")}</div>`;
-  }
-  const dhc = document.getElementById("dh-cont");
-  if (dhc) dhc.innerHTML = hHtml;
+  // ══ Handgelenk Daumenseite ══
+  const hAll = all.filter(d => typeof d.hgL === "number" || typeof d.hgR === "number").sort((a, b) => a.date < b.date ? -1 : 1);
+  const hvL = {}, hvR = {};
+  hAll.forEach(d => { if (typeof d.hgL === "number") hvL[d.date] = d.hgL; if (typeof d.hgR === "number") hvR[d.date] = d.hgR; });
+  const L1 = avgWin(hAll, "hgL", date, 0, 7), L2 = avgWin(hAll, "hgL", date, 7, 14);
+  const R1 = avgWin(hAll, "hgR", date, 0, 7), R2 = avgWin(hAll, "hgR", date, 7, 14);
+  const dL = L1 !== null && L2 !== null ? L1 - L2 : null, dR = R1 !== null && R2 !== null ? R1 - R2 : null;
+  const f = x => x === null ? "–" : fmtNum(x, 1);
+  const kSide = (s, v, dd) => `<span class="wt-ks">${s}</span><span class="wt-kv">${f(v)}</span>${dd === null ? "" : `<span class="wt-kd ${deltaCls(dd)}">${sign1(dd)}</span>`}`;
+  const vv = x => typeof x === "number" ? x : "–";
+  const hEd = thumbOpen || W.isEdit("thumb");
+  const anyPrev = L2 !== null || R2 !== null;
+  const hNow = day && (typeof day.hgL === "number" || typeof day.hgR === "number") ? `L ${vv(day.hgL)} · R ${vv(day.hgR)}` : "noch offen";
+  const hChart = hAll.length
+    ? W.graph({ end: date, days: W.range(), label: "Verlauf Handgelenk links und rechts, Ø 7 Tage",
+        series: [{ vals: hvL, kind: "avg", color: "#1A1A1A", name: "L" }, { vals: hvR, kind: "avg", color: "#2F6FB0", dash: true, name: "R" }] })
+      + W.legend([["Links Ø 7 Tage", "#1A1A1A"], ["Rechts Ø 7 Tage (gestrichelt)", "#2F6FB0"]])
+    : `<div class="dhint">Morgens, gleiche Zeit wie die Steifigkeit: Daumen gegen leichten Widerstand der anderen Hand strecken und den Schmerz über dem Griffelfortsatz bewerten. Immer derselbe Test. Bewertet wird der 7-Tage-Trend, nicht der einzelne Tag.</div>`;
+  const recentH = hAll.filter(d => d.date <= date).slice(-7).reverse();
+  const thumbHtml = isMini("thumb", thumbOpen)
+    ? mini("thumb", "Handgelenk", `L ${f(L1)} · R ${f(R1)}`)
+    : `<div class="wt-card">
+        <div class="wt-hd"><div class="wt-lbl">Handgelenk Daumenseite</div><div class="wt-k">
+          ${kSide("L", L1, dL)}${kSide("R", R1, dR)}
+          <div class="wt-sub">Ø 7 Tage · Vorwoche ${f(L2)} / ${f(R2)}</div></div></div>
+        ${hEd ? `<div class="wt-in">
+          <div class="dhside">Links</div>${scale("dhL", day ? day.hgL : null, "setThumb.bind(null,'L')")}
+          <div class="dhside">Rechts</div>${scale("dhR", day ? day.hgR : null, "setThumb.bind(null,'R')")}
+          <div class="drends"><span>0 = nichts</span><span>10 = maximal</span></div>
+          ${thumbOpen ? "" : `<button type="button" class="wt-done" onclick="tlWerte.edit('thumb', false)">Fertig</button>`}</div>`
+          : todayRow(lab, hNow, false, "thumb", "Handgelenk ändern")}
+        ${hChart}
+        ${moreBtn("thumb", "Einzelwerte &amp; Erläuterung")}
+        ${W.isMore("thumb") ? `<div class="dhint">${anyPrev
+            ? `Steigt eine Seite um ≥ 0,5 gegenüber der Vorwoche, war die Belastung zu hoch. Dann die zuletzt geänderte Übung zurücknehmen – immer nur eine Variable pro Einheit.`
+            : `Ab zwei vollen Wochen wird der Vergleich tragfähig. Bis dahin sammeln und keine Übung umstellen.`}</div>
+          <div style="margin-top:12px">${recentH.map(d =>
+            `<div class="dsrow"><div class="dsrow-d">${fmtDate(d.date)}</div><div class="dsrow-v">L ${vv(d.hgL)} · R ${vv(d.hgR)}</div></div>`).join("")}</div>` : ""}
+      </div>`;
+  const hc = document.getElementById("d-thumbsec");
+  if (hc) hc.innerHTML = thumbHtml;
 };
 
 // ─── CSS ───────────────────────────────────────
 const CSS = `
-.dtodo { display: flex; align-items: center; gap: 10px; margin: 18px 20px 0; padding: 13px 16px; border-radius: 11px; border: 1.5px solid var(--text); background: var(--surface); cursor: pointer; }
+.dtodo { margin: 8px 20px 0; padding: 12px 16px; border-radius: 11px; border: 1.5px solid var(--text); background: var(--surface); cursor: pointer; }
+.dtodo.done { border-color: var(--border); border-style: dashed; cursor: default; }
+.dtodo.past { border-color: #2F5D8A; cursor: default; }
+.dtrow { display: flex; align-items: center; gap: 10px; min-height: 22px; }
 .dtodo .dtl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
 .dtodo .dtv { font-size: 13.5px; font-weight: 700; color: var(--text); flex: 1; }
 .dtodo .dta { font-size: 16px; color: var(--muted); flex-shrink: 0; }
-.dtodo.done { border-color: var(--border); border-style: dashed; cursor: default; }
-.dtodo.done .dtv { color: var(--muted); font-weight: 600; text-align: right; }
+.dtodo .dsupbtn { margin-top: 10px; padding: 12px 0; font-size: 13px; }
+.dtodo .dtrow + .dsupbtn { margin-top: 10px; }
+.dtodo > .dsupbtn:first-child { margin-top: 0; }
+.dtsup { display: flex; justify-content: flex-end; margin-top: 4px; }
+.dsupok { border: none; background: transparent; padding: 4px 0; font-family: var(--fb); font-weight: 700; font-size: 12px; color: #2A7A2A; cursor: pointer; }
+.dtback { padding: 6px 12px; border-radius: 14px; border: 1.5px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--text); cursor: pointer; flex-shrink: 0; }
+.wt-wrap.dflash { animation: none; }
+.wt-wrap.dflash > * { animation: dflash 1.5s ease-out; }
 .dsec { margin: 12px 20px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 .dsub { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
 .dstates { display: flex; gap: 8px; }
@@ -474,56 +578,16 @@ const CSS = `
 `;
 
 const MARKUP = `
-<div class="dtodo" id="d-todo" onclick="jumpOpen()"></div>
-<div class="dhead first"><div class="dhl">TÄGLICH</div><div class="dhline"></div></div>
-<div class="ddate">
-  <label for="d-date">Datum</label>
-  <input type="date" id="d-date" onchange="buildDaily()">
+<div class="wt-date">
+  <button type="button" aria-label="Vortag" onclick="tlDailyShift(-1)">‹</button>
+  <label class="wt-dt" id="wt-dt"><span id="wt-dtl"></span><input type="date" id="d-date" aria-label="Datum wählen" onchange="tlDailyShift(0)"></label>
+  <button type="button" id="wt-next" aria-label="Folgetag" onclick="tlDailyShift(1)">›</button>
 </div>
-<div class="dsec" id="d-kcalsec">
-  <div class="dsub">Kalorienziel</div>
-  <div class="dstates">
-    <button class="dsbtn" id="dc-under" onclick="setKcal('under')">darunter</button>
-    <button class="dsbtn" id="dc-hit"   onclick="setKcal('hit')">Ziel</button>
-    <button class="dsbtn" id="dc-over"  onclick="setKcal('over')">darüber</button>
-  </div>
-  <button class="destbtn" id="dc-est" onclick="toggleEst()">Werte teilweise geschätzt</button>
-  <button class="destbtn trip" id="dc-trip" onclick="toggleTrip()">Reisetag</button>
-  <div id="dc-cont"></div>
-</div>
-<div class="dsec" id="d-stiffsec">
-  <div class="dsub">Morgensteifigkeit Achillessehne</div>
-  <div class="drscale">
-    ${[0,1,2,3,4,5,6,7,8,9,10].map(v => `<button class="drbtn" id="dr-${v}" onclick="setRate(${v})">${v}</button>`).join("")}
-  </div>
-  <div class="drends"><span>0 = nichts</span><span>10 = maximal</span></div>
-  <div id="ds-cont"></div>
-  <div class="dmin">
-    <div class="dminl">Optional: Dauer in Minuten (für den Arzttermin)</div>
-    <div class="drow2">
-      <input type="number" id="d-stiff" placeholder="Minuten" inputmode="numeric" step="1" min="0">
-      <button class="dsave" onclick="saveStiff()">OK</button>
-    </div>
-  </div>
-</div>
-<div class="dsec" id="d-thumbsec">
-  <div class="dsub">Handgelenk Daumenseite</div>
-  <div class="dhside">Links</div>
-  <div class="drscale">
-    ${[0,1,2,3,4,5,6,7,8,9,10].map(v => `<button class="drbtn" id="dhL-${v}" onclick="setThumb('L',${v})">${v}</button>`).join("")}
-  </div>
-  <div class="dhside">Rechts</div>
-  <div class="drscale">
-    ${[0,1,2,3,4,5,6,7,8,9,10].map(v => `<button class="drbtn" id="dhR-${v}" onclick="setThumb('R',${v})">${v}</button>`).join("")}
-  </div>
-  <div class="drends"><span>0 = nichts</span><span>10 = maximal</span></div>
-  <div id="dh-cont"></div>
-</div>
-<div class="dsec" id="d-supsec">
-  <div class="dsub">Supplements &amp; Medikamente</div>
-  <button class="dsupbtn" id="dsup-btn" onclick="toggleSup()"></button>
-  <div class="dhint">Ohne Haken kommt gegen 10 Uhr eine Erinnerung.</div>
-</div>
+<div class="dtodo" id="d-todo"></div>
+<div class="wt-range" id="wt-range"></div>
+<div class="wt-wrap" id="d-kcalsec"></div>
+<div class="wt-wrap" id="d-stiffsec"></div>
+<div class="wt-wrap" id="d-thumbsec"></div>
 <div class="dhead"><div class="dhl">GEWICHT</div><div class="dhline"></div></div>
 `;
 
@@ -541,6 +605,11 @@ function init() {
   view.insertBefore(wrap, view.firstChild);
 
   document.getElementById("d-date").value = todayStr();
+
+  // Gemerkten Zeitraum (werte.js) auch auf den Gewichtsgraphen übertragen
+  try {
+    if (window.tlWerte && typeof setWRange === "function" && typeof wRange !== "undefined" && wRange !== tlWerte.range()) setWRange(tlWerte.range());
+  } catch (e) { /* Gewichtsteil fehlt – unkritisch */ }
 
   // Wiegen-Block sitzt unter dem GEWICHT-Kopf – oberen Abstand rausnehmen
   // und als Sprungziel markieren.
