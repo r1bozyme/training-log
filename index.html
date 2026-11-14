@@ -187,12 +187,11 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .pel { font-family: var(--fd); font-size: 22px; letter-spacing: 2px; }
 .pel.Push { color: var(--push); } .pel.Pull { color: var(--pull); } .pel.Legs { color: var(--legs); }
 .pline { flex: 1; height: 1px; background: var(--border); }
-.pcard { background: var(--surface); border-radius: 10px; margin-bottom: 8px; overflow: hidden; cursor: pointer; border: 1px solid var(--border); }
+.pcard { background: var(--surface); border-radius: 12px; margin-bottom: 10px; overflow: hidden; cursor: pointer; border: 1px solid var(--border); }
 .pch { display: flex; align-items: center; padding: 13px 14px; gap: 12px; }
 .pcn { font-weight: 700; font-size: 14px; flex: 1; color: var(--text); }
 .pcm { font-size: 12px; color: var(--muted); }
-.pcc { color: var(--dim); font-size: 12px; transition: transform .2s; flex-shrink: 0; }
-.pcard.open .pcc { transform: rotate(180deg); }
+.pcc { color: var(--dim); font-size: 12px; flex-shrink: 0; }
 .pcb { display: none; padding: 0 14px 14px; border-top: 1px solid var(--border); }
 .pcard.open .pcb { display: block; }
 .pmuscle { font-size: 11px; color: var(--muted); margin-top: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
@@ -722,7 +721,7 @@ function buildPlan() {
         <div class="pch">
           <div class="pcn">${ex.name}</div>
           <div class="pcm">${ex.saetze}×${ex.repzone}</div>
-          <span class="pcc">▼</span>
+          <span class="pcc">▸</span>
         </div>
         <div class="pcb">
           <div class="pmuscle">${ex.muskel}</div>
@@ -743,7 +742,7 @@ function buildPlan() {
   }).join("");
 }
 
-function togCard(id) { document.getElementById(id).classList.toggle("open"); }
+function togCard(id) { const c = document.getElementById(id), o = c.classList.toggle("open"); c.querySelector(".pcc").textContent = o ? "▾" : "▸"; }
 
 // ─── STATS ───────────────────────────────────────────
 function parseKg(g) {
