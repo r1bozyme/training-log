@@ -29,6 +29,7 @@ if (typeof baseLog !== "function") return;
 var FENSTER = 28;                            // Tage je „Ältere laden“
 var tage = FENSTER;
 var offen = null;                            // { "2026-11-12": true }, null = jüngster Tag offen
+var juengster = null;                        // jüngster Tag beim letzten Rendern
 var UIKEY = "tlui-log";
 
 function ui() { try { return JSON.parse(localStorage.getItem(UIKEY)) || {}; } catch (e) { return {}; } }
@@ -78,7 +79,8 @@ function renderLog() {
   var sichtbar = daten.filter(function (d) { return d >= grenze; });
   if (!sichtbar.length) sichtbar = daten.slice(0, 1);       // lange Pause: wenigstens den letzten Tag
   var rest = daten.length - sichtbar.length;
-  if (offen === null) { offen = {}; offen[daten[0]] = true; }
+  /* kommt ein neuer Trainingstag dazu, klappt er auf und die älteren zu */
+  if (offen === null || daten[0] !== juengster) { offen = {}; offen[daten[0]] = true; juengster = daten[0]; }
 
   var h = sichtbar.map(function (d) {
     var es = proTag[d];
