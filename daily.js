@@ -4,7 +4,7 @@
 //
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Injiziert CSS + Markup selbst in den Werte-Tab und
-// hört auf den Ansichtswechsel (tl:view) und erweitert exportCSV().
+// hört auf den Ansichtswechsel (tl:view). Export: sync.js.
 //
 // Bewusst minimal gehalten: kein Zahlenfeld für Kalorien
 // (das wäre Tracking durch die Hintertür), keine Makros,
@@ -665,37 +665,7 @@ function init() {
     window.saveWeight = function () { origSaveW.apply(this, arguments); buildDaily(); };
   }
 
-  // exportCSV erweitern
-  const origExport = window.exportCSV;
-  if (typeof origExport === "function") {
-    window.exportCSV = function () {
-      const rows = loadDaily()
-        .filter(d => d.kcal || typeof d.rate === "number" || typeof d.stiff === "number" || typeof d.hgL === "number" || typeof d.hgR === "number")
-        .sort((a, b) => a.date < b.date ? -1 : 1);
-      if (!rows.length) return origExport();
-
-      const lbl = { under: "darunter", hit: "Ziel", over: "darüber" };
-      const extra = "\n\n# TÄGLICH\n" + [
-        ["Datum", "Kalorienziel", "Steifigkeit (0-10)", "Uhrzeit", "Steifigkeit (Min)", "Daumen L (0-10)", "Daumen R (0-10)"],
-        ...rows.map(d => [
-          fmtDate(d.date),
-          d.kcal ? lbl[d.kcal] : "",
-          typeof d.rate  === "number" ? d.rate  : "",
-          fmtClock(d.ratedAt),
-          typeof d.stiff === "number" ? d.stiff : "",
-          typeof d.hgL === "number" ? d.hgL : "",
-          typeof d.hgR === "number" ? d.hgR : ""
-        ])
-      ].map(r => r.join(",")).join("\n");
-
-      const origCreate = URL.createObjectURL;
-      URL.createObjectURL = function (blob) {
-        URL.createObjectURL = origCreate;
-        return origCreate(new Blob([blob, extra], { type: "text/csv;charset=utf-8" }));
-      };
-      try { origExport(); } finally { URL.createObjectURL = origCreate; }
-    };
-  }
+  // Der CSV-Export (inkl. Block TÄGLICH) kommt aus sync.js
 
   buildDaily();
 

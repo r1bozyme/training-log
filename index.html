@@ -678,14 +678,14 @@ function renderLog() {
       const meta = [
         e.gewicht ? e.gewicht + " kg" : null,
         sets      ? sets + " Wdh"     : null,
-        (window.tlStudio && window.tlStudio.label(e)) ? "📍 " + window.tlStudio.label(e) : null,
-        e.notiz   || null
+        (window.tlStudio && window.tlStudio.label(e)) ? "📍 " + escH(window.tlStudio.label(e)) : null,
+        e.notiz ? escH(e.notiz) : null
       ].filter(Boolean).join("  ·  ");
       const ip = pendingDel === e.id;
       return `<div class="ec">
         <span class="ebdg badge-${e.einheit}">${e.einheit.toUpperCase()}</span>
         <div class="ei">
-          <div class="en">${e.uebung}</div>
+          <div class="en">${escH(e.uebung)}</div>
           ${meta ? `<div class="em">${meta}</div>` : ""}
         </div>
         ${e.erhoehen ? '<span class="ubdg">↑</span>' : ""}
@@ -868,7 +868,7 @@ function buildStats() {
         : `<div class="spark-none">Erst 1 Datenpunkt – dranbleiben!</div>`;
       cards += `<div class="stcard">
         <div class="stc-top">
-          <div class="stc-name">${name}</div>
+          <div class="stc-name">${escH(name)}</div>
           <span class="stc-delta ${deltaCls}">${deltaStr}</span>
         </div>
         ${chart}
@@ -1188,43 +1188,16 @@ function buildWeight() {
 }
 
 // ─── EXPORT ──────────────────────────────────────────
-function exportCSV() {
-  const rows = [
-    ["Datum","Einheit","Übung","Gewicht","S1","S2","S3","S4","Notiz","↑ Erhöhen?","Studio"],
-    ...loadEntries().map(e => [
-      fmtDate(e.date), e.einheit, e.uebung, e.gewicht,
-      e.s1, e.s2, e.s3, e.s4 || "", e.notiz || "",
-      e.erhoehen ? "Ja" : "Nein", e.studio || ""
-    ])
-  ].map(r => r.join(",")).join("\n");
-
-  const wArr = loadWeights().slice().sort((a, b) => a.date < b.date ? -1 : 1);
-  let out = rows;
-  const st = loadStart();
-  if (st) {
-    out += "\n\n# STARTPUNKT (Referenz, nicht Teil der Messreihe)\n" +
-      ["Datum", "Gewicht (kg)"].join(",") + "\n" +
-      [fmtDate(st.date), fmtNum(st.kg, 1)].join(",");
-  }
-  if (wArr.length) {
-    const wp = computeTrend(wArr);
-    out += "\n\n# GEWICHT\n" + [
-      ["Datum", "Gewicht (kg)", "Trend (kg)"],
-      ...wp.map(p => [fmtDate(p.date), fmtNum(p.kg, 1), fmtNum(p.trend, 2)])
-    ].map(r => r.join(",")).join("\n");
-  }
-  const rowsOut = out;
-  const a = document.createElement("a");
-  a.href     = URL.createObjectURL(new Blob(["\uFEFF" + rowsOut], { type: "text/csv;charset=utf-8" }));
-  a.download = "training-log-" + todayStr() + ".csv";
-  a.click();
-}
+// exportCSV() kommt aus sync.js (eine Quelle für Download und Backup);
+// die alte Fassung hier ist seit dem 16.11. entfernt.
 
 // ─── VIEWS ───────────────────────────────────────────
 // showView(v) kommt aus view.js: schaltet die Ansicht um, ruft renderLog /
 // buildStats / buildWeight und meldet den Wechsel als Ereignis "tl:view".
 
 // ─── UTILS ───────────────────────────────────────────
+// Freitext (Übungsname, Notiz, Studio) für innerHTML maskieren
+function escH(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 // Ortszeit (16.11.): toISOString ist UTC – der Tag wechselte sonst erst um 1 bzw. 2 Uhr
 function todayStr() { const d = new Date(), p = n => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
 function fmtDate(d) {

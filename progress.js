@@ -422,7 +422,7 @@ function injectOverview() {
     const tag = o.auto && o.man ? "auto + manuell" : (o.auto ? "auto" : "manuell");
     return `<div class="pgo-row">
       <span class="ebdg badge-${o.ein}">${String(o.ein || "").toUpperCase()}</span>
-      <div class="pgo-i"><div class="pgo-n">${o.name}</div><div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
+      <div class="pgo-i"><div class="pgo-n">${escA(o.name)}</div><div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
       <span class="pgo-z">${o.ziel !== null ? "→ " + kg(o.ziel) : "↑"}</span>
     </div>`;
   }).join("");
