@@ -8,12 +8,14 @@
 
    MODUS (data.mode, gesetzt von oura/fetch.js)
      sandbox → nur Vorschau mit Testdaten, NICHTS wird gespeichert.
-     live    → Werte wandern in tl-d, in dieselben Felder wie bisher
-               bei Google Health: steps, sleepMin, rhr, hrv. Dazu neu
-               ready (Readiness) und sscore (Schlaf-Score). Damit laufen
-               sie über sync.js ins Backup und in export.csv.
-               Sobald live mindestens ein Tag da ist, ist Oura "aktiv":
-               ghealth.js ruft dann nicht mehr ab und überschreibt nichts.
+     live    → Werte wandern in tl-d: steps, sleepMin, rhr, hrv, ready
+               (Readiness) und sscore (Schlaf-Score). Damit laufen sie
+               über sync.js ins Backup und in export.csv.
+
+   16.11.: Google Health (ghealth.js) ist entfernt. Die Ansicht "health"
+   (Körper → Tracker) legt jetzt diese Datei an; die alten Schlüssel
+   tl-ghc/tl-ght/tl-ghs werden beim Start gelöscht. Schritte vor dem
+   05.11. in tl-d stammen noch vom Handy über Google Health.
 
    Definitionen (Oura):
      sleepMin = total_sleep_duration des Hauptschlafs (Aufwachtag)
@@ -57,7 +59,7 @@ try { data = JSON.parse(ls(K_CACHE) || "null"); } catch (e) { data = null; }
 
 function isLive() { return !!(data && data.mode === "live"); }
 function liveDays() { return isLive() && data.days ? Object.keys(data.days).length : 0; }
-/* aktiv = live und schon echte Werte → ersetzt Google Health */
+/* aktiv = live und schon echte Werte */
 function active() { return liveDays() > 0; }
 
 /* ─── Abruf ────────────────────────────────────── */
@@ -369,7 +371,7 @@ function render() {
   } else if (!isLive()) {
     h += '<div class="dhint"><strong>Sandbox</strong> – Testdaten von Oura, nur Vorschau, wird nicht gespeichert. Stand ' + esc(fmtTime(data.updated)) + '.</div>';
   } else if (!liveDays()) {
-    h += '<div class="dhint"><strong>Live</strong> – wartet auf die erste Nacht mit dem Ring. Der Abruf läuft morgens gegen 6:40 Uhr. Bis dahin bleibt Google Health aktiv.</div>';
+    h += '<div class="dhint"><strong>Live</strong> – wartet auf die erste Nacht mit dem Ring. Der Abruf läuft morgens gegen 6:40 Uhr.</div>';
   } else {
     h += '<div class="dhint">Live · Stand ' + esc(fmtTime(data.updated)) + (liveDays() < 14 ? ' · Basislinie im Aufbau (' + liveDays() + '/14 Tage)' : '') + '</div>';
   }
@@ -392,15 +394,6 @@ function render() {
   }
   h += '<div class="dhint" style="text-align:right;margin:12px 20px 0"><a href="' + APP_URL + '" style="color:var(--text);font-weight:700;text-decoration:none">In Oura öffnen ↗</a></div>';
   box.innerHTML = h;
-
-  /* Google-Health-Abschnitt ausblenden, sobald Oura aktiv ist */
-  var gh = document.getElementById("gh-sec");
-  if (gh) {
-    var on = active();
-    gh.style.display = on ? "none" : "";
-    var head = gh.previousElementSibling;
-    if (head && head.classList.contains("dhead")) head.style.display = on ? "none" : "";
-  }
 }
 
 window.ouRefresh = function () { refresh(true); };
@@ -415,11 +408,25 @@ window.ouCard = function (f) {
 window.tlOura = { active: active, live: isLive, refresh: refresh };
 
 /* ─── Init ─────────────────────────────────────── */
-/* Hängt sich als erster Abschnitt in die Ansicht "health" (aus ghealth.js). */
+/* Legt die Ansicht "health" (Körper → Tracker) an; umgeschaltet wird sie
+   von showView in view.js. Bringt eine alte ghealth.js aus dem Cache die
+   Ansicht schon mit, wird sie übernommen und deren Abschnitt entfernt. */
 function init() {
-  var view = document.getElementById("view-health");
-  if (!view) { setTimeout(init, 300); return; }
   if (document.getElementById("ou-cont")) return;
+  var app = document.getElementById("app");
+  if (!app) return;
+  var view = document.getElementById("view-health");
+  if (!view) {
+    view = document.createElement("div");
+    view.id = "view-health";
+    view.className = "view";
+    var wv = document.getElementById("view-weight");
+    if (wv && wv.parentNode === app) app.insertBefore(view, wv.nextSibling);
+    else app.appendChild(view);
+  } else {
+    view.innerHTML = "";
+  }
+  ["tl-ghc", "tl-ght", "tl-ghs"].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
 
   var css = document.createElement("style");
   css.textContent = ".ou-cmp { font-size:12px; color:var(--muted); line-height:1.5; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }\n"

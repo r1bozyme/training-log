@@ -4,13 +4,14 @@
    Seit 09.10. laufen die Erinnerungen nur noch über ntfy (eigene App,
    geheimer Kanal); Chrome hat das Web-Push-Abo auf dem Handy immer
    wieder verworfen. 31.10. (Review): Der Chrome-Push-Teil ist entfernt –
-   kein Abo, keine Selbstheilung, keine Abo-Uploads mehr. Ein noch
-   vorhandenes Browser-Abo wird beim Start einmal still beendet.
+   kein Abo, keine Selbstheilung, keine Abo-Uploads mehr.
+   16.11.: Auch der Service Worker (sw.js) ist entfernt – er diente nur
+   den Chrome-Meldungen. Ein noch vorhandenes Browser-Abo und die alte
+   Registrierung werden beim Start einmal still beendet.
 
    Geblieben:
-   · go(): Sprungziele für ?go=… (ntfy-Klick-URL) und Nachrichten des
-     Service Workers (stiff, thumb, weight, yday, supps, food, yfood,
-     sync, einkauf, vorrat).
+   · go(): Sprungziele für ?go=… (ntfy-Klick-URL): stiff, thumb, weight,
+     yday, supps, food, yfood, sync, einkauf, vorrat, inbody.
    · Kasten im Log-Tab: Status und An/Aus. Der Schalter schreibt
      push/subscription.json mit on:true/false – der Erinnerungsdienst
      (training-log-data/push/remind.js) schweigt bei on:false.
@@ -34,14 +35,17 @@ function localDate(offsetDays) {
   return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
 }
 
-/* Altes Chrome-Abo einmal still beenden (Service Worker bleibt für Klicks registriert) */
+/* Altes Chrome-Abo und die Registrierung von sw.js einmal still beenden.
+   getRegistration("./") trifft nur /training-log/ – das Finanz-Cockpit
+   unter derselben Herkunft bleibt unberührt. */
 function dropBrowserSub() {
   if (!("serviceWorker" in navigator)) return;
-  var s = st(); if (s.dropped) return;
+  var s = st(); if (s.swGone) return;
   navigator.serviceWorker.getRegistration("./").then(function (reg) {
-    if (!reg || !reg.pushManager) return null;
-    return reg.pushManager.getSubscription().then(function (sub) { return sub ? sub.unsubscribe() : null; });
-  }).then(function () { var t = st(); t.dropped = new Date().toISOString(); saveSt(t); }).catch(function () {});
+    if (!reg) return null;
+    var p = reg.pushManager ? reg.pushManager.getSubscription().then(function (sub) { return sub ? sub.unsubscribe() : null; }) : Promise.resolve();
+    return p.catch(function () {}).then(function () { return reg.unregister(); });
+  }).then(function () { var t = st(); t.swGone = new Date().toISOString(); saveSt(t); }).catch(function () {});
 }
 
 function setOn(on) {
@@ -135,11 +139,6 @@ function mount() {
 function init() {
   mount();
   document.addEventListener("tl:view", function (e) { if (e.detail.view === "log") { mount(); render(); } });
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.addEventListener("message", function (e) {
-      if (e.data && e.data.type === "tl-go") go(e.data.go);
-    });
-  }
   try {
     var p = new URLSearchParams(location.search);
     var target = p.get("go");
