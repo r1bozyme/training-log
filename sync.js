@@ -175,11 +175,13 @@ function buildCSV() {
           s.f    += (Number(it.f)    || 0) * m / r;
           s.p    += (Number(it.p)    || 0) * m / r;
         });
+        /* 16.11.: Ziel, das an dem Tag galt (Ziel-Historie in tracker.js) */
+        var gd = (typeof window.loadFoodGoalAt === "function") ? window.loadFoodGoalAt(d) : goal;
         csv += "\n" + csvRow([
           window.fmtDate(d),
           csvNum(s.kcal, 0), csvNum(s.kh, 1), csvNum(s.f, 1), csvNum(s.p, 1),
-          goal ? csvNum(goal.kcal, 0) : "",
-          goal ? csvNum(s.kcal - goal.kcal, 0) : "",
+          gd ? csvNum(gd.kcal, 0) : "",
+          gd ? csvNum(s.kcal - gd.kcal, 0) : "",
           items.length
         ]);
       });
@@ -289,29 +291,41 @@ function readBackup() {
     return r.json();
   });
 }
+var GUARD_NAME = { "tl-e": "Training", "tl-w": "Gewicht", "tl-d": "Tageswerte", "tl-f": "Ernährung" };
+var GUARD_MIN = 10;   // Bereiche mit weniger Datensätzen im Backup werden nicht einzeln geprüft
+function countKey(get, k) {
+  try {
+    var v = JSON.parse(get(k) || "null");
+    if (Array.isArray(v)) return v.length;
+    if (v && typeof v === "object") return Object.keys(v).length;
+  } catch (e) { /* unlesbar = 0 */ }
+  return 0;
+}
 function countKeys(get) {
   var n = 0;
-  GUARD_KEYS.forEach(function (k) {
-    try {
-      var v = JSON.parse(get(k) || "null");
-      if (Array.isArray(v)) n += v.length;
-      else if (v && typeof v === "object") n += Object.keys(v).length;
-    } catch (e) { /* unlesbar = 0 */ }
-  });
+  GUARD_KEYS.forEach(function (k) { n += countKey(get, k); });
   return n;
 }
 function guardShrink(manual) {
   return readBackup().then(function (dump) {
     if (!dump || !dump.keys) return;          // noch kein Backup
-    var remote = countKeys(function (k) { return dump.keys[k]; });
-    var local  = countKeys(function (k) { return localStorage.getItem(k); });
-    if (remote === 0 || local >= remote * 0.5) return;
-    var msg = "Gesperrt: Geraet hat " + local + " Datensaetze, Backup " + remote +
+    var getR = function (k) { return dump.keys[k]; }, getL = function (k) { return localStorage.getItem(k); };
+    var remote = countKeys(getR), local = countKeys(getL);
+    /* 16.11.: zusaetzlich je Bereich pruefen. Die Summe wird von den
+       Trainingseintraegen getragen – ein leerer Ernaehrungs- oder
+       Gewichtsbereich fiel darin nicht auf. */
+    var teil = "";
+    GUARD_KEYS.forEach(function (k) {
+      var r = countKey(getR, k), l = countKey(getL, k);
+      if (!teil && r >= GUARD_MIN && l < r * 0.5) { teil = GUARD_NAME[k] + " "; remote = r; local = l; }
+    });
+    if (!teil && (remote === 0 || local >= remote * 0.5)) return;
+    var msg = "Gesperrt: Geraet hat " + local + " " + teil + "Datensaetze, Backup " + remote +
               ". Erst \u2193 Wiederherstellen.";
     if (!manual) throw new Error(msg);
     return window.tlAsk.typed({
       title: "Backup überschreiben?",
-      text: "Das Backup enthält " + remote + " Datensätze, dieses Gerät nur " + local + ".\n" +
+      text: "Das Backup enthält " + remote + " " + teil + "Datensätze, dieses Gerät nur " + local + ".\n" +
             "Sichern würde das Backup durch diesen Stand ersetzen.\n\n" +
             "Normalerweise ist jetzt \u2193 Wiederherstellen richtig.",
       word: "UEBERSCHREIBEN", ok: "Überschreiben"

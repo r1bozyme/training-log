@@ -675,16 +675,21 @@ function init() {
   // Nur weiterstellen, wenn das Feld unverändert auf dem alten Tag stand;
   // eine bewusste manuelle Auswahl bleibt erhalten.
   let lastToday = todayStr();
+  function tagWechsel() {
+    const now = todayStr();
+    if (now === lastToday) return false;
+    const el = document.getElementById("d-date");
+    if (el && el.value === lastToday) el.value = now;
+    lastToday = now;
+    return true;
+  }
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState !== "visible") return;
-    const now = todayStr();
-    if (now !== lastToday) {
-      const el = document.getElementById("d-date");
-      if (el && el.value === lastToday) el.value = now;
-      lastToday = now;
-    }
+    tagWechsel();
     buildDaily();
   });
+  // 16.11.: auch wenn die App über Mitternacht offen bleibt
+  setInterval(function () { if (document.visibilityState === "visible" && tagWechsel()) buildDaily(); }, 60000);
 
   // ── Deep-Links ──
   // Nur wirksam bei echtem Seitenaufruf. Holt Android ein bestehendes Fenster

@@ -374,6 +374,37 @@ function cfg() {
 function saveCfg(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
 
 window.loadFoodGoal = function () { applyNov(); return cfg().goal; };
+
+/* ─── Ziel-Historie (16.11.) ───────────────────────────────
+   c.goalHist = [{ ab:"JJJJ-MM-TT", kcal, kh, f, p }], aufsteigend. Damit
+   werden „Tag abschließen“ und die CSV-Spalten Ziel/Δ gegen das Ziel
+   gerechnet, das an dem Tag galt – nicht gegen das heutige. Vor dem ersten
+   Eintrag gilt GOAL_ALT. Einmalig aus den bekannten Wechseln aufgebaut. */
+function goalCopy(g, ab) { return { ab: ab, kcal: g.kcal, kh: g.kh, f: g.f, p: g.p }; }
+function goalHistSeed(c) {
+  if (Array.isArray(c.goalHist) && c.goalHist.length) return false;
+  var h = [goalCopy(GOAL_NEU, "2026-09-06"), goalCopy(GOAL_NOV, GOAL_NOV_AB)].filter(function (x) { return x.ab <= todayStr(); });
+  var last = h[h.length - 1], g = c.goal;
+  if (g && (!last || g.kcal !== last.kcal || g.kh !== last.kh || g.f !== last.f || g.p !== last.p)) {
+    var ab = c.goalSince && (!last || c.goalSince > last.ab) ? c.goalSince : todayStr();
+    h.push(goalCopy(g, ab));
+  }
+  c.goalHist = h;
+  return true;
+}
+function goalHistPush(c) {
+  goalHistSeed(c);
+  var t = todayStr();
+  c.goalHist = c.goalHist.filter(function (x) { return x.ab < t; });
+  c.goalHist.push(goalCopy(c.goal, t));
+}
+function goalAt(d) {
+  var c = cfg(), h = Array.isArray(c.goalHist) ? c.goalHist : [], g = null;
+  if (!h.length) return c.goal;
+  h.forEach(function (x) { if (x.ab <= d) g = x; });
+  return g || GOAL_ALT;
+}
+window.loadFoodGoalAt = function (d) { applyNov(); return goalAt(d); };
 /* vorrat.js (31.10.): Produktnamen und Einheiten inkl. eigener Produkte */
 window.foodProducts = function () { return allProducts(); };
 
@@ -630,7 +661,7 @@ window.foodClear = function () {
    Bewusst manuell: mitten am Tag liegt jede Summe unter Ziel,
    ein automatischer Haken wäre systematisch "darunter". */
 window.foodClose = function () {
-  var d = curDate(), s = sumDay(dayItems(d)), g = cfg().goal;
+  var d = curDate(), s = sumDay(dayItems(d)), g = goalAt(d);   // Ziel, das an dem Tag galt
   var diff = s.kcal - g.kcal;
   var state = diff < -125 ? "under" : (diff > 125 ? "over" : "hit");
   if (typeof window.setKcal !== "function") { showFlash("Werte-Tab nicht geladen"); return; }
@@ -980,6 +1011,7 @@ window.foodGoalSet = function (which) {
   var g = which === "neu" ? goalStd() : GOAL_ALT;
   c.goal = { kcal:g.kcal, kh:g.kh, f:g.f, p:g.p };
   c.goalSince = todayStr();
+  goalHistPush(c);
   saveCfg(c); buildFood();
   showFlash("Ziel auf " + g.kcal + " kcal");
 };
@@ -1001,6 +1033,7 @@ window.foodGoalEdit = function () {
     if (neu.kcal === g.kcal && neu.kh === g.kh && neu.f === g.f && neu.p === g.p) { showFlash("Keine Änderung"); return; }
     c.goal = neu;
     c.goalSince = todayStr();
+    goalHistPush(c);
     saveCfg(c); buildFood();
     showFlash("Ziel gespeichert ✓");
   });
@@ -1389,12 +1422,12 @@ window.buildFood = function () {
     (fSetOpen ?
       '<div class="fbasisbody">' +
         '<div class="fgoal">' + n0(g.kcal) + " kcal · " + n0(g.kh) + " g KH · " + n0(g.f) + " g Fett · " + n0(g.p) + " g Protein</div>" +
+        /* 16.11.: fester Knopf „3.100 kcal“ entfernt – er setzte das Ziel ohne Rückfrage zurück */
         '<div class="frow2">' +
-          '<button class="fbtn2' + (g.kcal === goalStd().kcal ? " prim" : "") + '" onclick="foodGoalSet(\'neu\')">' + n0(goalStd().kcal) + ' kcal</button>' +
-          '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Frei</button>' +
+          '<button class="fbtn2 ghost" onclick="foodGoalEdit()">Ziel ändern</button>' +
         "</div>" +
-        '<div class="fhint">Woche zählt ab 6 von 7 erfassten Tagen. November-Test: 3.100 kcal ab 08.11. Trend nach 3 sauberen Wochen unter +0,1 kg/Woche → +150–200 kcal als KH, über +0,35 → −100.' +
-          (c.goalSince ? " Gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div>" +
+        '<div class="fhint">Woche zählt ab 6 von 7 erfassten Tagen.' +
+          (c.goalSince ? " Ziel gesetzt am " + fmtDate(c.goalSince) + "." : "") + "</div>" +
       "</div>" +
       '<div class="fsub" style="margin-top:18px">Fixbasis · ' + n0(basisSum.kcal) + " kcal · " + n0(basisSum.p) + " g Protein</div>" +
       basisBody
@@ -1734,6 +1767,8 @@ function init() {
         dirty = true;
       }
 
+      if (goalHistSeed(c0)) dirty = true;
+
       if (dirty) saveCfg(c0);
     } else {
       var c1 = cfg();
@@ -1766,17 +1801,26 @@ function init() {
   /* Datumswechsel über Nacht – gleiche Logik wie in daily.js:
      nur weiterstellen, wenn das Feld unverändert auf gestern steht. */
   var lastToday = todayStr();
+  function tagWechsel() {
+    var now = todayStr();
+    if (now === lastToday) return false;
+    var el = document.getElementById("f-day");
+    if (el && el.value === lastToday) el.value = now;
+    lastToday = now;
+    return true;
+  }
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState !== "visible") return;
-    var now = todayStr();
-    if (now !== lastToday) {
-      var el = document.getElementById("f-day");
-      if (el && el.value === lastToday) el.value = now;
-      lastToday = now;
-    }
+    tagWechsel();
     var fv = document.getElementById("view-food");
     if (fv && fv.classList.contains("active")) buildFood();
   });
+  /* 16.11.: auch wenn die App über Mitternacht offen bleibt */
+  setInterval(function () {
+    if (document.visibilityState !== "visible" || !tagWechsel()) return;
+    var fv = document.getElementById("view-food");
+    if (fv && fv.classList.contains("active")) buildFood();
+  }, 60000);
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

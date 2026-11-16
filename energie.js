@@ -21,8 +21,15 @@
    Anlass: Oktober, letzte 28 Tage und September lagen ~200 kcal
    auseinander, bei ausgewiesenen ±67 bis ±92. Der Mittelwert ist unverändert.
 
-   Fenster: die letzten 28 Tage (bis gestern) und – sobald 14 Tage alt –
-   „seit Zielwechsel“ (goalSince aus tl-fg, z. B. 08.11.: 3.200 kcal).
+   Fenster: die letzten 28 Tage (bis gestern) und „seit Zielwechsel“
+   (goalSince aus tl-fg).
+   16.11.: Im Fenster „seit Zielwechsel“ zählt die Waage erst ab Tag 8
+   (SCHONFRIST). Mehr Kohlenhydrate füllen zuerst Glykogen und Wasser – die
+   Waage steigt ohne Gewebe, und mit 7.000 kcal/kg gerechnet läge die
+   Erhaltung zu niedrig (0,3 kg in 14 Tagen ≈ 150 kcal). Die Zufuhr zählt
+   weiter ab dem Wechsel. Das Fenster erscheint deshalb ab Tag 21 und bleibt
+   bis Tag 35 – erst dann liegt die erste Woche auch außerhalb der 28 Tage;
+   bis dahin trägt der 28-Tage-Block einen Hinweis.
    Karte in Ernährung › Heute unter dem Tagesinhalt.
 
    Rechenkern auch per require nutzbar (Auswerteskript in training-log-data).
@@ -30,7 +37,7 @@
 (function (root) {
 "use strict";
 
-var RHO = 7000, MIN_TAGE = 10, MIN_W = 6, ABW = 300;
+var RHO = 7000, MIN_TAGE = 10, MIN_W = 6, ABW = 300, SCHONFRIST = 7;
 
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 function addDays(s, n) { var d = new Date(s + "T12:00:00"); d.setDate(d.getDate() + n); return iso(d); }
@@ -41,8 +48,9 @@ function kcalDay(items) {
   }, 0);
 }
 
-/* food = tl-f, days = tl-d (Array), weights = tl-w (Array), von/bis inklusive */
-function calc(food, days, weights, von, bis) {
+/* food = tl-f, days = tl-d (Array), weights = tl-w (Array), von/bis inklusive.
+   wVon (optional): Wiegungen erst ab diesem Tag (Schonfrist nach Zielwechsel) */
+function calc(food, days, weights, von, bis, wVon) {
   var flags = {};
   (days || []).forEach(function (d) { flags[d.date] = d; });
   var kc = [];
@@ -53,9 +61,10 @@ function calc(food, days, weights, von, bis) {
     var k = kcalDay(food[day]);
     if (k > 800) kc.push(k);     // offensichtlich unvollständige Tage raus
   });
-  var ws = (weights || []).filter(function (w) { return w.date >= von && w.date <= bis && isFinite(+w.kg); })
+  var w0 = wVon && wVon > von ? wVon : von;
+  var ws = (weights || []).filter(function (w) { return w.date >= w0 && w.date <= bis && isFinite(+w.kg); })
     .map(function (w) { return [dnum(w.date), +w.kg]; });
-  var out = { von: von, bis: bis, nTage: kc.length, nW: ws.length };
+  var out = { von: von, bis: bis, wVon: w0, nTage: kc.length, nW: ws.length };
   out.nFenster = Math.max(1, dnum(bis) - dnum(von) + 1);
   if (kc.length) out.zufuhr = kc.reduce(function (a, b) { return a + b; }, 0) / kc.length;
   if (kc.length >= 2) {
@@ -85,7 +94,7 @@ function calc(food, days, weights, von, bis) {
   return out;
 }
 
-var api = { calc: calc, RHO: RHO, ABW: ABW, addDays: addDays, iso: iso };
+var api = { calc: calc, RHO: RHO, ABW: ABW, SCHONFRIST: SCHONFRIST, addDays: addDays, iso: iso };
 if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
 root.tlEnergie = api;
 
@@ -114,7 +123,15 @@ function render() {
   var r28 = calc(food, days, ws, addDays(heute, -28), bis);
   var h = block(r28, "Letzte 28 Tage (" + dm(addDays(heute, -28)) + "–" + dm(bis) + ")");
   var gs = cfg.goalSince;
-  if (gs && gs <= addDays(heute, -14) && gs > addDays(heute, -28)) h += block(calc(food, days, ws, gs, bis), "Seit Zielwechsel " + dm(gs));
+  /* Zielwechsel samt Schonfrist noch im 28-Tage-Fenster → Trend dort verzerrt */
+  var frisch = !!gs && gs <= heute && addDays(gs, SCHONFRIST) > addDays(heute, -28);
+  if (frisch) {
+    var wAb = addDays(gs, SCHONFRIST);
+    h += '<div class="fhint">Zielwechsel am ' + dm(gs) + ' liegt in diesem Fenster. Die erste Woche danach füllt Glykogen und Wasser auf – ' +
+      'die Waage steigt ohne Gewebe, die Erhaltung oben fällt dadurch eher zu niedrig aus.</div>';
+    if (gs <= addDays(heute, -21)) h += block(calc(food, days, ws, gs, bis, wAb), "Seit Zielwechsel " + dm(gs) + " · Waage ab " + dm(wAb));
+    else h += '<div class="fhint">Eigene Schätzung „seit Zielwechsel“ ab ' + dm(addDays(gs, 21)) + ' (Waage zählt ab ' + dm(wAb) + ').</div>';
+  }
   var g = cfg.goal && cfg.goal.kcal;
   var best = r28.ok ? r28 : null;
   if (best && g) {

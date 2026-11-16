@@ -6,7 +6,8 @@
    verworfen werden muss:
      1. Symptomfrei – manuell bestätigt (Feld sym in tl-d: "frei" | "krank"),
         zählt ab dem Vortag der Messung
-     2. Normale KH an den 3 Tagen davor – je ≥ 330 g laut Tracker (normal ~350)
+     2. Normale KH an den 3 Tagen davor – je ≥ 85 % des KH-Ziels laut Tracker,
+        mindestens 330 g (16.11.; vorher fest 330 g aus der Zeit mit Ziel 350 g)
      3. ≥ 2 Trainingstage in den 7 Tagen davor, Deload-Tage zählen nicht
      4. Ruhetag am Vortag (kein Eintrag in tl-e)
    Messbedingungen am Morgen (07:00 nüchtern, vor dem Trinken) stehen als
@@ -35,7 +36,7 @@
 (function (root) {
 "use strict";
 
-var MIN_KH = 330, KH_TAGE = 3, MIN_TRAIN = 2, TRAIN_FENSTER = 7, VORLAUF = 6;
+var MIN_KH = 330, KH_ANTEIL = 0.85, KH_TAGE = 3, MIN_TRAIN = 2, TRAIN_FENSTER = 7, VORLAUF = 6;
 
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 function addDays(s, n) { var d = new Date(s + "T12:00:00"); d.setDate(d.getDate() + n); return iso(d); }
@@ -46,8 +47,10 @@ function khDay(items) {
 }
 
 /* termin "JJJJ-MM-TT", heute "JJJJ-MM-TT"; food = tl-f, days = tl-d,
-   entries = tl-e, deload = {von, bis} | null */
-function check(termin, heute, food, days, entries, deload) {
+   entries = tl-e, deload = {von, bis} | null, khZiel = KH-Ziel in g (optional) */
+function minKh(khZiel) { return Math.max(MIN_KH, Math.round((Number(khZiel) || 0) * KH_ANTEIL)); }
+function check(termin, heute, food, days, entries, deload, khZiel) {
+  var grenze = minKh(khZiel);
   food = food || {}; days = days || []; entries = entries || [];
   var flags = {}; days.forEach(function (d) { flags[d.date] = d; });
   var trainDates = {};
@@ -74,11 +77,11 @@ function check(termin, heute, food, days, entries, deload) {
     var st;
     if (t > heute) st = "offen";
     else if (!items || !items.length) st = t === heute ? "offen" : "fehlt";
-    else if (kh >= MIN_KH) st = "ok";
+    else if (kh >= grenze) st = "ok";
     else st = (t === heute && !f.kcal) ? "offen" : "nein";   // heute noch nicht abgeschlossen
     tage.push({ date: t, kh: items && items.length ? kh : null, st: st });
   }
-  out.krit.push({ id: "kh", st: worst(tage.map(function (x) { return x.st; })), tage: tage });
+  out.krit.push({ id: "kh", st: worst(tage.map(function (x) { return x.st; })), tage: tage, grenze: grenze });
 
   /* 3 – Trainingstage im Fenster davor, ohne Deload */
   var von = addDays(termin, -TRAIN_FENSTER), n = 0, nDeload = 0, liste = [];
@@ -106,7 +109,7 @@ function worst(arr) {
   return w;
 }
 
-var api = { check: check, MIN_KH: MIN_KH, addDays: addDays, iso: iso };
+var api = { check: check, MIN_KH: MIN_KH, minKh: minKh, addDays: addDays, iso: iso };
 if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
 root.tlInbody = api;
 
@@ -118,6 +121,11 @@ var WT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 function wt(s) { return WT[new Date(s + "T12:00:00").getDay()]; }
 function dayDiff(a, b) { return Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 864e5); }
 
+/* KH-Ziel, das am Tag galt (Ziel-Historie in tracker.js) */
+function khZiel(d) {
+  var g = typeof root.loadFoodGoalAt === "function" ? root.loadFoodGoalAt(d) : (readJSON("tl-fg", {}).goal || null);
+  return g && g.kh ? g.kh : 0;
+}
 function termin() {
   var tt = root.tlTermine || [];
   for (var i = 0; i < tt.length; i++) if (tt[i].label === "InBody" && tt[i].date) return tt[i].date;
@@ -133,7 +141,7 @@ function aktiv() {
 function result() {
   var t = aktiv(); if (!t) return null;
   var dl = (typeof PLAN !== "undefined" && PLAN.deload) ? PLAN.deload : null;
-  return check(t, heute(), readJSON("tl-f", {}), readJSON("tl-d", []), readJSON("tl-e", []), dl);
+  return check(t, heute(), readJSON("tl-f", {}), readJSON("tl-d", []), readJSON("tl-e", []), dl, khZiel(t));
 }
 
 /* ─── Messungen ──────────────────────────────────── */
@@ -217,7 +225,7 @@ function parseDatum(s) {
 function bedingung(date) {
   try {
     var dl = (typeof PLAN !== "undefined" && PLAN.deload) ? PLAN.deload : null;
-    return check(date, date, readJSON("tl-f", {}), readJSON("tl-d", []), readJSON("tl-e", []), dl).gesamt;
+    return check(date, date, readJSON("tl-f", {}), readJSON("tl-d", []), readJSON("tl-e", []), dl, khZiel(date)).gesamt;
   } catch (e) { return null; }
 }
 
@@ -444,7 +452,7 @@ function render() {
   var t2 = K.kh.tage.map(function (x) {
     var v = x.kh === null ? (x.st === "offen" ? "–" : "nicht erfasst") : Math.round(x.kh) + " g";
     return '<span class="ib-c ib-' + x.st + '">' + wt(x.date) + " " + dm(x.date) + " · " + v + "</span>";
-  }).join("") + '<div class="ib-x2">je ≥ ' + MIN_KH + " g (normal ~350, Ziel derzeit höher)</div>";
+  }).join("") + '<div class="ib-x2">je ≥ ' + K.kh.grenze + " g (85 % des KH-Ziels, mindestens " + MIN_KH + " g)</div>";
 
   /* 3 Training */
   var k3 = K.train, t3 = k3.n + " von " + MIN_TRAIN + " Einheiten" + (k3.daten.length ? " (" + k3.daten.map(dm).join(", ") + ")" : "");

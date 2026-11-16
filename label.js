@@ -123,12 +123,21 @@ function shrink(file) {
 }
 
 /* ─── API ─────────────────────────────────────────── */
+/* 16.11.: Zeitlimit – bei schlechtem Netz hing die Laufanzeige sonst endlos */
+var LIMIT_MS = 45000;
+function limit() {
+  if (!window.AbortController) return undefined;
+  var c = new AbortController();
+  setTimeout(function () { c.abort(); }, LIMIT_MS);
+  return c.signal;
+}
 function call(key, o) {
   var content = [];
   if (o.image) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: o.image } });
   content.push({ type: "text", text: o.prompt });
   return fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
+    signal: limit(),
     headers: {
       "x-api-key": key,
       "anthropic-version": "2023-06-01",
@@ -194,6 +203,7 @@ function photo(gallery) {
 function ask(key, b64) {
   return fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
+    signal: limit(),
     headers: {
       "x-api-key": key,
       "anthropic-version": "2023-06-01",
