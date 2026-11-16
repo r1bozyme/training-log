@@ -1225,7 +1225,8 @@ function exportCSV() {
 // buildStats / buildWeight und meldet den Wechsel als Ereignis "tl:view".
 
 // ─── UTILS ───────────────────────────────────────────
-function todayStr() { return new Date().toISOString().split("T")[0]; }
+// Ortszeit (16.11.): toISOString ist UTC – der Tag wechselte sonst erst um 1 bzw. 2 Uhr
+function todayStr() { const d = new Date(), p = n => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
 function fmtDate(d) {
   if (!d) return "";
   const [y, m, day] = d.split("-");

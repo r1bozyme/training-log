@@ -54,12 +54,6 @@ function b64(str) {
     s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
-function unb64(s) {
-  var bin = atob(s.replace(/\s/g, ""));
-  var bytes = new Uint8Array(bin.length);
-  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
 function daysSince(iso) {
   if (!iso) return Infinity;
   return (Date.now() - new Date(iso).getTime()) / 86400000;
@@ -285,6 +279,16 @@ function buildJSON() {
    Geraet deutlich weniger Daten als das Backup, wird nicht gesichert.
    Manuell ("Jetzt sichern") laesst es sich nach Rueckfrage erzwingen. */
 var GUARD_KEYS = ["tl-e", "tl-w", "tl-d", "tl-f"];
+/* 16.11.: backup.json roh lesen. In der JSON-Antwort der Contents-API fehlt
+   der Inhalt ab 1 MB – dann schaltete sich die Sperre still ab und
+   "Wiederherstellen" schlug fehl. Roh geht bis 100 MB. null = kein Backup. */
+function readBackup() {
+  return gh("backup.json", { cache: "no-store", headers: { "Accept": "application/vnd.github.raw+json" } }).then(function (r) {
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error("GET backup.json: HTTP " + r.status);
+    return r.json();
+  });
+}
 function countKeys(get) {
   var n = 0;
   GUARD_KEYS.forEach(function (k) {
@@ -297,14 +301,8 @@ function countKeys(get) {
   return n;
 }
 function guardShrink(manual) {
-  return gh("backup.json").then(function (r) {
-    if (r.status === 404) return null;
-    if (!r.ok) throw new Error("GET backup.json: HTTP " + r.status);
-    return r.json();
-  }).then(function (j) {
-    if (!j || !j.content) return;             // kein Backup oder > 1 MB
-    var dump = JSON.parse(unb64(j.content));
-    if (!dump || !dump.keys) return;
+  return readBackup().then(function (dump) {
+    if (!dump || !dump.keys) return;          // noch kein Backup
     var remote = countKeys(function (k) { return dump.keys[k]; });
     var local  = countKeys(function (k) { return localStorage.getItem(k); });
     if (remote === 0 || local >= remote * 0.5) return;
@@ -396,12 +394,8 @@ function restore() {
     ok: "Weiter", danger: true
   }).then(function (yes) {
     if (!yes) throw ABBRUCH;
-    return gh("backup.json");
-  }).then(function (r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
-  }).then(function (j) {
-    var dump = JSON.parse(unb64(j.content));
+    return readBackup();
+  }).then(function (dump) {
     if (!dump || !dump.keys) throw new Error("Backup unlesbar");
     return window.tlAsk.confirm({
       title: "Einspielen?", text: "Backup vom " + fmtStamp(dump.ts) + " einspielen?",

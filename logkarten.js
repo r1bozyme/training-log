@@ -157,7 +157,8 @@ var CSS = [
 ].join("\n");
 
 window.tlLogKarten = {
-  toggle: function (d) { if (offen === null) offen = {}; offen[d] = !offen[d]; renderLog(); },
+  /* über window.renderLog: sonst fehlt die Erweiterung aus progress.js („Erhöhung fällig“) */
+  toggle: function (d) { if (offen === null) offen = {}; offen[d] = !offen[d]; window.renderLog(); },
   mehr: function () { tage += FENSTER; window.renderLog(); },
   daten: function () { setUi("daten", !ui().daten); datenBox(); }
 };
