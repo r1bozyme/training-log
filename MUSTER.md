@@ -13,31 +13,76 @@ kopiere den Code nicht blind.
 
 **Pflege:** Wird hier ein Muster neu gebaut oder geändert, das sich übertragen
 lässt, kommt es im selben Arbeitsgang hier rein bzw. wird hier aktualisiert.
-Zuletzt aktualisiert: 17.11.2026.
+Zuletzt aktualisiert: 17.11.2026 (abends, Rückmeldungen aus dem Cockpit).
 
 ---
 
 ## Laden & Aktualisieren
 
 ### Sofort-Updates beim Start
-- **Problem:** GitHub Pages hält Dateien bis zu 10 Minuten im Browser-Cache.
-  Nach einem Push läuft deshalb noch die alte Fassung.
-- **Lösung:** Ein Modul-Loader (Liste `MODS`) gleicht jedes Modul vorher mit
-  `fetch(src, { cache: "no-cache" })` ab. Ist nichts geändert, kommt eine kurze
-  304-Antwort. Erst danach hängt er die Skripte mit `async = false` an, damit die
-  Reihenfolge erhalten bleibt. Offline-Rückfall: Nach 2,5 s wird ohne Abgleich
-  geladen, und ein Flag sorgt dafür, dass nur einmal geladen wird. `./`,
-  `index.html` und der Loader selbst werden ebenfalls mit `no-cache` geholt und
-  gelten ab dem übernächsten Start.
-- **Stolperfalle:** Der Loader ist selbst erst einen Start später aktuell. Er
-  kennt ein neues Modul also eventuell noch nicht. In diesem Fall lädt ein
-  bereits bekanntes Modul es nach (daily.js → werte.js, gewicht.js; diag.js →
-  view.js).
-- **Code:** Ende von `plan.js` · Commits a81fc40, c057943
+- **Problem:** GitHub Pages hält Dateien bis zu 10 Minuten im Browser-Cache
+  (`max-age=600`). Nach einem Push läuft deshalb noch die alte Fassung.
+- **Lösung (Stand 17.11., überarbeitet nach dem Finanz-Cockpit):**
+  1. Ein Modul-Loader (Liste `MODS`) gleicht jedes Modul mit
+     `fetch(src, { cache: "no-cache" })` ab. Ist nichts geändert, kommt eine
+     kurze 304-Antwort. Ausgeführt wird **genau dieser Text**
+     (`script.text` + `//# sourceURL=`) in fester Reihenfolge, nicht per
+     `<script src>`. Eine Kopie landet im Cache Storage (`caches`, hier
+     `tl-mods`).
+  2. **Rückfall:** Hängt das Netz, startet die App nach 2,5 s mit den Kopien,
+     offline sofort. Nur ohne Kopie (allererster Start) bleibt `<script src>`
+     der Rückfall.
+  3. **Neue index.html und neuer Loader:** Beide laufen schon, wenn der
+     Abgleich fertig ist. Weicht die frische Fassung ab, wird einmal neu
+     geladen. Ein Flag in sessionStorage verhindert Schleifen. Damit sind neues
+     Markup, neue Plan-Daten und neue Einträge in `MODS` schon beim ersten
+     Start nach dem Push da, ohne Nachlade-Umwege in einzelnen Modulen.
+- **Stolperfallen:**
+  - **Rückfall per `<script src>` hängt.** Läuft der `no-cache`-Abgleich
+    noch, sperrt Chrome den Cache-Eintrag, und das Skript-Tag wartet darauf.
+    Gemessen: 160 s statt 2,5 s. Abbrechen per AbortController hilft nicht,
+    Chrome verwirft dabei den Eintrag. *(Erkannt im Cockpit.)*
+  - **Abweichung erkennen:** Im Cockpit über eine Build-Kennung
+    `<meta name="app-build">`, die bei jeder Änderung an index.html
+    hochgezählt wird *(Idee aus dem Cockpit)*. In training-log automatisch:
+    Der zwischengespeicherte Text (`cache: "force-cache"`, also das, was
+    gerade läuft) wird mit dem frisch abgeglichenen verglichen, für
+    index.html und plan.js. Damit kann man nichts vergessen. Die Reihenfolge
+    zählt: erst force-cache lesen, dann no-cache.
+  - **Kopien nicht in localStorage,** wenn die App sich die Herkunft
+    r1bozyme.github.io mit einer anderen App teilt. Das 5-MB-Kontingent gilt
+    für beide Apps zusammen, und volle Daten-Keys wären schlimmer als eine
+    fehlende Kopie. Das Cockpit (kleine Module) nutzt localStorage,
+    training-log (~550 KB Module) den Cache Storage.
+  - Nachlade-Umwege in Modulen (`script[src=…]` prüfen und nachladen)
+    vertragen sich nicht mit Ausführung per `script.text` und laden doppelt.
+    Sie sind mit der Neulade-Logik überflüssig und in training-log entfernt
+    (daily.js).
+- **Code:** Ende von `plan.js` · Commits a81fc40, c057943, Überarbeitung
+  17.11. · Cockpit: `app/index.html` (regel-cockpit 3a43038)
+
+### Testen von Cache-Verhalten
+- **Testserver** wie GitHub Pages: HTTP/1.1, `ETag`, `Cache-Control:
+  max-age=600`. Pythons `BaseHTTPRequestHandler` braucht dafür
+  `protocol_version = "HTTP/1.1"` und `Content-Length`, sonst gleicht Chrome
+  per ETag nicht ab. *(Erkannt im Cockpit.)*
+- **Persistentes Profil** (`launch_persistent_context`). Inkognito-Kontexte
+  von Playwright cachen nicht *(erkannt im Cockpit)*. Außerdem kein
+  `page.route()`, das schaltet den HTTP-Cache ab. Externe Adressen stattdessen
+  per `--host-resolver-rules` ins Leere schicken.
+- **Kaltstart** = Browser schließen und mit demselben Profil neu öffnen.
+- **Hängendes Netz** im Server simulieren (Antwort verzögern), **offline** per
+  `context.set_offline(True)`.
+- **Neuladen zählen** über `page.on("domcontentloaded")`. `framenavigated`
+  zählt auch `pushState`/`replaceState` mit (back.js).
+- **Fälle:** geändertes Modul, hängendes Netz (20 s), offline, neue
+  index.html, neues Modul in `MODS`, nur Plan-Daten geändert, unverändert
+  (kein Neuladen), echte Daten aus backup.json ohne Fehler.
 
 ### Kein Service Worker
 - Ein Service Worker ist eine zweite Cache-Ebene, die Sofort-Updates
-  zuverlässig ausbremst. Er diente hier nur den Chrome-Push-Meldungen und ist
+  zuverlässig ausbremst. (Den Cache Storage für die Modul-Kopien gibt es auch
+  ohne Service Worker.) Er diente hier nur den Chrome-Push-Meldungen und ist
   seit dem 16.11. entfernt. Eine alte Registrierung wird beim Start einmal
   still abgemeldet (`push.js`).
 - **Commit:** dce2ad9
@@ -118,7 +163,13 @@ Zuletzt aktualisiert: 17.11.2026.
 - **Stolperfallen:**
   - **Sperre gegen leeres Gerät:** Hat das Gerät weniger als die Hälfte der
     Datensätze des Backups, wird nicht gesichert (Commit 1d91e04).
-  - PUT bei 409/422 einmal mit frischer `sha` wiederholen (38a0605).
+  - PUT bei 409/422 einmal mit frischer `sha` wiederholen (38a0605). Das
+    reicht, solange die App die **einzige** Schreiberin der Datei ist (hier
+    backup.json, export.csv und push/subscription.json, ihr Inhalt ist der
+    volle Gerätestand). Schreiben auch andere in dieselbe Datei (im Cockpit
+    state.json, z. B. beim Monatsreview), dann den frischen Inhalt holen und
+    nur die eigene Änderung darauf setzen, statt blind zu überschreiben.
+    *(Variante aus dem Cockpit, 67e1217.)*
   - Änderungen während eines laufenden Syncs dürfen nicht verloren gehen, und
     beim Verlassen der App wird der Rest gesichert (37fa017).
   - `backup.json` **roh** lesen (`Accept: application/vnd.github.raw+json`).
