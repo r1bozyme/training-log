@@ -227,7 +227,7 @@ function optionsHTML(c, wert) {
     h += '<option value="' + esc(s) + '"' + (s === wert ? " selected" : "") + ">" + esc(s) + zus(s) + "</option>";
   });
   var liste = c.andere.filter(function (s) { return c.stamm.indexOf(s) === -1; });
-  if (wert && wert !== c.heim && liste.indexOf(wert) === -1) liste.push(wert);
+  if (wert && wert !== c.heim && c.stamm.indexOf(wert) === -1 && liste.indexOf(wert) === -1) liste.push(wert);
   liste.forEach(function (s) {
     if (!clean(s) || s === c.heim) return;
     h += '<option value="' + esc(s) + '"' + (s === wert ? " selected" : "") + ">" + esc(s) + "</option>";
