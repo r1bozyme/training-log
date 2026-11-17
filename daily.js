@@ -225,10 +225,22 @@ window.tlJump = function (id) {
   if (KARTE[id] && window.tlWerte && document.querySelector("#" + id + " .wt-mini")) tlWerte.show(KARTE[id]);
   const sec = document.getElementById(id);
   if (!sec) return;
-  sec.scrollIntoView({ behavior: "smooth", block: "center" });
+  tlScrollTo(sec);
   sec.classList.add("dflash");
   setTimeout(function () { sec.classList.remove("dflash"); }, 1700);
 };
+// 17.11.: Hohe Karten (Gewicht mit Graph und Messliste) nicht mittig anfahren –
+// dann lag die Liste im Bild und das Eingabefeld darüber außerhalb. Ziel ist
+// das Eingabefeld bzw. die Heute-Zeile der Karte, sonst ihr oberer Rand.
+function tlScrollTo(sec) {
+  const hoch = sec.offsetHeight > window.innerHeight * 0.6;
+  if (!hoch) { sec.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  const ziel = [].slice.call(sec.querySelectorAll("input:not([type=hidden]), .wt-today"))
+    .filter(function (el) { return el.offsetParent !== null; })[0];
+  if (ziel) ziel.scrollIntoView({ behavior: "smooth", block: "center" });
+  else sec.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+window.tlScrollTo = tlScrollTo;
 
 window.jumpOpen = function () {
   const items = openItems();
@@ -701,7 +713,7 @@ function init() {
       if (typeof window.showView === "function") window.showView("weight");
       const sec = document.getElementById(id);
       if (sec) setTimeout(function () {
-        sec.scrollIntoView({ behavior: "smooth", block: "center" });
+        tlScrollTo(sec);
         sec.classList.add("dflash");
         setTimeout(function () { sec.classList.remove("dflash"); }, 1700);
       }, 150);

@@ -71,7 +71,9 @@ function fmt1(n) { return (Math.round(n * 10) / 10).toFixed(1).replace(".", ",")
 function flash(msg) { if (typeof showFlash === "function") showFlash(msg); }
 function scrollTo(id) {
   var el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (!el) return;
+  if (typeof window.tlScrollTo === "function") window.tlScrollTo(el);   // daily.js: Eingabefeld statt Kartenmitte
+  else el.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 function entries() { try { return typeof loadEntries === "function" ? loadEntries() : []; } catch (e) { return []; } }
 

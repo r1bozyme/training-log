@@ -59,7 +59,8 @@ function setOn(on) {
 function pulse(id) {
   var sec = document.getElementById(id);
   if (!sec) return;
-  sec.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (typeof window.tlScrollTo === "function") window.tlScrollTo(sec);   // daily.js: Eingabefeld statt Kartenmitte
+  else sec.scrollIntoView({ behavior: "smooth", block: "center" });
   sec.classList.add("dflash");
   setTimeout(function () { sec.classList.remove("dflash"); }, 1700);
 }
