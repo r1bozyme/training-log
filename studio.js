@@ -40,6 +40,13 @@
    nicht – die Planwerte gehören zum alten Gerätepark. Dafür kommt
    beim Review ein Neustart der Basislinie pro Übung.
 
+   ZWEI STAMMSTUDIOS (17.11.2026): Sendling ist Standardstudio, das alte
+   Studio (Heim, leer gespeichert) bleibt Stammstudio. Jedes Stammstudio
+   hat seine eigene Progression – progress.js wertet pro Gruppe aus
+   (gruppe(e): "" = Heim, Name = weiteres Stammstudio, null = fremd).
+   Die Auswahl springt morgens auf das Standardstudio (c.standard)
+   zurück, nicht mehr auf Heim. Fremde Studios zählen weiter nicht.
+
    Storage-Key tl-st (geprüft: keine Kollision, mit im Backup).
    Lädt vor progress.js, das window.tlStudio nutzt.
    ═══════════════════════════════════════════════════ */
@@ -57,6 +64,9 @@ function cfg() {
   if (typeof c.heim !== "string" || !c.heim.trim()) c.heim = "Heimstudio";
   if (!Array.isArray(c.andere)) c.andere = ["Unterwegs", "Fitness First"];
   if (typeof c.aktiv !== "string") c.aktiv = "";
+  if (!Array.isArray(c.stamm)) c.stamm = [];
+  if (typeof c.standard !== "string") c.standard = "";
+  if (c.standard && c.stamm.indexOf(c.standard) === -1) c.standard = "";
   return c;
 }
 function saveCfg(c) { localStorage.setItem(KEY, JSON.stringify(c)); }
@@ -80,6 +90,16 @@ function istHeim(e) {
 }
 function label(e) { return istHeim(e) ? "" : clean(e.studio); }
 
+/* Progressions-Gruppe: "" = Heim, Name = weiteres Stammstudio, null = fremd */
+function gruppeVon(name, c) {
+  c = c || cfg();
+  var s = clean(name);
+  if (!s || s === c.heim) return "";
+  return c.stamm.indexOf(s) !== -1 ? s : null;
+}
+function gruppe(e) { return gruppeVon(e && e.studio); }
+function name(g) { return g ? g : cfg().heim; }
+
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -90,12 +110,19 @@ function gewaehlt() {
   if (!sel || sel.value === NEU) return cfg().aktiv;
   return sel.value;
 }
+/* Gruppe des gewählten Studios (null = fremd) */
+function kontext() { return gruppeVon(gewaehlt()); }
 
 window.tlStudio = {
   istHeim: istHeim,
   label: label,
   gewaehlt: gewaehlt,
   heim: function () { return cfg().heim; },
+  gruppe: gruppe,
+  kontext: kontext,
+  name: name,
+  stamm: function () { var c = cfg(); return [""].concat(c.stamm); },
+  standard: function () { return cfg().standard; },
   autoZurueck: function () { autoZurueck(); }   // reise.js
 };
 
@@ -136,6 +163,19 @@ function migrateAlt() {
   saveCfg(c);
 }
 
+/* Sendling wird Stammstudio und Standard (17.11.) */
+function migrateStamm() {
+  var c = cfg();
+  if (c.migStamm) return;
+  var S = "All Inclusive Fitness Sendling";
+  if (c.stamm.indexOf(S) === -1) c.stamm.push(S);
+  c.andere = c.andere.filter(function (s) { return s !== S; });
+  c.standard = S;
+  if (!c.aktiv) setAktiv(c, S);
+  c.migStamm = true;
+  saveCfg(c);
+}
+
 /* Fremdes Studio nur für den Tag der Wahl bzw. des letzten Eintrags */
 function autoZurueck() {
   var c = cfg();
@@ -154,15 +194,15 @@ function autoZurueck() {
     if (vorher !== "Unterwegs" && typeof window.showFlash === "function") window.showFlash("Reise-Modus: Studio „Unterwegs“");
     return;
   }
-  if (!c.aktiv) return;
+  if (c.aktiv === c.standard) return;
   if (!c.aktivTag) { c.aktivTag = heute(); saveCfg(c); return; }   // Altbestand: ab heute zählen
   if (c.aktivTag === heute()) return;
   var war = c.aktiv;
-  setAktiv(c, "");
+  setAktiv(c, c.standard);
   saveCfg(c);
-  if (!bearbeite) fillSelect("");
+  if (!bearbeite) fillSelect(c.standard);
   if (typeof window.refreshHint === "function") window.refreshHint();
-  if (typeof window.showFlash === "function") window.showFlash("Studio zurück auf " + c.heim + " (gestern: " + war + ")");
+  if (typeof window.showFlash === "function") window.showFlash("Studio zurück auf " + name(c.standard) + " (gestern: " + name(war) + ")");
 }
 
 /* ─── Formular ─────────────────────────────────────── */
@@ -181,8 +221,12 @@ var CSS = `
 `;
 
 function optionsHTML(c, wert) {
-  var h = '<option value=""' + (wert === "" ? " selected" : "") + ">" + esc(c.heim) + " (Heim)</option>";
-  var liste = c.andere.slice();
+  var zus = function (g) { return g === c.standard ? " (Stamm · Standard)" : " (Stamm)"; };
+  var h = '<option value=""' + (wert === "" ? " selected" : "") + ">" + esc(c.heim) + zus("") + "</option>";
+  c.stamm.forEach(function (s) {
+    h += '<option value="' + esc(s) + '"' + (s === wert ? " selected" : "") + ">" + esc(s) + zus(s) + "</option>";
+  });
+  var liste = c.andere.filter(function (s) { return c.stamm.indexOf(s) === -1; });
   if (wert && wert !== c.heim && liste.indexOf(wert) === -1) liste.push(wert);
   liste.forEach(function (s) {
     if (!clean(s) || s === c.heim) return;
@@ -205,10 +249,10 @@ function markFremd() {
   var sel = document.getElementById("f-studio");
   var hint = document.getElementById("st-hint");
   if (!sel || !hint) return;
-  var fremd = sel.value !== "" && sel.value !== NEU;
+  var fremd = sel.value !== NEU && gruppeVon(sel.value) === null;
   sel.classList.toggle("fremd", fremd);
   hint.classList.toggle("show", fremd);
-  if (fremd) hint.innerHTML = "<b>Fremdes Studio:</b> wird geloggt, zählt aber nicht für Erhöhungen und nicht für die Verlaufskurve.";
+  if (fremd) hint.innerHTML = "<b>Fremdes Studio:</b> wird geloggt, zählt aber nicht für Erhöhungen und nicht für die Verlaufskurve (außer studiofreie Übungen wie Kurzhanteln).";
 }
 
 var bearbeite = false;   // true, solange ein bestehender Eintrag im Formular steht
@@ -243,23 +287,30 @@ function verwalten() {
   var c = cfg();
   window.tlAsk.form({
     title: "Studios",
-    text: "Heimstudio = das Studio, zu dem die Planwerte gehören. Nur dort zählen Einträge für Erhöhungen.",
+    text: "Stammstudios haben jeweils eine eigene Progression. Das Heimstudio trägt die Planwerte, der Standard ist morgens vorgewählt. Fremde Studios zählen nicht.",
     fields: [
-      { key: "heim", label: "Heimstudio", type: "text", value: c.heim },
-      { key: "andere", label: "Weitere Studios (Komma-getrennt)", type: "text", value: c.andere.join(", ") }
+      { key: "heim", label: "Heimstudio (Planwerte)", type: "text", value: c.heim },
+      { key: "stamm", label: "Weitere Stammstudios (Komma-getrennt)", type: "text", value: c.stamm.join(", ") },
+      { key: "standard", label: "Standard morgens (leer = Heimstudio)", type: "text", value: c.standard },
+      { key: "andere", label: "Fremde Studios (Komma-getrennt)", type: "text", value: c.andere.join(", ") }
     ],
     ok: "Speichern"
   }).then(function (r) {
     if (!r) return;
     var alt = c.heim, neu = clean(r.heim) || alt;
-    var andere = String(r.andere || "").split(",").map(clean).filter(function (s, i, a) {
+    var stamm = String(r.stamm || "").split(",").map(clean).filter(function (s, i, a) {
       return s && s !== neu && a.indexOf(s) === i;
     });
+    var andere = String(r.andere || "").split(",").map(clean).filter(function (s, i, a) {
+      return s && s !== neu && stamm.indexOf(s) === -1 && a.indexOf(s) === i;
+    });
+    var std = clean(r.standard);
+    if (std === neu || stamm.indexOf(std) === -1) std = "";
     // Einträge, die den neuen Heim-Namen ausdrücklich tragen, werden
     // dadurch automatisch Heim. Einträge mit dem alten Heim-Namen als
     // Text gibt es nicht – Heim wird leer gespeichert.
-    c.heim = neu; c.andere = andere;
-    if (c.aktiv && c.aktiv !== neu && andere.indexOf(c.aktiv) === -1) andere.push(c.aktiv);
+    c.heim = neu; c.andere = andere; c.stamm = stamm; c.standard = std;
+    if (c.aktiv && c.aktiv !== neu && stamm.indexOf(c.aktiv) === -1 && andere.indexOf(c.aktiv) === -1) andere.push(c.aktiv);
     if (c.aktiv === neu) setAktiv(c, "");
     saveCfg(c);
     fillSelect(bearbeite ? (document.getElementById("f-studio").dataset.prev || "") : c.aktiv);
@@ -347,6 +398,7 @@ function hook() {
 function init() {
   migrate();
   migrateAlt();
+  migrateStamm();
   inject();
   hook();
   autoZurueck();

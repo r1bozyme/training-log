@@ -24,6 +24,15 @@
 //   Verlaufskurve. Fremde Studios bleiben sichtbar, aber gekennzeichnet.
 //   "Letztes Training" zeigt das gerade gewählte Studio.
 //
+// NEU 17.11.: ZWEI STAMMSTUDIOS. Jedes Stammstudio (studio.js:
+//   gruppe) hat seine eigene Progression. Heim (altes Studio) läuft
+//   wie bisher über die Planwerte (zielgewicht). Weitere Stammstudios
+//   (Sendling) und studiofreie Übungen (ex.studiofrei, z. B.
+//   Kurzhanteln – gleiche Gewichte überall) laufen ohne Planwert:
+//   Bezug ist die neueste Einheit der Gruppe, Treffer → + schritt.
+//   Maßgeblich ist das im Eintrag gewählte Studio; fremde Studios
+//   zählen nicht. Der Kasten "Erhöhung fällig" zeigt alle Gruppen.
+//
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Übernimmt zwei Aufgaben:
 //   1. Automatisches Erhöhungs-Signal (Summenkriterium)
@@ -157,16 +166,36 @@ function inDeload(d) {
   return !!(w && d >= w.von && d <= w.bis);
 }
 function keinDeload(e) { return !inDeload(e && e.date); }
-function letzteNormale(uebung) {
+function letzteNormale(uebung, key) {
   const alle = (typeof loadEntries === "function" ? loadEntries() : []);
+  const ex = findEx(uebung);
   const l = alle.filter(function (e) {
-    return e.uebung === uebung && keinDeload(e) && num(e.gewicht) !== null && heimOK(e);
+    return e.uebung === uebung && keinDeload(e) && num(e.gewicht) !== null && gruppeVon(e, ex) === key;
   }).sort(nachDatum);
   return l.length ? l[l.length - 1] : null;
 }
 
-// studio.js: leer/Heimstudio = zählt. Ohne studio.js zählt alles.
-function heimOK(e) { return !window.tlStudio || window.tlStudio.istHeim(e); }
+// ─── STUDIO-GRUPPEN (studio.js) ──────────────────
+// "" = Heim (Planwerte), Name = weiteres Stammstudio, null = fremd,
+// "*" = studiofreie Übung (zählt in jedem Studio). Ohne studio.js: alles Heim.
+const FREI = "*";
+function istFrei(ex) { return !!(ex && ex.studiofrei); }
+function gruppeVon(e, ex) {
+  if (istFrei(ex)) return FREI;
+  return window.tlStudio && typeof window.tlStudio.gruppe === "function" ? window.tlStudio.gruppe(e) : "";
+}
+// Gruppe des im Eintrag gewählten Studios
+function kontext(ex) {
+  if (istFrei(ex)) return FREI;
+  return window.tlStudio && typeof window.tlStudio.kontext === "function" ? window.tlStudio.kontext() : "";
+}
+function stammGruppen() {
+  return window.tlStudio && typeof window.tlStudio.stamm === "function" ? window.tlStudio.stamm() : [""];
+}
+function gruppenName(key) {
+  if (key === FREI) return "";
+  return window.tlStudio && typeof window.tlStudio.name === "function" ? window.tlStudio.name(key) : "";
+}
 function studioTag(e) {
   const l = window.tlStudio ? window.tlStudio.label(e) : "";
   return l ? ` <span class="st-tag">${escA(l)}</span>` : "";
@@ -180,9 +209,14 @@ function nachDatum(a, b) {
 }
 
 // ─── STATUS ──────────────────────────────────────
-function status(ex) {
+function status(ex, key) {
   const p = prog(ex);
   if (p.gesperrt) return { state: "gesperrt", grund: p.grund || "" };
+  if (key === undefined) key = kontext(ex);
+  if (key === null) return { state: "gesperrt", grund: "Fremdes Studio – zählt nicht für Erhöhungen." };
+  if (ex.zielgewicht === null)
+    return { state: "gesperrt", grund: "Kein Zielgewicht hinterlegt – Progression läuft hier nicht über die Last." };
+  if (key !== "") return statusFrei(ex, key);
   if (typeof ex.zielgewicht !== "number")
     return { state: "gesperrt", grund: "Kein Zielgewicht hinterlegt – Progression läuft hier nicht über die Last." };
 
@@ -198,7 +232,7 @@ function status(ex) {
   // ein nachgetragener alter Eintrag stuende sonst am Ende und wuerde
   // als "letzte Einheit" gelesen.
   const eigene = alle.filter(function (e) {
-    return e.uebung === ex.name && num(e.gewicht) !== null && heimOK(e) && keinDeload(e) &&
+    return e.uebung === ex.name && num(e.gewicht) !== null && gruppeVon(e, ex) === "" && keinDeload(e) &&
            (!ab || String(e.date || "") >= ab);
   }).sort(nachDatum);
 
@@ -238,6 +272,35 @@ function status(ex) {
   return base;
 }
 
+// Weiteres Stammstudio oder studiofreie Übung: kein Planwert. Bezug ist
+// die neueste Einheit der Gruppe – deren Gewicht ist das Arbeitsgewicht,
+// ihre Satzsumme entscheidet über die Erhöhung. Eine umgesetzte Erhöhung
+// ist automatisch die neue neueste Einheit, Plan nachziehen entfällt.
+function statusFrei(ex, key) {
+  const sw = schwelleVon(ex);
+  if (sw === null) return { state: "gesperrt", grund: "Keine auswertbare Repzone hinterlegt." };
+  const ab = prog(ex).ab ? String(prog(ex).ab) : "";
+  const alle = (typeof loadEntries === "function" ? loadEntries() : []);
+  const eigene = alle.filter(function (e) {
+    return e.uebung === ex.name && num(e.gewicht) !== null && num(e.gewicht) > 0 &&
+           gruppeVon(e, ex) === key && keinDeload(e) && (!ab || String(e.date || "") >= ab);
+  }).sort(nachDatum);
+  const ort = gruppenName(key);
+  if (!eigene.length) return { state: "leer", schwelle: sw, ziel: null, frei: true, ort: ort };
+  const letzte = eigene[eigene.length - 1];
+  const w = num(letzte.gewicht);
+  const ziel = Math.round((w + schrittVon(ex)) * 100) / 100;
+  if (String(letzte.date || "") < isoVor(FENSTER_TAGE))
+    return { state: "alt", schwelle: sw, ziel: ziel, date: letzte.date, gewicht: w, frei: true, ort: ort };
+  const s = satzListe(letzte);
+  const summe = s.reduce(function (a, b) { return a + b; }, 0);
+  const base = { schwelle: sw, summe: summe, ziel: ziel, date: letzte.date, saetze: s.length, gewicht: w, frei: true, ort: ort };
+  if (s.length < ex.saetze) { base.state = "teil"; return base; }
+  base.state = summe >= sw ? "treffer" : "offen";
+  base.fehlt = Math.max(sw - summe, 0);
+  return base;
+}
+
 // ─── GEWICHT VORBELEGEN ──────────────────────────
 // Neuer Eintrag: Gewichtsfeld mit dem letzten Gewicht fuellen. Ist eine
 // Erhoehung faellig (Band "treffer" oder letzter Eintrag "↑ erhoehen"),
@@ -248,7 +311,9 @@ function zielVorschlag(uebung, last) {
   const ex = findEx(uebung);
   const heute = isoVor(0);
   // Deload-Einträge sind nie die Referenz: auf die letzte normale Einheit zurückgreifen.
-  if (last && inDeload(last.date) && heimOK(last)) last = letzteNormale(uebung) || last;
+  const key = kontext(ex);
+  const gleich = !!(last && key !== null && gruppeVon(last, ex) === key);
+  if (last && inDeload(last.date) && gleich) last = letzteNormale(uebung, key) || last;
   let w = last ? num(last.gewicht) : null;
   if (w === null) return null;
   if (inDeload(heute) && ex) {
@@ -258,11 +323,11 @@ function zielVorschlag(uebung, last) {
   }
   // Planrevision: Einträge vor PLAN.stand auf das neue zielgewicht heben
   // (oder senken, z. B. Rücknahme nach Einbruch).
-  if (ex && heimOK(last) && typeof ex.zielgewicht === "number" && PLAN.stand &&
+  if (ex && gleich && key === "" && typeof ex.zielgewicht === "number" && PLAN.stand &&
       String(last.date || "") < PLAN.stand && Math.abs(ex.zielgewicht - w) > 0.01)
     return { kg: ex.zielgewicht, up: ex.zielgewicht > w };
-  if (ex && heimOK(last)) {
-    const st = status(ex);
+  if (ex && gleich) {
+    const st = status(ex, key);
     if (st.state === "treffer" && st.ziel > w) return { kg: st.ziel, up: true };
   }
   if (last.erhoehen && ex)
@@ -313,6 +378,22 @@ function bandHTML(ex) {
     </div>`;
   }
 
+  const ortH = st.ort ? `<strong>${escA(st.ort)}</strong>: ` : "";
+  if (st.state === "leer" && st.frei) {
+    return `<div class="pgb">
+      <div class="pgb-l">Progression</div>
+      <div class="pgb-v">Schwelle ${st.schwelle} Wdh</div>
+      <div class="pgb-h">${ortH}Noch kein Eintrag. Der erste vollständige Satzblock ist die Basislinie.</div>
+    </div>`;
+  }
+  if (st.state === "alt" && st.frei) {
+    return `<div class="pgb">
+      <div class="pgb-l">Progression</div>
+      <div class="pgb-v">Schwelle ${st.schwelle} Wdh</div>
+      <div class="pgb-h">${ortH}Der letzte Eintrag (${kg(st.gewicht)}, ${fmtDate(st.date)}) liegt über 8 Wochen zurück. Die nächste vollständige Einheit ist die neue Basislinie.</div>
+    </div>`;
+  }
+
   if (st.state === "leer") {
     return `<div class="pgb">
       <div class="pgb-l">Progression</div>
@@ -342,7 +423,7 @@ function bandHTML(ex) {
       <div class="pgb-l">Progression</div>
       <div class="pgb-v">Schwelle erreicht → ${kg(st.ziel)}</div>
       <div class="pgb-bar"><i style="width:100%"></i></div>
-      <div class="pgb-h"><strong>${st.summe} / ${st.schwelle} Wdh</strong> am ${fmtDate(st.date)}. Heute mit ${kg(st.ziel)} beginnen – die Wiederholungen fallen anfangs, das ist eingeplant.</div>
+      <div class="pgb-h">${ortH}<strong>${st.summe} / ${st.schwelle} Wdh</strong> am ${fmtDate(st.date)}. Heute mit ${kg(st.ziel)} beginnen – die Wiederholungen fallen anfangs, das ist eingeplant.</div>
     </div>`;
   }
 
@@ -351,7 +432,7 @@ function bandHTML(ex) {
     <div class="pgb-l">Progression</div>
     <div class="pgb-v">${st.summe} / ${st.schwelle} Wdh · noch ${st.fehlt}</div>
     <div class="pgb-bar"><i style="width:${pct}%"></i></div>
-    <div class="pgb-h">Summe aller Sätze am ${fmtDate(st.date)}. Ein schwacher letzter Satz lässt sich durch einen starken ersten ausgleichen.</div>
+    <div class="pgb-h">${ortH}${st.frei ? kg(st.gewicht) + " · " : ""}Summe aller Sätze am ${fmtDate(st.date)}. Ein schwacher letzter Satz lässt sich durch einen starken ersten ausgleichen.</div>
   </div>`;
 }
 
@@ -370,7 +451,11 @@ function renderBand() {
 function manuell() {
   const alle = (typeof loadEntries === "function" ? loadEntries() : []);
   const latest = {};
-  alle.filter(heimOK).filter(keinDeload).sort(nachDatum).forEach(function (e) { latest[e.uebung] = e; });
+  alle.filter(keinDeload).sort(nachDatum).forEach(function (e) {
+    const g = gruppeVon(e, findEx(e.uebung));
+    if (g === null) return;
+    latest[e.uebung + "|" + g] = e;
+  });
   const grenze = isoVor(FENSTER_TAGE);
   return Object.keys(latest).map(function (k) { return latest[k]; }).filter(function (e) {
     if (!e.erhoehen) return false;
@@ -385,23 +470,28 @@ function manuell() {
 // ─── ÜBERSICHT IM LOG-TAB ────────────────────────
 function faellig() {
   const out = [];
+  const gruppen = stammGruppen();
+  const mehrere = gruppen.length > 1;
   ["Push", "Pull", "Legs"].forEach(function (ein) {
     PLAN[ein].forEach(function (ex) {
-      if (out.some(function (o) { return o.name === ex.name; })) return;
-      const st = status(ex);
-      if (st.state === "treffer")
-        out.push({ name: ex.name, ein: ein, ziel: st.ziel,
-                   meta: st.summe + " / " + st.schwelle + " Wdh", auto: true, man: false });
+      (istFrei(ex) ? [FREI] : gruppen).forEach(function (key) {
+        if (out.some(function (o) { return o.name === ex.name && o.key === key; })) return;
+        const st = status(ex, key);
+        if (st.state === "treffer")
+          out.push({ name: ex.name, ein: ein, ziel: st.ziel, key: key, ort: mehrere ? gruppenName(key) : "",
+                     meta: (st.frei ? kg(st.gewicht) + " · " : "") + st.summe + " / " + st.schwelle + " Wdh", auto: true, man: false });
+      });
     });
   });
   manuell().forEach(function (e) {
-    const o = out.find(function (x) { return x.name === e.uebung; });
-    if (o) { o.man = true; return; }
     const ex = findEx(e.uebung);
+    const key = gruppeVon(e, ex);
+    const o = out.find(function (x) { return x.name === e.uebung && x.key === key; });
+    if (o) { o.man = true; return; }
     const g  = num(e.gewicht);
     const ziel = (ex && g !== null) ? Math.round((g + schrittVon(ex)) * 100) / 100 : null;
     const sets = satzListe(e).join("/");
-    out.push({ name: e.uebung, ein: e.einheit, ziel: ziel,
+    out.push({ name: e.uebung, ein: e.einheit, ziel: ziel, key: key, ort: mehrere ? gruppenName(key) : "",
                meta: (g !== null ? kg(g) : "") + (sets ? " · " + sets : "") + " · " + fmtDate(e.date),
                auto: false, man: true });
   });
@@ -422,7 +512,7 @@ function injectOverview() {
     const tag = o.auto && o.man ? "auto + manuell" : (o.auto ? "auto" : "manuell");
     return `<div class="pgo-row">
       <span class="ebdg badge-${o.ein}">${String(o.ein || "").toUpperCase()}</span>
-      <div class="pgo-i"><div class="pgo-n">${escA(o.name)}</div><div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
+      <div class="pgo-i"><div class="pgo-n">${escA(o.name)}${o.ort ? ` <span class="st-tag">${escA(o.ort)}</span>` : ""}</div><div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
       <span class="pgo-z">${o.ziel !== null ? "→ " + kg(o.ziel) : "↑"}</span>
     </div>`;
   }).join("");
@@ -489,6 +579,8 @@ function scheduleBeep(secs) {
 
 // ─── ÜBUNGSVERLAUF IM LOG-TAB ────────────────────
 let histEx = "";
+let histKey;   // undefined = Studio aus dem Eintrag
+let histGruppen = [];
 
 function escA(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -559,10 +651,18 @@ function renderHist() {
   if (!cont) return;
   const es = loadEntries().filter(function (e) { return e.uebung === histEx; }).sort(nachDatum);
   if (!es.length) { histEx = ""; return; }
-  // Kurve und Kopfzeile nur aus dem Heimstudio – Fremdgeräte verzerren sonst den Verlauf
-  const mitGew = es.filter(function (e) { return heimOK(e) && num(e.gewicht) !== null && num(e.gewicht) > 0; });
-  const pts = mitGew.map(function (e) { return { date: e.date, w: num(e.gewicht), s: satzListe(e) }; });
+  // Kurve und Kopfzeile nur aus EINEM Stammstudio – andere Geräte verzerren sonst den Verlauf
   const ex = findEx(histEx);
+  const vorhanden = [];
+  es.forEach(function (e) { const g = gruppeVon(e, ex); if (g !== null && vorhanden.indexOf(g) === -1) vorhanden.push(g); });
+  let key = histKey !== undefined ? histKey : kontext(ex);
+  if (vorhanden.indexOf(key) === -1) key = vorhanden.length ? vorhanden[vorhanden.length - 1] : "";
+  const mitGew = es.filter(function (e) { return gruppeVon(e, ex) === key && num(e.gewicht) !== null && num(e.gewicht) > 0; });
+  const pts = mitGew.map(function (e) { return { date: e.date, w: num(e.gewicht), s: satzListe(e) }; });
+  histGruppen = vorhanden;
+  const chips = vorhanden.length > 1 ? `<div class="pgh-ch">${vorhanden.map(function (g, i) {
+    return `<button class="pgh-c${g === key ? " on" : ""}" onclick="pgHistStudio(${i})">${escA(gruppenName(g))}</button>`;
+  }).join("")}</div>` : (key !== FREI && stammGruppen().length > 1 ? `<div class="pgh-m">Kurve: ${escA(gruppenName(key))}</div>` : "");
   const erst = mitGew[0], letzt = mitGew[mitGew.length - 1];
   let kopf = es.length + " Einheiten";
   if (erst && letzt) {
@@ -583,6 +683,7 @@ function renderHist() {
   cont.innerHTML = `<div class="pgh">
     <div class="pgh-h">${escA(histEx)}</div>
     <div class="pgh-m">${kopf}</div>
+    ${chips}
     ${ex && ex.ziel ? `<div class="pgh-m">Plan: ${escA(ex.ziel)}</div>` : ""}
     ${kurve(pts)}
     <div class="pgh-list">${rows}</div>
@@ -591,6 +692,12 @@ function renderHist() {
 
 window.pgHist = function (name) {
   histEx = name || "";
+  histKey = undefined;
+  if (typeof renderLog === "function") renderLog();
+};
+
+window.pgHistStudio = function (i) {
+  histKey = histGruppen[i];
   if (typeof renderLog === "function") renderLog();
 };
 
@@ -667,6 +774,9 @@ const CSS = `
 .pgh-svg .dt circle { fill: var(--text); }
 .pgh-svg text { font-size: 9px; fill: var(--muted); font-family: var(--fb); }
 .pgh-list { margin-top: 10px; }
+.pgh-ch { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pgh-c { font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 14px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; }
+.pgh-c.on { border-color: var(--text); color: var(--text); }
 .pgh-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
 .pgh-d { flex: 0 0 44px; font-size: 12px; font-weight: 700; color: var(--muted); padding-top: 2px; }
 .pgh-w { flex: 0 0 64px; font-size: 13px; font-weight: 700; color: var(--text); padding-top: 1px; }
@@ -746,12 +856,17 @@ function init() {
       const el = document.getElementById("last-entry");
       if (!el) return;
       // Zuerst der letzte Eintrag aus dem gewählten Studio, sonst der letzte überhaupt (mit Kennzeichnung)
+      const ex = findEx(uebung);
       const wahl = window.tlStudio ? window.tlStudio.gewaehlt() : "";
+      const key = kontext(ex);
       const hier = all.filter(function (e) {
-        return window.tlStudio ? (wahl ? String(e.studio || "") === wahl : heimOK(e)) : true;
+        if (!window.tlStudio) return true;
+        if (key === null) return String(e.studio || "") === wahl;   // fremdes Studio: genau dieses
+        return gruppeVon(e, ex) === key;
       });
-      const heim = all.filter(heimOK);
-      const pool = hier.length ? hier : (heim.length ? heim : all);
+      const std = window.tlStudio && typeof window.tlStudio.standard === "function" ? window.tlStudio.standard() : "";
+      const stdPool = all.filter(function (e) { return gruppeVon(e, ex) === std; });
+      const pool = hier.length ? hier : (stdPool.length ? stdPool : all);
       const last = pool.length ? pool[pool.length - 1] : null;
       vorbelegen(uebung, last);
       if (!last) { el.classList.remove("show"); return; }

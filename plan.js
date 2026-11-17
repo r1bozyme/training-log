@@ -54,6 +54,13 @@
 // · Zurückgenommen: Straight Arm Pulldown 32,5 · Dual Pulley Roll 37,5.
 // · Bizepscurl: 27 kg halten, Doppelprogression bis 3×12.
 // · HSR: Morgensteifigkeit Ø 1,4 → 120 kg 3×8 an allen drei Tagen.
+//
+// 17.11.: ZWEI STAMMSTUDIOS – Sendling (Standard) und das alte Studio.
+// Die Planwerte (zielgewicht, aktuell) gehören weiter zum alten Studio.
+// Sendling läuft ohne Planwert über die eigene neueste Einheit
+// (progress.js). studiofrei:true = zählt in jedem Studio (Kurzhanteln,
+// Scheiben). Shoulder Press (Maschine) ersetzt durch Schulterdrücken
+// KH im Neutralgriff; Seitbeugen 45° neu (Obliques in Sendling).
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "November 2026 (Rev. 31.10.)",
@@ -76,11 +83,11 @@ const PLAN = {
       progression:{ schwelle:40, schritt:2.5 },
       schritte:["Arme immer leicht gebeugt – Ellenbogenschutz!","Langsam zur Mitte, 1–2 Sek halten","Brust aktiv zusammenquetschen","Kontrolliert öffnen bis zur vollen Dehnung","Einstellung Stufe 2 für mehr Dehnung"],
       tipp:"Nach elf Wochen auf 57,5 kg am 20.09. auf 60 kg – die Summe lag davor bei 40 (14/14/12 am 17.09.). Jetzt 32–33 Wdh: normale Anpassung nach dem Sprung. Schwelle bleibt 40." },
-    { name:"Shoulder Press", muskel:"Schulter vorne/mitte · Trizeps", typ:"compound",
-      saetze:3, repzone:"8–12", aktuell:"Neu ab 40 kg – zuletzt 13/14/12 @ 37,5 kg (22.10., Summe 39)", zielgewicht:40, ziel:"Summe ≥34 Wdh → 42,5 kg",
-      progression:{ schritt:2.5 },
-      schritte:["Core anspannen, kein Hohlkreuz","Griffe auf Ohrhöhe – drücken bis kurz vor Streckung","Langsam runter, Schultern nicht hochziehen","Backoff: 4. Satz @ 30 kg bis zum Versagen"],
-      tipp:"32,5 → 35 kg am 09.09. Verlauf 29 → 26 → 22 → 31 Wdh – der letzte Wert ist der beste seit dem Sprung. In jeder zweiten Push-Einheit an erste Position, sonst ist die vordere Schulter durch Chest Press und Fly vorermüdet." },
+    { name:"Schulterdrücken KH (Neutralgriff)", muskel:"Schulter vorne/mitte · Trizeps", typ:"compound", studiofrei:true,
+      saetze:3, repzone:"8–12", aktuell:"Neu ab 19.11. – Ersatz für die Shoulder Press (Stechen rechts mit Quergriff, 14.11.)", ziel:"Summe ≥34 Wdh → + 2 kg",
+      progression:{ schritt:2 },
+      schritte:["Sitzend, Lehne steil, Core anspannen","Kurzhanteln im Neutralgriff – Handflächen zeigen zueinander","Drücken bis kurz vor Streckung, Hanteln bleiben über den Schultern","3 Sek runter bis Ohrhöhe","Gewicht pro Hand eintragen"],
+      tipp:"STUDIOFREI: Kurzhanteln wiegen überall gleich – eine Progression für Sendling, altes Studio und Reisen. Anfangs bewusst leichter einsteigen, die Stabilisierung kostet Kraft; die ersten 2–3 Wochen steigt die Last schneller (Koordination, kein echter Zuwachs)." },
     { name:"Triceps Press", muskel:"Trizeps (Isolation)", typ:"isolation",
       saetze:3, repzone:"10–12", aktuell:"Neu ab 102,5 kg – zuletzt 13/14/12 @ 100 kg (10.10.), 3×12 (13.10.)", zielgewicht:102.5, ziel:"Summe ≥34 Wdh → 105 kg",
       progression:{ schritt:2.5 },
@@ -195,6 +202,11 @@ const PLAN = {
       progression:{ schritt:2.5 },
       schritte:["Seitlich einstellen – Schulterpolster fest anlegen","Rumpf diagonal einrollen – Schulter Richtung gegenüberliegender Hüfte","Am tiefsten Punkt 1 Sek halten, Obliques aktiv anspannen","Langsam zurück – Spannung halten, nicht zurückfallen lassen","Seite wechseln – beide Seiten gleiche Wiederholungszahl"],
       tipp:"ZUSATZBLOCK. 15 → 22,5 kg im September, am 27.09. selbst mit „↑ Erhöhen\" markiert und 52 Wdh bei Schwelle 43. Plan auf 25 kg. Kraft kommt aus dem Rumpf, nicht aus den Armen – Handgelenk neutral (De Quervain)." },
+    { name:"Seitbeugen 45°-Rückenstrecker-Bank", muskel:"Obliques · Quadratus lumborum", typ:"core", studiofrei:true,
+      saetze:3, repzone:"12–15", aktuell:"3×12 @ 10 kg (25.10., Sendling)", ziel:"Summe ≥43 Wdh → + 2,5 kg",
+      progression:{ schritt:2.5 },
+      schritte:["Seitlich auf die Bank, Hüfte auf dem Polster","Scheibe flach vor der Brust, mit flachen Händen/Unterarmen andrücken – nicht am Rand greifen (De Quervain)","Tief in die seitliche Dehnung absenken","Seitlich hochkommen bis knapp über die Linie, Seite wechseln"],
+      tipp:"Ersatz für den Oblique Crunch in Sendling (dort keine Maschine für die Seitneigung). STUDIOFREI: Scheiben wiegen überall gleich. Gewicht = Scheibe." },
     { name:"Reverse Crunches", muskel:"Untere Bauchmuskeln", typ:"core",
       saetze:3, repzone:"15–20", aktuell:"3×18 @ Bodyweight", zielgewicht:null, ziel:"3×20 gefestigt – ggf. leichte Zusatzlast",
       progression:{ gesperrt:true, grund:"Bodyweight – Progression läuft über Tempo und Wiederholungen, nicht über die Last." },
