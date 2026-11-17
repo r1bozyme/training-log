@@ -231,37 +231,108 @@ const PLAN = {
 // Hamstrings hatten in der bisherigen Rotation nur ~1×/Woche Reiz.
 
 // ─── Modul-Loader ─────────────────────────────────────
-// Lädt die Zusatzmodule in fester Reihenfolge (async=false). Seit dem
-// 10.11. hört jedes Modul auf das Ereignis "tl:view" (view.js), statt
-// showView zu umschließen – die Reihenfolge zählt nur noch dort, wo ein
-// Modul beim Laden auf ein anderes zugreift:
+// Lädt die Zusatzmodule in fester Reihenfolge. Seit dem 10.11. hört jedes
+// Modul auf das Ereignis "tl:view" (view.js), statt showView zu umschließen –
+// die Reihenfolge zählt nur noch dort, wo ein Modul beim Laden auf ein
+// anderes zugreift:
 //   view.js zuerst (showView), dann diag.js (Fehlerprotokoll ab Start),
 //   dialog.js vor allen, die tlAsk nutzen; daily.js vor sync.js;
 //   studio.js → progress.js → uebung.js; tracker.js vor speise/scan;
 //   vorrat-core.js → vorrat.js; label.js → speise.js → scan.js;
 //   nav.js, swipe.js, back.js als Letzte (brauchen alle Ansichten).
 // Was jedes Modul macht, steht in seinem eigenen Kopf.
-// Sofort-Updates (08.11.): GitHub Pages hält Dateien bis zu 10 min im
-// Browser-Cache. Deshalb wird jedes Modul vorher mit cache:"no-cache"
-// abgeglichen (unverändert = kurze 304-Antwort); index.html und plan.js
-// gelten damit ab dem nächsten Start. Nach 2,5 s ohne Antwort (offline)
-// wird ohne Abgleich geladen.
+//
+// Sofort-Updates (08.11., überarbeitet 17.11. nach dem Finanz-Cockpit):
+// GitHub Pages hält Dateien bis zu 10 min im Browser-Cache (max-age=600).
+//  1. Jedes Modul wird mit cache:"no-cache" abgeglichen (unverändert = 304)
+//     und genau dieser Text ausgeführt (script.text + sourceURL), nicht per
+//     <script src>. Kopie im Cache Storage "tl-mods" – bewusst nicht im
+//     localStorage, den sich die Herkunft mit dem Cockpit und den Daten teilt.
+//  2. Rückfall nach 2,5 s (hängendes Netz) bzw. sofort (offline) mit den
+//     Kopien. <script src> würde in Chrome auf den gesperrten Cache-Eintrag
+//     des hängenden Abgleichs warten (Test 17.11.: 160 s statt 2,5 s).
+//     Ohne Kopie (allererster Start) bleibt <script src> der Rückfall.
+//  3. index.html und plan.js laufen zu diesem Zeitpunkt schon. Für beide wird
+//     der zwischengespeicherte Text (force-cache, = was gerade läuft) mit dem
+//     frisch abgeglichenen verglichen; weicht einer ab, wird einmal neu
+//     geladen (sessionStorage gegen Schleifen). So sind neues Markup, neue
+//     Plan-Daten und neue Einträge in MODS schon beim ersten Start nach dem
+//     Push da – ohne Build-Kennung, die man von Hand hochzählen müsste.
+// Kein Service Worker: Der HTTP-Cache ist die einzige Cache-Ebene.
 (function () {
   var MODS = ["view.js", "diag.js", "dialog.js", "werte.js", "daily.js", "gewicht.js", "sync.js", "studio.js", "logkarten.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "speise.js", "scan.js", "energie.js", "abgleich.js", "inbody.js", "reise.js", "nav.js", "swipe.js", "back.js"];
-  var done = false;
-  function load() {
-    if (done) return; done = true;
-    MODS.forEach(function (src) {
-      var s = document.createElement("script");
+  var STORE = "tl-mods", WAIT = 2500;
+  var done = false, texts = {};
+  function abs(u) { return new URL(u, location.href).href; }
+  function delay(ms, v) { return new Promise(function (ok) { setTimeout(function () { ok(v); }, ms); }); }
+  function store() { return window.caches ? caches.open(STORE) : Promise.reject(); }
+
+  function run(i, copies) {
+    if (i >= MODS.length) return;
+    var src = MODS[i], t = texts[src] != null ? texts[src] : copies[src];
+    var s = document.createElement("script");
+    if (t != null) {
+      s.text = t + "\n//# sourceURL=" + abs(src);
+      document.head.appendChild(s);          // läuft sofort, Fehler landen in diag.js
+      run(i + 1, copies);
+    } else {
       s.src = src;
-      s.async = false;
+      s.onload = s.onerror = function () { run(i + 1, copies); };
       document.head.appendChild(s);
+    }
+  }
+  function load() {
+    MODS.forEach(function (src) { var s = document.createElement("script"); s.src = src; s.async = false; document.head.appendChild(s); });
+  }
+  function hash(t) { var h = 5381; for (var i = 0; i < t.length; i++) h = (h * 33 + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+  if (!window.fetch || !window.Promise) { load(); return; }
+
+  /* Kopien vom letzten Abgleich (höchstens 0,5 s darauf warten) */
+  var copiesP = Promise.race([
+    store().then(function (c) {
+      return Promise.all(MODS.map(function (src) {
+        return c.match(abs(src)).then(function (r) { return r ? r.text() : null; });
+      }));
+    }).then(function (a) { var o = {}; MODS.forEach(function (src, i) { if (a[i] != null) o[src] = a[i]; }); return o; }),
+    delay(500, {})
+  ]).catch(function () { return {}; });
+
+  function start() {
+    if (done) return; done = true;
+    copiesP.then(function (c) { run(0, c); });
+  }
+  setTimeout(start, WAIT);
+
+  function get(u, mode) {
+    return fetch(u, { cache: mode || "no-cache" }).then(function (r) { return r.ok ? r.text() : null; }).catch(function () { return null; });
+  }
+  /* liefert den neuen Text, wenn die laufende Fassung veraltet ist, sonst null */
+  function stale(u) {
+    return get(u, "force-cache").then(function (alt) {
+      return get(u).then(function (neu) { return alt != null && neu != null && alt !== neu ? neu : null; });
     });
   }
-  if (!window.fetch || !window.Promise) { load(); return; }
-  setTimeout(load, 2500);
-  Promise.all(MODS.map(function (src) {
-    return fetch(src, { cache: "no-cache" }).then(function (r) { return r.ok ? r.text() : null; }).catch(function () { return null; });
-  })).then(load, load);
-  ["./", "index.html", "plan.js"].forEach(function (u) { fetch(u, { cache: "no-cache" }).catch(function () {}); });
+  var self = location.pathname + location.search;
+  Promise.all([stale(self), stale("plan.js")].concat(MODS.map(function (src) {
+    return get(src).then(function (t) {
+      if (t == null) return;
+      if (!done) texts[src] = t;
+      store().then(function (c) { return c.put(abs(src), new Response(t, { headers: { "Content-Type": "text/javascript" } })); }).catch(function () {});
+    });
+  }))).then(function (res) {
+    if (done) return;
+    if (res[0] != null || res[1] != null) {
+      var sig = hash((res[0] || "") + "|" + (res[1] || ""));
+      var flag = null; try { flag = sessionStorage.getItem("tl-reload"); } catch (e) {}
+      if (flag !== sig) {
+        try { sessionStorage.setItem("tl-reload", sig); } catch (e) {}
+        done = true; location.reload(); return;
+      }
+    }
+    start();
+  }, start);
+  /* andere Einstiege auffrischen (Start-URL "./" vs. "index.html", Manifest) */
+  ["./", "index.html", "manifest.webmanifest"].forEach(function (u) {
+    if (new URL(u, location.href).pathname !== location.pathname) fetch(u, { cache: "no-cache" }).catch(function () {});
+  });
 })();

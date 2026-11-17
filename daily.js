@@ -637,17 +637,6 @@ const MARKUP = `
 
 // ─── INIT ──────────────────────────────────────
 function init() {
-  // 13.11.: Kommt plan.js noch aus dem Browser-Cache, kennt es werte.js nicht
-  // (Karten fehlten, Datum ungestaltet). Dann hier nachladen und neu zeichnen.
-  ["werte.js", "gewicht.js"].forEach(function (src) {
-    if (document.querySelector('script[src="' + src + '"]')) return;
-    const ws = document.createElement("script");
-    ws.src = src;
-    ws.async = false;
-    ws.onload = function () { buildDaily(); };
-    document.head.appendChild(ws);
-  });
-
   const view = document.getElementById("view-weight");
   if (!view || document.getElementById("d-date")) return;
 
