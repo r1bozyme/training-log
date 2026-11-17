@@ -512,7 +512,7 @@ function injectOverview() {
     const tag = o.auto && o.man ? "auto + manuell" : (o.auto ? "auto" : "manuell");
     return `<div class="pgo-row">
       <span class="ebdg badge-${o.ein}">${String(o.ein || "").toUpperCase()}</span>
-      <div class="pgo-i"><div class="pgo-n">${escA(o.name)}${o.ort ? ` <span class="st-tag">${escA(o.ort)}</span>` : ""}</div><div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
+      <div class="pgo-i"><div class="pgo-n">${escA(o.name)}</div>${o.ort ? `<div class="pgo-o"><span class="st-tag">${escA(o.ort)}</span></div>` : ""}<div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
       <span class="pgo-z">${o.ziel !== null ? "→ " + kg(o.ziel) : "↑"}</span>
     </div>`;
   }).join("");
@@ -756,6 +756,8 @@ const CSS = `
 .pgo-row:last-of-type { border-bottom: none; }
 .pgo-i { flex: 1; min-width: 0; }
 .pgo-n { font-size: 13.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pgo-o { margin-top: 2px; }
+.pgo-o .st-tag { margin-left: 0; white-space: normal; }
 .pgo-m { font-size: 11px; color: #4A7A4A; margin-top: 1px; }
 .pgo-z { font-size: 13px; font-weight: 700; color: var(--go); flex-shrink: 0; }
 .pgo-f { font-size: 11px; color: #4A7A4A; line-height: 1.5; margin-top: 10px; padding-top: 9px; border-top: 1px solid #C8E4C8; }
