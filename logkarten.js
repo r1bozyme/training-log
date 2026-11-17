@@ -39,13 +39,14 @@ function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padSta
 function minus(n) { var d = new Date(); d.setHours(12); d.setDate(d.getDate() - n); return iso(d); }
 var WT = ["SO", "MO", "DI", "MI", "DO", "FR", "SA"];
 function kopfDatum(s) { var d = new Date(s + "T12:00:00"); return WT[d.getDay()] + ", " + s.slice(8, 10) + "." + s.slice(5, 7) + "."; }
+function stTag(n) { return window.tlStudio && typeof window.tlStudio.tag === "function" ? window.tlStudio.tag(n) : "📍 " + esc(n); }
 function studioLabel(e) { return window.tlStudio && typeof window.tlStudio.label === "function" ? window.tlStudio.label(e) : ""; }
 
 function zeile(e, tagStudio) {
   var sets = [e.s1, e.s2, e.s3, e.s4].filter(Boolean).join(" / ");
   var st = studioLabel(e);
   var meta = [e.gewicht ? String(e.gewicht).replace(".", ",") + " kg" : null, sets ? sets + " Wdh" : null,
-              st && st !== tagStudio ? "📍 " + esc(st) : null, e.notiz ? esc(e.notiz) : null].filter(Boolean).join(" · ");
+              st && st !== tagStudio ? stTag(st) : null, e.notiz ? esc(e.notiz) : null].filter(Boolean).join(" · ");
   var ip = pendingDel === e.id;
   return '<div class="lk-row">' +
     '<span class="ebdg badge-' + e.einheit + '">' + String(e.einheit).toUpperCase() + '</span>' +
@@ -96,7 +97,7 @@ function renderLog() {
       '<button type="button" class="lk-hd" onclick="tlLogKarten.toggle(\'' + d + '\')">' +
         '<span class="lk-d">' + kopfDatum(d) + '</span>' +
         '<span class="lk-b">' + einh.map(function (u) { return '<span class="ebdg badge-' + u + '">' + String(u).toUpperCase() + '</span>'; }).join("") + '</span>' +
-        '<span class="lk-m">' + es.length + (es.length === 1 ? " Übung" : " Übungen") + (tagStudio ? " · " + esc(tagStudio) : "") + '</span>' +
+        '<span class="lk-m">' + es.length + (es.length === 1 ? " Übung" : " Übungen") + (tagStudio ? " " + stTag(tagStudio) : "") + '</span>' +
         (hoch ? '<span class="ubdg">↑' + (hoch > 1 ? hoch : "") + '</span>' : "") +
         '<span class="lk-c">' + (auf ? "▾" : "▸") + '</span>' +
       '</button>' +

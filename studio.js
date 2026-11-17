@@ -88,7 +88,9 @@ function istHeim(e) {
   var s = clean(e && e.studio);
   return !s || s === cfg().heim;
 }
-function label(e) { return istHeim(e) ? "" : clean(e.studio); }
+/* Mit weiteren Stammstudios trägt auch Heim seinen Namen (sonst wäre
+   "kein Etikett" mehrdeutig). */
+function label(e) { var c = cfg(); return istHeim(e) ? (c.stamm.length ? c.heim : "") : clean(e.studio); }
 
 /* Progressions-Gruppe: "" = Heim, Name = weiteres Stammstudio, null = fremd */
 function gruppeVon(name, c) {
@@ -99,6 +101,22 @@ function gruppeVon(name, c) {
 }
 function gruppe(e) { return gruppeVon(e && e.studio); }
 function name(g) { return g ? g : cfg().heim; }
+
+/* FARBEN (17.11.): jedes Stammstudio eine feste Farbe, fremde grau.
+   Reihenfolge = Heim, dann Stammstudios in Listenreihenfolge. Dieselben
+   Farben gelten für Stats und Kraftindex (window.tlStudio.farbe). */
+var FARBEN = ["#B07810", "#2F6FA8", "#7A4FA0", "#2E8A6E"];
+var FREMD = "#7A7A7A";
+function farbeName(n) {
+  var c = cfg(), g = gruppeVon(n, c);
+  if (g === null) return FREMD;
+  var i = g === "" ? 0 : c.stamm.indexOf(g) + 1;
+  return FARBEN[i % FARBEN.length];
+}
+function tagHTML(n) {
+  var s = clean(n) || cfg().heim, f = farbeName(s);
+  return '<span class="st-tag" style="color:' + f + ';background:' + f + '1F">' + esc(s) + "</span>";
+}
 
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -122,6 +140,8 @@ window.tlStudio = {
   kontext: kontext,
   name: name,
   stamm: function () { var c = cfg(); return [""].concat(c.stamm); },
+  farbe: function (g) { return farbeName(g === "" ? cfg().heim : g); },   // Gruppe oder Studioname
+  tag: function (n) { return tagHTML(n === "" ? cfg().heim : n); },
   standard: function () { return cfg().standard; },
   autoZurueck: function () { autoZurueck(); }   // reise.js
 };

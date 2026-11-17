@@ -198,7 +198,8 @@ function gruppenName(key) {
 }
 function studioTag(e) {
   const l = window.tlStudio ? window.tlStudio.label(e) : "";
-  return l ? ` <span class="st-tag">${escA(l)}</span>` : "";
+  if (!l) return "";
+  return " " + (typeof window.tlStudio.tag === "function" ? window.tlStudio.tag(l) : `<span class="st-tag">${escA(l)}</span>`);
 }
 
 // ISO-Datum, lexikografisch vergleichbar. Sort ist stabil, bei
@@ -512,7 +513,7 @@ function injectOverview() {
     const tag = o.auto && o.man ? "auto + manuell" : (o.auto ? "auto" : "manuell");
     return `<div class="pgo-row">
       <span class="ebdg badge-${o.ein}">${String(o.ein || "").toUpperCase()}</span>
-      <div class="pgo-i"><div class="pgo-n">${escA(o.name)}</div>${o.ort ? `<div class="pgo-o"><span class="st-tag">${escA(o.ort)}</span></div>` : ""}<div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
+      <div class="pgo-i"><div class="pgo-n">${escA(o.name)}</div>${o.ort ? `<div class="pgo-o">${window.tlStudio && window.tlStudio.tag ? window.tlStudio.tag(o.key) : `<span class="st-tag">${escA(o.ort)}</span>`}</div>` : ""}<div class="pgo-m">${o.meta} <span class="pgo-t${o.man ? " m" : ""}">${tag}</span></div></div>
       <span class="pgo-z">${o.ziel !== null ? "→ " + kg(o.ziel) : "↑"}</span>
     </div>`;
   }).join("");
@@ -619,7 +620,7 @@ function injectHistPicker() {
     </select>${histEx ? '<button class="pgh-x" onclick="pgHist(\'\')">×</button>' : ""}`;
 }
 
-function kurve(pts) {
+function kurve(pts, farbe) {
   // pts: [{date, w}] chronologisch
   if (pts.length < 2) return "";
   const W = 320, H = 96, L = 34, R = 8, T = 10, B = 18;
@@ -642,7 +643,7 @@ function kurve(pts) {
     <text x="${L - 4}" y="${y(lo) + 4}" text-anchor="end">${String(lo).replace(".", ",")}</text>
     <text x="${L}" y="${H - 4}">${d0}</text>
     <text x="${W - R}" y="${H - 4}" text-anchor="end">${d1}</text>
-    <path class="ln" d="${line}"/><g class="dt">${dots}</g>
+    <path class="ln" d="${line}"${farbe ? ` style="stroke:${farbe}"` : ""}/><g class="dt"${farbe ? ` style="--kf:${farbe}"` : ""}>${dots}</g>
   </svg>`;
 }
 
@@ -661,7 +662,8 @@ function renderHist() {
   const pts = mitGew.map(function (e) { return { date: e.date, w: num(e.gewicht), s: satzListe(e) }; });
   histGruppen = vorhanden;
   const chips = vorhanden.length > 1 ? `<div class="pgh-ch">${vorhanden.map(function (g, i) {
-    return `<button class="pgh-c${g === key ? " on" : ""}" onclick="pgHistStudio(${i})">${escA(gruppenName(g))}</button>`;
+    const f = window.tlStudio && window.tlStudio.farbe ? window.tlStudio.farbe(g) : "";
+    return `<button class="pgh-c${g === key ? " on" : ""}"${f ? ` style="--stf:${f}"` : ""} onclick="pgHistStudio(${i})">${escA(gruppenName(g))}</button>`;
   }).join("")}</div>` : (key !== FREI && stammGruppen().length > 1 ? `<div class="pgh-m">Kurve: ${escA(gruppenName(key))}</div>` : "");
   const erst = mitGew[0], letzt = mitGew[mitGew.length - 1];
   let kopf = es.length + " Einheiten";
@@ -685,7 +687,7 @@ function renderHist() {
     <div class="pgh-m">${kopf}</div>
     ${chips}
     ${ex && ex.ziel ? `<div class="pgh-m">Plan: ${escA(ex.ziel)}</div>` : ""}
-    ${kurve(pts)}
+    ${kurve(pts, key !== FREI && stammGruppen().length > 1 && window.tlStudio && window.tlStudio.farbe ? window.tlStudio.farbe(key) : "")}
     <div class="pgh-list">${rows}</div>
   </div>`;
 }
@@ -773,12 +775,12 @@ const CSS = `
 .pgh-svg { width: 100%; height: auto; margin-top: 10px; display: block; }
 .pgh-svg .ax { stroke: var(--border); stroke-width: 1; }
 .pgh-svg .ln { fill: none; stroke: var(--text); stroke-width: 2; stroke-linejoin: round; }
-.pgh-svg .dt circle { fill: var(--text); }
+.pgh-svg .dt circle { fill: var(--kf, var(--text)); }
 .pgh-svg text { font-size: 9px; fill: var(--muted); font-family: var(--fb); }
 .pgh-list { margin-top: 10px; }
 .pgh-ch { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pgh-c { font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 14px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; }
-.pgh-c.on { border-color: var(--text); color: var(--text); }
+.pgh-c.on { border-color: var(--stf, var(--text)); color: var(--stf, var(--text)); }
 .pgh-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
 .pgh-d { flex: 0 0 44px; font-size: 12px; font-weight: 700; color: var(--muted); padding-top: 2px; }
 .pgh-w { flex: 0 0 64px; font-size: 13px; font-weight: 700; color: var(--text); padding-top: 1px; }
