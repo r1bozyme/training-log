@@ -32,6 +32,9 @@
    Zeitraum 1M/3M/Alles ist derselbe wie im Werte-Tab. Aufklappzustand
    unter "tlui-werte" (Zweig ou), nicht im Backup.
 
+   SCHRITTE (18.11.): Karten und Tabelle zeigen erst ab OURA_START
+   (05.11.2026) – davor lagen Handy-Schritte aus Google Health in tl-d.
+
    Keys: tl-oura (letzter Stand von data.json, Cache für Offline-Start).
    ═══════════════════════════════════════════════════ */
 (function () {
@@ -114,11 +117,15 @@ function store() {
 
 /* ─── Daten für die Darstellung ────────────────── */
 /* Felder wie in tl-d: steps, sleepMin, rhr, hrv, ready, sscore */
+/* Erster Tag mit dem Ring. Ältere tl-d-Schritte stammen aus Google Health
+   (Handy) und bleiben draußen, sonst mischt der Vergleich Training/Ruhe
+   zwei Quellen (data.days reicht nur ~10 Tage zurück, taugt nicht als Grenze). */
+var OURA_START = "2026-11-05";
 function source() {
   var src = {};
   if (isLive()) {
     var arr; try { arr = JSON.parse(ls("tl-d") || "[]"); } catch (e) { arr = []; }
-    arr.forEach(function (d) { src[d.date] = { steps: d.steps, sleepMin: d.sleepMin, rhr: d.rhr, hrv: d.hrv, ready: d.ready, sscore: d.sscore }; });
+    arr.forEach(function (d) { if (!d || !d.date || d.date < OURA_START) return; src[d.date] = { steps: d.steps, sleepMin: d.sleepMin, rhr: d.rhr, hrv: d.hrv, ready: d.ready, sscore: d.sscore }; });
   } else if (data && data.days) {
     Object.keys(data.days).forEach(function (k) {
       var x = data.days[k];
