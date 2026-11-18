@@ -48,8 +48,12 @@ Trainingsplan und Entscheidungen stehen nicht hier (siehe „Quellen“).
   maskieren (`esc`).
 - Nährwerte: etikettgeprüft oder `chk:1` (geschätzt). Geschätzte Werte
   nie stillschweigend als geprüft markieren.
-- Zielwerte (kcal/KH/F/P) und Fixbasis ändern sich nur über die
-  Migrationszähler `GOAL_V` bzw. `BASIS_V` in tracker.js.
+- Das aktuelle Ziel (kcal/KH/F/P) steht nicht im Code, sondern in der
+  App-Konfiguration (`c.goal`, Verlauf in `c.goalHist`, im Backup).
+  Die Konstanten in tracker.js (`GOAL_ALT`, `GOAL_NEU`, `GOAL_NOV`) sind
+  nur Startwerte und Migrationen. Nie aus ihnen auf das gültige Ziel
+  schließen, und Tage immer gegen das Ziel rechnen, das an dem Tag galt.
+- Fixbasis-Änderungen laufen über den Migrationszähler `BASIS_V`.
 
 ## Arbeitsablauf
 
@@ -75,8 +79,9 @@ Commit aktualisiert. Sie ist der Wissenstransfer zum Finanz-Cockpit.
 
 ## Quellen (hier nicht doppelt pflegen)
 
-- Ziele, Nährwerte, Rezepte: tracker.js im Code; Pläne als monatlich
-  versionierte Google Docs (Drive-Ordner Fitness).
+- Aktuelles Ziel: App-Konfiguration bzw. `backup.json`, nicht der Code.
+- Nährwerte, Rezepte: tracker.js; Pläne als monatlich versionierte
+  Google Docs (Drive-Ordner Fitness).
 - Trainingsdaten: `training-log-data/export.csv`, Auswertung
   `training-log-data/review/auswertung.js`.
 - Entscheidungen, Vormerkungen, Gesundheitskontext: Projekt
