@@ -13,7 +13,7 @@ kopiere den Code nicht blind.
 
 **Pflege:** Wird hier ein Muster neu gebaut oder geändert, das sich übertragen
 lässt, kommt es im selben Arbeitsgang hier rein bzw. wird hier aktualisiert.
-Zuletzt aktualisiert: 17.11.2026 (abends, Rückmeldungen aus dem Cockpit).
+Zuletzt aktualisiert: 18.11.2026 (Smoke-Test vor jedem Push, CLAUDE.md).
 
 ---
 
@@ -78,6 +78,29 @@ Zuletzt aktualisiert: 17.11.2026 (abends, Rückmeldungen aus dem Cockpit).
 - **Fälle:** geändertes Modul, hängendes Netz (20 s), offline, neue
   index.html, neues Modul in `MODS`, nur Plan-Daten geändert, unverändert
   (kein Neuladen), echte Daten aus backup.json ohne Fehler.
+
+### Smoke-Test vor jedem Push
+- **Problem:** Ein Fehler in einem Modul fällt sonst erst auf dem Handy auf,
+  `node --check` findet nur Syntaxfehler.
+- **Lösung:** `test/smoke.py` (Python + Playwright, ohne Abhängigkeiten im
+  Repo): `node --check` aller Module, `MODS` gegen die Dateien im Repo,
+  statische Suche nach fremden Storage-Keys, dann Headless-Start im
+  Handy-Viewport. Jede Ansicht wird per `showView` geöffnet, danach
+  müssen alle localStorage-Keys das eigene Präfix haben und das
+  Fehlerprotokoll (`tl-err`) leer sein. Externe Anfragen werden blockiert,
+  Fehler daraus zählen nicht. Exit-Code 0/1, steht als Pflichtschritt in
+  CLAUDE.md.
+- **Stolperfallen:**
+  - Keys über `localStorage.key(i)` lesen, nicht `Object.keys(localStorage)`.
+    Überschreibt ein Modul `localStorage.setItem` (sync.js), erscheinen
+    sonst `setItem`/`removeItem` als Keys.
+  - Statische Suche nur nach vollständigen fremden Keys (`fc-…`). Das
+    reine Präfix `"fc-"` zum Messen der Belegung (diag.js) ist erlaubt.
+  - `page.route()` ist hier in Ordnung (Cache egal). Für Cache-Tests gilt
+    der Abschnitt oben.
+  - Gegenprobe gemacht: eingebauter Laufzeitfehler und fremder Key werden
+    erkannt.
+- **Wo:** `test/smoke.py`, `CLAUDE.md` (Arbeitsablauf).
 
 ### Kein Service Worker
 - Ein Service Worker ist eine zweite Cache-Ebene, die Sofort-Updates
