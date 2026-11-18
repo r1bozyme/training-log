@@ -210,6 +210,18 @@ Zuletzt aktualisiert: 18.11.2026 (Smoke-Test vor jedem Push, CLAUDE.md).
 - **Anlass:** Lokale Daten waren ohne Zutun der App verschwunden (04.10.).
 - **Code:** `abgleich.js` · Commit 475d3ee
 
+### Eingang aus dem Chat
+- Claude schreibt Einträge (z. B. geschätzte Posten) als `eingang.json` ins
+  Daten-Repo. Die App holt die Datei beim Start und beim Zurückkehren
+  (höchstens 1×/min), zeigt eine Rückfrage mit Summe je Tag und übernimmt erst
+  nach Bestätigung. Jeder Eintrag trägt eine ID, die am übernommenen Datensatz
+  gespeichert wird – so gibt es keine Doppelten, auch wenn das Leeren der Datei
+  fehlschlägt. Geleert werden nur die übernommenen IDs (Datei vorher frisch
+  lesen). Kein eigener Storage-Key.
+- **Anlass:** Restaurant-Schätzungen aus dem Chat mussten abgetippt werden
+  (18.11.).
+- **Code:** `eingang.js`
+
 ### Diagnose & dauerhafter Speicher
 - `navigator.storage.persist()` beim Start. Das gilt für die ganze Herkunft
   r1bozyme.github.io, also auch für das Finanz-Cockpit. Ein Fehlerprotokoll

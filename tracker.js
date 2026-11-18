@@ -491,16 +491,19 @@ window.foodAdd = function (pid, menge) {
    Werte je Portion, Menge 1 – änderbar über ✎. Der Tag wird automatisch
    als „geschätzt“ markiert, damit er aus dem Waagen-Abgleich fällt. */
 window.foodAddFrei = function (o) {
-  var d = curDate(), arr = dayItems(d).slice();
+  /* 18.11.: optional datum (anderer Tag), cid (Chat-ID, eingang.js), still (kein Neuzeichnen/Flash je Posten) */
+  var d = /^\d{4}-\d{2}-\d{2}$/.test(o.datum || "") ? o.datum : curDate(), arr = dayItems(d).slice();
   var r1 = function (v) { v = Number(v); return isFinite(v) && v >= 0 ? Math.round(v * 10) / 10 : 0; };
   arr.push({
     id: Date.now() + Math.floor(Math.random() * 1000),
     pid: null, n: String(o.n || "Gericht").slice(0, 60), menge: 1, unit: "Portion", ref: 1,
     kcal: r1(o.kcal), kh: r1(o.kh), f: r1(o.f), p: r1(o.p), est: 1
   });
+  if (o.cid) arr[arr.length - 1].cid = String(o.cid).slice(0, 40);
   putItems(d, arr);
   var de = dailyEntry(d), neuEst = !(de && de.est);
   if (neuEst && typeof window.toggleEst === "function") mitDailyDatum(d, function () { window.toggleEst(); });
+  if (o.still) return;
   fOpen = null; fSearch = "";
   buildFood();
   showFlash(neuEst ? "Eingetragen · Tag als geschätzt markiert" : "Eingetragen ✓");
