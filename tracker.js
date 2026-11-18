@@ -1218,13 +1218,12 @@ window.buildFood = function () {
 
   var rest = { kcal: g.kcal - s.kcal, kh: g.kh - s.kh, f: g.f - s.f, p: g.p - s.p };
 
-  /* Bindender Faktor: der Makro mit dem kleinsten verbleibenden
-     Anteil. Nach Erfahrung fast immer Fett – die Anzeige soll das
-     zeigen, statt es vorauszusetzen. */
+  /* Bindender Faktor: die Obergrenze mit dem kleinsten verbleibenden
+     Anteil. 18.11.: Nur Fett und Kalorien sind Obergrenzen. Protein ist
+     ein Mindestziel (darüber unproblematisch), KH füllen den Rest auf –
+     beide bekommen eigene Hinweise statt „bindend“ zu sein. */
   var quota = [
     { k:"f",    lbl:"Fett",           left:rest.f,    goal:g.f },
-    { k:"kh",   lbl:"Kohlenhydrate",  left:rest.kh,   goal:g.kh },
-    { k:"p",    lbl:"Protein",        left:rest.p,    goal:g.p },
     { k:"kcal", lbl:"Kalorien",       left:rest.kcal, goal:g.kcal }
   ];
   var binder = quota.slice().sort(function (a, b) {
@@ -1240,6 +1239,7 @@ window.buildFood = function () {
     var pct = b.goal ? Math.min(b.used / b.goal * 100, 100) : 0;
     var over = b.goal && b.used > b.goal;
     var cls = over ? "over" : (pct >= 85 ? "tight" : "");
+    if (b.lbl === "PROT") cls = (b.goal && b.used >= b.goal) ? "done" : "";   // Mindestziel: nie Warnfarbe
     return '<div class="fbar">' +
       '<div class="fbl">' + b.lbl + "</div>" +
       '<div class="fbv ' + cls + '">' + n0(b.used) + '<span class="fbg">/' + n0(b.goal) + "</span></div>" +
@@ -1262,6 +1262,14 @@ window.buildFood = function () {
       line = "Bindender Faktor: <strong>" + binder.lbl + "</strong> – davon sind nur noch " +
              (binder.k === "kcal" ? n0(binder.left) + " kcal" : n1(binder.left) + " g") +
              " frei (" + Math.round(binder.left / binder.goal * 100) + " % des Tagesziels). Das Abendessen daran ausrichten.";
+    }
+    /* 18.11.: Protein als Mindestziel, KH-Lücke als Richtung */
+    if (rest.kcal >= 0) {
+      if (rest.p <= 0) line += "<br>Protein: Ziel erreicht ✓ – mehr ist unproblematisch.";
+      else if (rest.p < g.p * 0.1) line += "<br>Protein: fast erreicht (noch " + n0(rest.p) + " g) – ergibt sich nebenbei.";
+      else line += "<br>Protein: noch <strong>" + n0(rest.p) + " g</strong> offen – proteinbetont essen.";
+      if (rest.kh > 0 && rest.kh * 4 >= rest.kcal * 0.5)
+        line += "<br>KH-Lücke: <strong>" + n0(rest.kh) + " g</strong> – kohlenhydratbetont essen.";
     }
     pensum = '<div class="fpensum ' + pcls + '">' +
       '<div class="fph">RESTBUDGET</div>' +
@@ -1520,6 +1528,7 @@ var CSS = [
 ".fbtrack { height:4px; border-radius:2px; background:var(--bg); margin-top:6px; overflow:hidden; }",
 ".fbfill { height:100%; background:var(--text); transition:width .25s; }",
 ".fbfill.tight { background:#E8A33D; } .fbfill.over { background:#D96A6A; }",
+".fbv.done { color:#3E8E5A; } .fbfill.done { background:#5FA877; }",
 ".fpensum { margin:14px 20px 0; padding:14px 16px; border-radius:12px; border:1.5px solid var(--text); background:var(--surface); }",
 ".fpensum.tight { border-color:#E8A33D; background:#FDF3E4; }",
 ".fpensum.over { border-color:#D96A6A; background:#FBE9E9; }",

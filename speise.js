@@ -72,9 +72,9 @@ function set(html) { if (ov) ov.querySelector(".sp-sh").innerHTML = html; }
 function budget() {
   var b = window.foodBudgetFrei ? window.foodBudgetFrei() : null;
   if (!b) return null;
+  /* 18.11.: bindend sind nur Obergrenzen (Fett, kcal); Protein ist Mindestziel */
   var q = [
-    { k: "f", lbl: "Fett", g: b.ziel.f }, { k: "p", lbl: "Protein", g: b.ziel.p },
-    { k: "kh", lbl: "Kohlenhydrate", g: b.ziel.kh }, { k: "kcal", lbl: "Kalorien", g: b.ziel.kcal }
+    { k: "f", lbl: "Fett", g: b.ziel.f }, { k: "kcal", lbl: "Kalorien", g: b.ziel.kcal }
   ].map(function (x) { x.left = b.frei[x.k]; x.q = x.g ? x.left / x.g : 0; return x; })
    .sort(function (a, c) { return a.q - c.q; });
   b.binder = q[0];
@@ -88,7 +88,8 @@ function budHTML(b) {
 function budText(b) {
   return "Frei für dieses Essen (Tagesrest, abzüglich dessen, was heute noch fest eingeplant ist): " +
     b.frei.kcal + " kcal, " + b.frei.kh + " g Kohlenhydrate, " + b.frei.f + " g Fett, " + b.frei.p + " g Protein. " +
-    "Bindender Faktor (knappstes Budget): " + b.binder.lbl + ". " +
+    "Bindender Faktor (knappste Obergrenze): " + b.binder.lbl + ". " +
+    "Protein ist ein Mindestziel, keine Obergrenze: " + (b.frei.p <= 0 ? "heute schon erreicht, mehr ist unproblematisch. " : "noch " + b.frei.p + " g offen, darüber ist unproblematisch. ") +
     "Tagesziel insgesamt: " + b.ziel.kcal + " kcal / " + b.ziel.kh + " KH / " + b.ziel.f + " F / " + b.ziel.p + " P (Lean Bulk, Muskelaufbau).";
 }
 
@@ -125,7 +126,7 @@ function karte() {
         budText(b),
         "Wähle bis zu drei vegetarische Gerichte, die am besten in dieses freie Budget passen, und rufe das Werkzeug empfehlung auf.",
         "Regeln:",
-        "- Vorrang: viel Protein, Fett innerhalb des Budgets. Der bindende Faktor entscheidet, wenn es eng wird.",
+        "- Fett und Kalorien sind Obergrenzen, der bindende Faktor entscheidet, wenn es eng wird. Protein ist ein Mindestziel: Ist noch viel offen, proteinreiche Gerichte bevorzugen; ist es (fast) erreicht, zählt Protein nicht mehr – dann Gerichte mit vielen Kohlenhydraten und wenig Fett bevorzugen. Proteinüberschreitung ist nie ein Grund für passt=false.",
         "- Schätze Nährwerte je Portion realistisch für deutsche/österreichische Restaurantportionen (eher groß). Fett bei Käse-, Sahne- und frittierten Gerichten nicht unterschätzen.",
         "- Eine Anpassung ist erlaubt und oft klug (z. B. „Dressing separat“, „ohne Pommes, dafür Salat“, „halbe Portion“) – dann in Klammern an den Namen und die Werte entsprechend schätzen.",
         "- Beste Wahl zuerst. passt=false, wenn das Gericht das freie Budget trotzdem sprengt, aber die beste Annäherung ist.",
