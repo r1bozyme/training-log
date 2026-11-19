@@ -16,6 +16,21 @@
 
    Zeichnet bei jedem Neuaufbau des Werte-Tabs mit (Ereignis "tl:werte"
    aus daily.js). Lädt nach daily.js.
+
+   19.11.: Übergang nach Zielwechsel (goalSince aus tl-fg). Mehr bzw.
+   weniger Kohlenhydrate verschieben Glykogen und Wasser – die Waage
+   springt in 3–5 Tagen um einige hundert Gramm ohne Gewebe. Der
+   geglättete Trend (τ = 10 Tage) zieht dem wochenlang nach, und die
+   28-Tage-Steigung darauf läge bis zu ~0,2 kg/Woche daneben. Darum für
+   UEBERGANG Tage nach dem Wechsel:
+   – Waage zählt erst ab Tag 8 (SCHONFRIST, wie energie.js).
+   – Phase A: weniger als MIN_W Wiegungen bzw. MIN_SPAN Tage ab dort →
+     keine Rate, keine Bewertung, Hinweis „Übergangsphase“.
+   – Phase B: Rate = lineare Regression auf den Rohwerten ab Tag 8
+     (höchstens die letzten 28 Tage), Trichter startet am Regressionswert
+     des letzten Tages (wFcBase, von wForecast in index.html genutzt).
+   Nach 8 Wochen hat der Trend den Sprung zu >99 % aufgeholt, dann
+   wieder die normale Rechnung aus index.html.
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
@@ -35,6 +50,48 @@ function naechsteMessung(ab) {
 
 function kgStr(n) { return fmtNum(n, 1).replace(".", ","); }
 
+/* ─── Übergang nach Zielwechsel (19.11.) ─────────── */
+var SCHONFRIST = 7, UEBERGANG = 56, MIN_W = 6, MIN_SPAN = 10, FENSTER = 28;
+var ph = null;   // Ergebnis des letzten build(), für wFcBase
+
+function isoOf(dn) {
+  var d = new Date(dn * 864e5 + 12 * 36e5);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function dm(dn) { var s = isoOf(dn); return s.slice(8, 10) + "." + s.slice(5, 7) + "."; }
+
+function phase(all) {
+  var gs = null;
+  try { gs = (JSON.parse(localStorage.getItem("tl-fg")) || {}).goalSince || null; } catch (e) { gs = null; }
+  if (!gs || !/^\d{4}-\d{2}-\d{2}$/.test(gs)) return null;
+  var g = dayNum(gs), t = dayNum(todayStr());
+  if (t < g || t - g >= UEBERGANG) return null;
+  var r = { g: g, wAb: g + SCHONFRIST, ende: g + UEBERGANG, rate: null };
+  var last = all.length ? dayNum(all[all.length - 1].date) : t;
+  var ws = all.filter(function (w) { var d = dayNum(w.date); return d >= r.wAb && d >= last - FENSTER && isFinite(+w.kg); })
+    .map(function (w) { return [dayNum(w.date), +w.kg]; });
+  r.n = ws.length;
+  if (!ws.length) return r;
+  var mx = ws.reduce(function (a, p) { return a + p[0]; }, 0) / ws.length;
+  var my = ws.reduce(function (a, p) { return a + p[1]; }, 0) / ws.length;
+  r.base = my;   // vorläufig: Mittel der Rohwerte ab Tag 8
+  var span = ws[ws.length - 1][0] - ws[0][0];
+  if (ws.length < MIN_W || span < MIN_SPAN) return r;
+  var sxx = 0, sxy = 0;
+  ws.forEach(function (p) { sxx += (p[0] - mx) * (p[0] - mx); sxy += (p[0] - mx) * (p[1] - my); });
+  if (!(sxx > 0)) return r;
+  var b = sxy / sxx, a = my - b * mx, sse = 0;
+  ws.forEach(function (p) { var e = p[1] - (a + b * p[0]); sse += e * e; });
+  r.rate = b * 7;
+  r.se = Math.sqrt(sse / (ws.length - 2) / sxx) * 7;
+  r.base = a + b * last;
+  r.von = ws[0][0];
+  return r;
+}
+
+/* Von wForecast (index.html) abgefragt: Startpunkt des Trichters */
+window.wFcBase = function () { return ph && typeof ph.base === "number" ? ph.base : null; };
+
 function build() {
   var slot = document.getElementById("d-weightsec");
   var W = window.tlWerte;
@@ -47,7 +104,8 @@ function build() {
 
   var allPts = all.length ? computeTrend(all) : [];
   var cur = allPts.length ? allPts[allPts.length - 1] : null;
-  var rate = allPts.length ? weeklyRate(allPts) : null;
+  ph = phase(all);
+  var rate = ph ? ph.rate : allPts.length ? weeklyRate(allPts) : null;
   var lastDay = cur ? cur.day : 0;
   var ref30 = allPts.filter(function (p) { return lastDay - p.day >= 28; });
   var d30 = cur && ref30.length ? cur.trend - ref30[ref30.length - 1].trend : null;
@@ -57,7 +115,7 @@ function build() {
   /* Morgens geschrumpft, solange anderes offen ist und hier nichts fällig */
   if (S.focus && !S.weighOpen && !W.isShown("weight")) {
     slot.innerHTML = '<div class="wt-mini" onclick="tlWerte.show(\'weight\')"><div class="wt-lbl">Gewicht</div><div class="wt-mv">' +
-      (cur ? kgStr(cur.trend) + " · " + rateStr + "/Wo" : "–") + '</div>' +
+      (cur ? kgStr(cur.trend) + " · " + (ph && rate === null ? "Übergang" : rateStr + "/Wo") : "–") + '</div>' +
       /* ＋ wiegt auch an Tagen außer Di/Fr mit einem Tipp */
       (onDate ? "" : '<button type="button" class="wt-mplus" aria-label="Gewicht eintragen" onclick="event.stopPropagation();tlWerte.showEdit(\'weight\')">＋</button>') +
       '<span>▸</span></div>';
@@ -69,7 +127,9 @@ function build() {
     '<div class="wt-hd"><div class="wt-lbl">Gewicht</div><div class="wt-k">' +
       '<span class="wt-kv">' + (cur ? kgStr(cur.trend) : "–") + '</span>' +
       (rate === null ? "" : '<span class="wt-kd ' + rateCls + '">' + rateStr + '/Wo</span>') +
-      '<div class="wt-sub">Trend kg · Δ 30 Tage ' + (d30 === null ? "–" : (d30 >= 0 ? "+" : "−") + fmtNum(Math.abs(d30), 1)) + '</div></div></div>';
+      '<div class="wt-sub">Trend kg · ' + (ph
+        ? (rate === null ? "Übergang bis " + dm(ph.ende) : "Rate ab " + dm(ph.von) + " ± " + fmtNum(ph.se, 2))
+        : "Δ 30 Tage " + (d30 === null ? "–" : (d30 >= 0 ? "+" : "−") + fmtNum(Math.abs(d30), 1))) + '</div></div></div>';
 
   if (ed) {
     h += '<div class="wt-in"><div class="wt-wrow">' +
@@ -103,7 +163,10 @@ function build() {
       h += '<div class="wt-wchart">' + weightChart(pts) + '</div>' +
         W.legend([["Messung", "#D8D8D8"], ["Trend", "#1A1A1A"], ["Korridor", "rgba(46,125,50,.45)"]]) +
         '<div class="wfc">In 4 Wochen (' + fmtDate(fc.date).slice(0, 6) + '): Ziel ≈ <b>' + kgStr(fc.ziel) + ' kg</b> · Korridor ' +
-        kgStr(fc.lo) + '–' + kgStr(fc.hi) + '</div>';
+        kgStr(fc.lo) + '–' + kgStr(fc.hi) +
+        (ph ? (rate !== null ? " · ab Rohwerten seit " + dm(ph.von)
+          : typeof ph.base === "number" ? " · vorläufig (Mittel ab " + dm(ph.wAb) + ")"
+          : " · vorläufig – Waage zählt ab " + dm(ph.wAb)) : "") + '</div>';
     }
   }
 
@@ -112,11 +175,20 @@ function build() {
   if (open) {
     if (cur) {
       var vCls, verdict;
-      if (rate === null) { vCls = "slow"; verdict = "Noch zu wenig Daten für eine belastbare Rate. Ab etwa 3 Wochen bzw. 6 Messungen wird die Trendlinie tragfähig – bis dahin sagen einzelne Werte mehr über Wasserhaushalt und Darminhalt als über Muskelaufbau."; }
+      if (ph && rate === null) {
+        vCls = "slow";
+        verdict = "<strong>Übergangsphase nach Zielwechsel am " + dm(ph.g) + "</strong> – mehr Kohlenhydrate füllen zuerst Glykogen und Wasser – die Waage springt " +
+          "in den ersten Tagen um einige hundert Gramm, ohne dass Gewebe dazukommt, und der geglättete Trend zieht dem noch wochenlang nach. " +
+          "Deshalb vorerst keine Bewertung und kein Nachjustieren. Die Rate kommt aus den Messungen ab " + dm(ph.wAb) + " (" + ph.n + " von " + MIN_W +
+          " Wiegungen über mind. " + MIN_SPAN + " Tage), bei Di/Fr voraussichtlich ab " + dm(ph.g + 24) + "";
+      }
+      else if (rate === null) { vCls = "slow"; verdict = "Noch zu wenig Daten für eine belastbare Rate. Ab etwa 3 Wochen bzw. 6 Messungen wird die Trendlinie tragfähig – bis dahin sagen einzelne Werte mehr über Wasserhaushalt und Darminhalt als über Muskelaufbau."; }
       else if (rate < 0) { vCls = "fast"; verdict = "<strong>Trend fällt.</strong> Bei laufendem Aufbau spricht das für ein Kaloriendefizit – Zufuhr über eine Woche gegenprüfen, bevor du nachjustierst."; }
       else if (rate < W_MIN) { vCls = "slow"; verdict = "<strong>Unter dem Korridor.</strong> Hält das über 2–3 Wochen an, Zufuhr um 100–150 kcal anheben – der Überschuss ist rechnerisch zu knapp für spürbaren Aufbau."; }
       else if (rate <= W_MAX) { vCls = "ok"; verdict = "<strong>Im Zielkorridor.</strong> Rund " + fmtNum(rate * 4.35, 2) + " kg/Monat – in dieser Größenordnung bleibt der Fettanteil am Zuwachs klein. Kurs halten."; }
       else { vCls = "fast"; verdict = "<strong>Über dem Korridor.</strong> Oberhalb von " + fmtNum(W_MAX, 2) + " kg/Woche wandert ein wachsender Anteil in Fettmasse, weil die Muskelproteinsynthese die Obergrenze bildet – nicht die Kalorienzufuhr. Überschuss um 100–150 kcal senken."; }
+      if (ph && rate !== null) verdict += '<br><br>Rate aus ' + ph.n + ' Messungen ab ' + dm(ph.von) + ' (± ' + fmtNum(ph.se, 2) +
+        ' kg/Woche), nicht aus dem Trend: Der zieht dem Wassersprung nach dem Zielwechsel am ' + dm(ph.g) + ' bis etwa ' + dm(ph.ende) + ' nach.';
       h += '<div class="wverdict ' + vCls + '">' + verdict + '</div>' + startBanner(cur.trend);
     } else {
       h += startBanner(null);
