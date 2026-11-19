@@ -5,7 +5,8 @@
    (~49.000 px), Backup, Export und Erinnerungen ganz unten.
    Jetzt:
      • eine Karte je Trainingstag (Push+Pull am selben Tag = eine Karte),
-       Kopf mit Einheiten, Zahl der Übungen, Studio und ↑-Markierungen;
+       Kopf mit Einheiten, Zahl der Übungen und ↑-Markierungen, darunter
+       das Studio in eigener Zeile (19.11., vorher am Zeilenende abgeschnitten);
        ein Tipp klappt die Übungen auf (✎ bearbeiten, × löschen wie bisher),
        der jüngste Tag ist offen
      • sichtbar die letzten 4 Wochen, „Ältere laden“ holt je 4 weitere
@@ -97,9 +98,10 @@ function renderLog() {
       '<button type="button" class="lk-hd" onclick="tlLogKarten.toggle(\'' + d + '\')">' +
         '<span class="lk-d">' + kopfDatum(d) + '</span>' +
         '<span class="lk-b">' + einh.map(function (u) { return '<span class="ebdg badge-' + u + '">' + String(u).toUpperCase() + '</span>'; }).join("") + '</span>' +
-        '<span class="lk-m">' + es.length + (es.length === 1 ? " Übung" : " Übungen") + (tagStudio ? " " + stTag(tagStudio) : "") + '</span>' +
+        '<span class="lk-m">' + es.length + (es.length === 1 ? " Übung" : " Übungen") + '</span>' +
         (hoch ? '<span class="ubdg">↑' + (hoch > 1 ? hoch : "") + '</span>' : "") +
         '<span class="lk-c">' + (auf ? "▾" : "▸") + '</span>' +
+        (tagStudio ? '<span class="lk-s">' + stTag(tagStudio) + '</span>' : "") +
       '</button>' +
       (auf ? '<div class="lk-list">' + es.map(function (e) { return zeile(e, tagStudio); }).join("") + '</div>' : "") +
     '</div>';
@@ -138,11 +140,13 @@ function datenBox() {
 var CSS = [
   ".lk-wrap { padding: 12px 20px 0; }",
   ".lk-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }",
-  ".lk-hd { display: flex; align-items: center; gap: 8px; width: 100%; padding: 13px 14px; border: none; background: transparent; font-family: var(--fb); text-align: left; cursor: pointer; color: var(--text); }",
+  ".lk-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 13px 14px; border: none; background: transparent; font-family: var(--fb); text-align: left; cursor: pointer; color: var(--text); }",
   ".lk-d { font-family: var(--fd); font-size: 17px; letter-spacing: 1px; flex-shrink: 0; min-width: 78px; }",
   ".lk-b { display: flex; gap: 4px; flex-shrink: 0; }",
   ".lk-m { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
   ".lk-c { color: var(--dim); font-size: 12px; flex-shrink: 0; }",
+  ".lk-s { flex-basis: 100%; margin-top: -2px; line-height: 1; }",
+  ".lk-s .st-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }",
   ".lk-list { border-top: 1px solid var(--border); padding: 2px 14px; }",
   ".lk-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }",
   ".lk-row:last-child { border-bottom: none; }",
