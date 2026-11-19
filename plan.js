@@ -61,6 +61,10 @@
 // (progress.js). studiofrei:true = zählt in jedem Studio (Kurzhanteln,
 // Scheiben). Shoulder Press (Maschine) ersetzt durch Schulterdrücken
 // KH im Neutralgriff; Seitbeugen 45° neu (Obliques in Sendling).
+//
+// 19.11.: Schulterdrücken KH als Gesamtgewicht (Schritt 4 kg).
+// Rumpfrotation (gym80, Sendling) neu als Obliques-Übung in Sendling;
+// Seitbeugen 45° nur noch optional. Gilt nur in Sendling (kein Planwert).
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "November 2026 (Rev. 31.10.)",
@@ -206,7 +210,12 @@ const PLAN = {
       saetze:3, repzone:"12–15", aktuell:"3×12 @ 10 kg (25.10., Sendling)", ziel:"Summe ≥43 Wdh → + 2,5 kg",
       progression:{ schritt:2.5 },
       schritte:["Seitlich auf die Bank, Hüfte auf dem Polster","Scheibe flach vor der Brust, mit flachen Händen/Unterarmen andrücken – nicht am Rand greifen (De Quervain)","Tief in die seitliche Dehnung absenken","Seitlich hochkommen bis knapp über die Linie, Seite wechseln"],
-      tipp:"Ersatz für den Oblique Crunch in Sendling (dort keine Maschine für die Seitneigung). STUDIOFREI: Scheiben wiegen überall gleich. Gewicht = Scheibe." },
+      tipp:"OPTIONAL seit 19.11. – in Sendling ist die Rumpfrotation (gym80) die Hauptübung für die Obliques; Seitbeugen decken zusätzlich die Seitneigung ab. STUDIOFREI: Scheiben wiegen überall gleich. Gewicht = Scheibe." },
+    { name:"Rumpfrotation (gym80)", muskel:"Obliques (Rotation)", typ:"core",
+      saetze:3, repzone:"12–15", aktuell:"Neu ab 19.11. – Sendling, Basislinie beim ersten Leg Day", ziel:"Summe ≥43 Wdh je Seite → + 5 kg",
+      progression:{ schritt:5 },
+      schritte:["Startposition seitlich vorgedreht (anfangs Stufe 2–3), nicht bei 0","Knie-/Oberschenkelpolster fest, Oberkörper aufrecht an den Polstern","Aus der Taille über die Mitte bis etwa zum gleichen Winkel auf der Gegenseite drehen – kein Schwung","Langsam zurück in die Dehnung, Spannung halten","Erst alle Sätze einer Seite, dann Startposition spiegeln – beide Seiten gleiche Wdh; Sätze einer Seite eintragen"],
+      tipp:"ZUSATZBLOCK. Nur Sendling – im alten Studio bleibt der Oblique Crunch (Hammer Strength). Startstufe im Kommentar notieren (z. B. „Start 3 L/R“): höhere Stufe = längerer Weg, Gewichte dann nicht direkt vergleichbar. Griffe nur locker halten (De Quervain)." },
     { name:"Reverse Crunches", muskel:"Untere Bauchmuskeln", typ:"core",
       saetze:3, repzone:"15–20", aktuell:"3×18 @ Bodyweight", zielgewicht:null, ziel:"3×20 gefestigt – ggf. leichte Zusatzlast",
       progression:{ gesperrt:true, grund:"Bodyweight – Progression läuft über Tempo und Wiederholungen, nicht über die Last." },
