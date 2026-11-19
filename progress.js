@@ -33,6 +33,11 @@
 //   Maßgeblich ist das im Eintrag gewählte Studio; fremde Studios
 //   zählen nicht. Der Kasten "Erhöhung fällig" zeigt alle Gruppen.
 //
+// NEU 19.11.: SCHRITTWEITE JE STUDIO. Sendling hat nur 5-kg-Stufen
+//   (Beinpresse 8 kg). schrittVon(ex, key) nimmt dort die Gerätestufe
+//   statt der Heim-Schrittweite (plan.js: PLAN.studioSchritt,
+//   progression.studioSchritt).
+//
 // Eigenständiges Modul, wird von plan.js nachgeladen.
 // Übernimmt zwei Aufgaben:
 //   1. Automatisches Erhöhungs-Signal (Summenkriterium)
@@ -143,8 +148,18 @@ function schwelleVon(ex) {
   return ex.saetze * og - (ex.saetze - 1);
 }
 
-function schrittVon(ex) {
+// Schrittweite. key = Studio-Gruppe: In weiteren Stammstudios gilt die
+// Gerätestufe des Studios (NEU 19.11.): erst progression.studioSchritt
+// der Übung, dann PLAN.studioSchritt des Studios, sonst wie im Heim.
+// Heim ("") und studiofreie Übungen ("*") behalten progression.schritt.
+function schrittVon(ex, key) {
   const p = prog(ex);
+  if (key && key !== FREI) {
+    const ue = p.studioSchritt && p.studioSchritt[key];
+    if (typeof ue === "number") return ue;
+    const st = typeof PLAN !== "undefined" && PLAN.studioSchritt && PLAN.studioSchritt[key];
+    if (typeof st === "number") return st;
+  }
   return typeof p.schritt === "number" ? p.schritt : DEF_SCHRITT;
 }
 
@@ -290,7 +305,7 @@ function statusFrei(ex, key) {
   if (!eigene.length) return { state: "leer", schwelle: sw, ziel: null, frei: true, ort: ort };
   const letzte = eigene[eigene.length - 1];
   const w = num(letzte.gewicht);
-  const ziel = Math.round((w + schrittVon(ex)) * 100) / 100;
+  const ziel = Math.round((w + schrittVon(ex, key)) * 100) / 100;
   if (String(letzte.date || "") < isoVor(FENSTER_TAGE))
     return { state: "alt", schwelle: sw, ziel: ziel, date: letzte.date, gewicht: w, frei: true, ort: ort };
   const s = satzListe(letzte);
@@ -318,7 +333,7 @@ function zielVorschlag(uebung, last) {
   let w = last ? num(last.gewicht) : null;
   if (w === null) return null;
   if (inDeload(heute) && ex) {
-    const st0 = schrittVon(ex);
+    const st0 = schrittVon(ex, key);
     const d = Math.floor((w * 0.9) / st0) * st0;
     return { kg: Math.round(d * 100) / 100, up: false, deload: true };
   }
@@ -332,7 +347,7 @@ function zielVorschlag(uebung, last) {
     if (st.state === "treffer" && st.ziel > w) return { kg: st.ziel, up: true };
   }
   if (last.erhoehen && ex)
-    return { kg: Math.round((w + schrittVon(ex)) * 100) / 100, up: true };
+    return { kg: Math.round((w + schrittVon(ex, key)) * 100) / 100, up: true };
   return { kg: w, up: false };
 }
 
@@ -490,7 +505,7 @@ function faellig() {
     const o = out.find(function (x) { return x.name === e.uebung && x.key === key; });
     if (o) { o.man = true; return; }
     const g  = num(e.gewicht);
-    const ziel = (ex && g !== null) ? Math.round((g + schrittVon(ex)) * 100) / 100 : null;
+    const ziel = (ex && g !== null) ? Math.round((g + schrittVon(ex, key)) * 100) / 100 : null;
     const sets = satzListe(e).join("/");
     out.push({ name: e.uebung, ein: e.einheit, ziel: ziel, key: key, ort: mehrere ? gruppenName(key) : "",
                meta: (g !== null ? kg(g) : "") + (sets ? " · " + sets : "") + " · " + fmtDate(e.date),

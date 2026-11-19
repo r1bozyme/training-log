@@ -65,9 +65,14 @@
 // 19.11.: Schulterdrücken KH als Gesamtgewicht (Schritt 4 kg).
 // Rumpfrotation (gym80, Sendling) neu als Obliques-Übung in Sendling;
 // Seitbeugen 45° nur noch optional. Gilt nur in Sendling (kein Planwert).
+// Schrittweite je Studio: Sendling hat an allen Steckblöcken 5-kg-Stufen,
+// keine Zusatzgewichte; Beinpresse (auch HSR) in 8-kg-Stufen (…149, 157, 165).
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "November 2026 (Rev. 31.10.)",
+  // Schrittweite in weiteren Stammstudios (Gerätestufe), überschreibbar je
+  // Übung mit progression.studioSchritt. Heim und studiofrei: progression.schritt.
+  studioSchritt: { "All Inclusive Fitness Sendling": 5 },
   // stand: Datum der Planrevision. Einträge davor werden beim Vorbelegen
   // auf das neue zielgewicht gehoben (progress.js), damit nachgezogene
   // Erhöhungen auch ohne Treffer-Signal im Gewichtsfeld stehen.
@@ -114,7 +119,7 @@ const PLAN = {
       tipp:"Links weiter gereizt trotz Manschette – nicht forcieren. Erst wenn 3×12 schmerzfrei laufen, wieder aufbauen." },
     { name:"Wadenheben (HSR-Block)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:3, repzone:"6–8", aktuell:"3×8 @ 105 kg (22.10.) – ab 08.11. 120 kg", zielgewicht:120, ziel:"Frequenzblock – Last wie am Legs-Tag",
-      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen." },
+      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen.", studioSchritt:{ "All Inclusive Fitness Sendling":8 } },
       schritte:["3 Sek runter, am tiefsten Punkt direkt umkehren","3 Sek hoch, volle Streckung","Kein Halten unten, kein Abfedern"],
       tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche) – Sehnenadaptation braucht wiederholte Reize. Seit 25.09. mit derselben Last wie am Legs-Tag (105 kg). Steigerung weiter nur am Legs-Tag entscheiden, dann hier nachziehen." }
   ],
@@ -151,14 +156,14 @@ const PLAN = {
       tipp:"Schützt das Schultergelenk langfristig. Am 25.09. selbst auf 25 kg gegangen (3×12) – Plan auf den gefahrenen Stand gezogen. Ziel ist jetzt 3×15 bei 25 kg." },
     { name:"Wadenheben (HSR-Block)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:3, repzone:"6–8", aktuell:"3×8 @ 105 kg (22.10.) – ab 08.11. 120 kg", zielgewicht:120, ziel:"Frequenzblock – Last wie am Legs-Tag",
-      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen." },
+      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen.", studioSchritt:{ "All Inclusive Fitness Sendling":8 } },
       schritte:["3 Sek runter, am tiefsten Punkt direkt umkehren","3 Sek hoch, volle Streckung","Kein Halten unten, kein Abfedern"],
       tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche) – Sehnenadaptation braucht wiederholte Reize. Seit 25.09. mit derselben Last wie am Legs-Tag (105 kg). Steigerung weiter nur am Legs-Tag entscheiden, dann hier nachziehen." }
   ],
   Legs: [
     { name:"Beinpresse", muskel:"Quadrizeps · Gesäß · Hamstrings", typ:"compound",
       saetze:4, repzone:"8–12", aktuell:"Neu ab 150 kg – zuletzt 4×12 @ 145 kg (21.10. und 29.10., Summe 48)", zielgewicht:150, ziel:"Summe ≥45 Wdh → 155 kg",
-      progression:{ schritt:5 },
+      progression:{ schritt:5, studioSchritt:{ "All Inclusive Fitness Sendling":8 } },
       schritte:["Füße schulterbreit, Zehen leicht nach außen (15–30°)","Knie immer in Richtung Zehen – nie einknicken!","Bis ca. 90° Kniewinkel – Rücken bleibt am Sitz","Explosiv drücken, kurz vor voller Streckung stoppen"],
       tipp:"KERNBLOCK – läuft auch an kurzen Tagen. 130 → 140 kg im September. Zweimal 44 Wdh – eine Wiederholung unter der Schwelle. Stufe 5 als tiefster Punkt. Knie links: Füße etwas höher auf die Platte." },
     { name:"Beinbeuger", muskel:"Hamstrings (Isolation)", typ:"isolation",
@@ -168,7 +173,7 @@ const PLAN = {
       tipp:"KERNBLOCK – läuft auch an kurzen Tagen. 60 → 64 kg im September, der Stillstand aus dem Sommer ist gelöst. Bei 64 kg jetzt 28 Wdh – die Wiederholungen aufbauen, nicht das Gewicht. eGym kann 1-kg-Schritte; 2 kg als Kompromiss." },
     { name:"Wadenheben (HSR)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:4, repzone:"6–8", aktuell:"Neu ab 120 kg 3×8 – zuletzt 3×12 @ 110 kg (29.10.)", zielgewicht:120, ziel:"5-kg-Stufen Richtung echtes 8RM – Steuerung über Morgensteifigkeit",
-      progression:{ gesperrt:true, grund:"Steuerung läuft über den 7-Tage-Schnitt der Morgensteifigkeit im Werte-Tab: fallend oder unter 2 = weiter steigern, steigend = zurück." },
+      progression:{ gesperrt:true, grund:"Steuerung läuft über den 7-Tage-Schnitt der Morgensteifigkeit im Werte-Tab: fallend oder unter 2 = weiter steigern, steigend = zurück.", studioSchritt:{ "All Inclusive Fitness Sendling":8 } },
       schritte:["Nur Vorderfuß auf der Platte – Ferse hängt frei","3 Sek kontrolliert runter bis zur vollen Dehnung","Am tiefsten Punkt NICHT halten – direkt umkehren, ohne Abfedern","3 Sek hoch bis zur vollen Streckung","Volle ROM (Midportion-Tendinopathie – keine Einschränkung nötig)"],
       tipp:"KERNBLOCK – läuft auch an kurzen Tagen. 90 → 105 kg am 25./27.09. ohne Reaktion: 7-Tage-Schnitt der Morgensteifigkeit 1,86 (24.–30.09.), erstmals unter 2, am 28.09. sogar 1. 90 kg im 3/3-Tempo waren zu leicht (Wadenheben lief früher mit ~135 kg). Weiter in 5-kg-Stufen Richtung echtes 8RM, solange der Schnitt nicht steigt. Sonographie-Frage entfällt." },
     { name:"Rückenstrecker", muskel:"Erector spinae (unterer Rücken)", typ:"isolation",
