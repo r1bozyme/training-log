@@ -262,6 +262,20 @@ Zuletzt aktualisiert: 18.11.2026 (Smoke-Test vor jedem Push, CLAUDE.md).
   am SVG, die Gesten hängen per Delegation am Dokument.
 - **Code:** `scrub.js` · Commit 53ff4d8
 
+### Geglättete Verläufe und Kennzahl je Kontext
+- Verlaufslinien als monotone kubische Kurve (Fritsch–Carlson): weich,
+  aber ohne Überschwingen über echte Werte; ab 8 Punkten zusätzlich EMA.
+  Rohpunkte bleiben als kleine Punkte sichtbar.
+- Eine Kennzahl über viele Reihen als Kettenindex (Start 100): je Stichtag
+  das Mittel der log-Veränderungen der Reihen mit Vorwert, Sprung je Reihe
+  gedeckelt. Neue Reihen verzerren nicht, Lücken kosten nichts.
+- Kontext (hier: Studio) als Chips oben, Farbe je Kontext aus einer
+  zentralen Funktion – überall dieselbe Zuordnung.
+- Kennzeichen in den Stammdaten statt Sonderfälle im Code: `optional`
+  (nie als fehlend/Stillstand werten), `ersetzt` (nur Hinweiszeile),
+  Basislinie je Kontext (`abStudio`).
+- **Code:** `kraft.js`
+
 ### Kontext-Chip im Kopf
 - Oben rechts zeigt ein Chip je Ansicht passende Infos (fällige Erhöhungen,
   Countdown, kcal). Jeder Chip reagiert auf Tap, damit die Bedienung
