@@ -78,6 +78,8 @@
 // optional:true = Übung darf ausfallen (Reverse Crunches am Leg Day). Plan
 // zeigt "optional"; Stats/Kraftindex werten sie weder als fehlend noch
 // als Stillstand (nicht im Index, Karte ohne Bewertung).
+// Seitbeugen 45° gestrichen (20.11., macht Thomas nicht mehr) – abgelöst
+// durch die Rumpfrotation.
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "November 2026 (Rev. 31.10.)",
@@ -222,12 +224,7 @@ const PLAN = {
       progression:{ schritt:2.5 },
       schritte:["Seitlich einstellen – Schulterpolster fest anlegen","Rumpf diagonal einrollen – Schulter Richtung gegenüberliegender Hüfte","Am tiefsten Punkt 1 Sek halten, Obliques aktiv anspannen","Langsam zurück – Spannung halten, nicht zurückfallen lassen","Seite wechseln – beide Seiten gleiche Wiederholungszahl"],
       tipp:"ZUSATZBLOCK. 15 → 22,5 kg im September, am 27.09. selbst mit „↑ Erhöhen\" markiert und 52 Wdh bei Schwelle 43. Plan auf 25 kg. Kraft kommt aus dem Rumpf, nicht aus den Armen – Handgelenk neutral (De Quervain)." },
-    { name:"Seitbeugen 45°-Rückenstrecker-Bank", muskel:"Obliques · Quadratus lumborum", typ:"core", studiofrei:true,
-      saetze:3, repzone:"12–15", aktuell:"3×12 @ 10 kg (25.10., Sendling)", ziel:"Summe ≥43 Wdh → + 2,5 kg",
-      progression:{ schritt:2.5 },
-      schritte:["Seitlich auf die Bank, Hüfte auf dem Polster","Scheibe flach vor der Brust, mit flachen Händen/Unterarmen andrücken – nicht am Rand greifen (De Quervain)","Tief in die seitliche Dehnung absenken","Seitlich hochkommen bis knapp über die Linie, Seite wechseln"],
-      tipp:"OPTIONAL seit 19.11. – in Sendling ist die Rumpfrotation (gym80) die Hauptübung für die Obliques; Seitbeugen decken zusätzlich die Seitneigung ab. STUDIOFREI: Scheiben wiegen überall gleich. Gewicht = Scheibe." },
-    { name:"Rumpfrotation (gym80)", muskel:"Obliques (Rotation)", typ:"core",
+    { name:"Rumpfrotation (gym80)", muskel:"Obliques (Rotation)", typ:"core", ersetzt:["Seitbeugen 45°-Rückenstrecker-Bank"],
       saetze:3, repzone:"12–15", aktuell:"Neu ab 19.11. – Sendling, Basislinie beim ersten Leg Day", ziel:"Summe ≥43 Wdh je Seite → + 5 kg",
       progression:{ schritt:5 },
       schritte:["Startposition seitlich vorgedreht (anfangs Stufe 2–3), nicht bei 0","Knie-/Oberschenkelpolster fest, Oberkörper aufrecht an den Polstern","Aus der Taille über die Mitte bis etwa zum gleichen Winkel auf der Gegenseite drehen – kein Schwung","Langsam zurück in die Dehnung, Spannung halten","Erst alle Sätze einer Seite, dann Startposition spiegeln – beide Seiten gleiche Wdh; Sätze einer Seite eintragen"],
