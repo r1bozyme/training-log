@@ -74,6 +74,9 @@
 // vorher noch nicht gefunden: 69 → 125 → 157 → 138 kg).
 // ersetzt:[…] = abgelöste Übungen. Der Stats-Tab zeigt sie nicht mehr als
 // Karte, nur als Hinweis; ihre alten Einheiten bleiben im Kraftindex.
+// optional:true = Übung darf ausfallen (Reverse Crunches am Leg Day). Plan
+// zeigt "optional"; Stats/Kraftindex werten sie weder als fehlend noch
+// als Stillstand (nicht im Index, Karte ohne Bewertung).
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "November 2026 (Rev. 31.10.)",
@@ -228,11 +231,11 @@ const PLAN = {
       progression:{ schritt:5 },
       schritte:["Startposition seitlich vorgedreht (anfangs Stufe 2–3), nicht bei 0","Knie-/Oberschenkelpolster fest, Oberkörper aufrecht an den Polstern","Aus der Taille über die Mitte bis etwa zum gleichen Winkel auf der Gegenseite drehen – kein Schwung","Langsam zurück in die Dehnung, Spannung halten","Erst alle Sätze einer Seite, dann Startposition spiegeln – beide Seiten gleiche Wdh; Sätze einer Seite eintragen"],
       tipp:"ZUSATZBLOCK. Nur Sendling – im alten Studio bleibt der Oblique Crunch (Hammer Strength). Startstufe im Kommentar notieren (z. B. „Start 3 L/R“): höhere Stufe = längerer Weg, Gewichte dann nicht direkt vergleichbar. Griffe nur locker halten (De Quervain)." },
-    { name:"Reverse Crunches", muskel:"Untere Bauchmuskeln", typ:"core",
+    { name:"Reverse Crunches", muskel:"Untere Bauchmuskeln", typ:"core", optional:true,
       saetze:3, repzone:"15–20", aktuell:"3×18 @ Bodyweight", zielgewicht:null, ziel:"3×20 gefestigt – ggf. leichte Zusatzlast",
       progression:{ gesperrt:true, grund:"Bodyweight – Progression läuft über Tempo und Wiederholungen, nicht über die Last." },
       schritte:["Captain's Chair: Unterarme auf die Polster, Rücken an die Rücklehne","Beine hängen lassen – Knie leicht gebeugt","Knie kontrolliert zur Brust ziehen – Hüfte rollt leicht nach oben","Langsam absenken – volle Streckung, Spannung halten"],
-      tipp:"ZUSATZBLOCK. Am Captain's Chair Unterarme belasten, nicht die Hände (De Quervain). Kein Schwung – Bewegung kommt aus dem Bauch." },
+      tipp:"OPTIONAL am Leg Day (seit 20.11.) – selten gemacht, aus Zeitgründen; zählt weder als fehlend noch als Stillstand. Am Captain's Chair Unterarme belasten, nicht die Hände (De Quervain). Kein Schwung – Bewegung kommt aus dem Bauch." },
     { name:"Bauch seitlich", muskel:"Obliques", typ:"core",
       saetze:3, repzone:"20–24", aktuell:"Ersetzt durch Oblique Crunch (Hammer Strength)", zielgewicht:null, ziel:"Nur noch Fallback, wenn HS-Maschine belegt",
       progression:{ gesperrt:true, grund:"Nur noch Fallback. Progression läuft über die Hammer-Strength-Maschine." },

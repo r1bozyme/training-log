@@ -24,6 +24,8 @@
        davor fallen in diesem Studio ganz heraus (HSR Sendling ab 20.11.).
      · Abgelöste Übungen (PLAN …ersetzt) erscheinen nicht als Karte, nur
        als Hinweiszeile; ihre alten Einheiten bleiben im Index.
+     · Optionale Übungen (PLAN …optional) zählen nicht im Index und
+       bekommen keine Bewertung (kein ±, kein Stillstand).
      · Geglättet: monotone kubische Kurve, ab 8 Punkten zusätzlich EMA.
 
    FARBEN: ausschließlich window.tlStudio.farbe() – Clever fit
@@ -105,6 +107,7 @@ function abgeloest(name) {
   for (var n in exCache) if ((exCache[n].ersetzt || []).indexOf(name) !== -1) return n;
   return "";
 }
+function optional(name) { var x = findEx(name); return !!(x && x.optional); }
 function frei(name) { var x = findEx(name); return !!(x && x.studiofrei); }
 function abVon(name) { var x = findEx(name); return x && x.progression && x.progression.ab ? String(x.progression.ab) : ""; }
 /* Basislinie je Studio (progression.abStudio): frühere Einträge zählen nicht */
@@ -135,7 +138,7 @@ function eintraege(g) {
 /* Kettenindex: [{d, v}] */
 function kette(list) {
   var prev = {}, tage = {}, out = [], I = 100;
-  list.forEach(function (e) { (tage[e.date] = tage[e.date] || []).push(e); });
+  list.forEach(function (e) { if (!optional(e.uebung)) (tage[e.date] = tage[e.date] || []).push(e); });
   Object.keys(tage).sort().forEach(function (d) {
     var best = {};
     tage[d].forEach(function (e) { if (!best[e.uebung] || e._r > best[e.uebung]._r) best[e.uebung] = e; });
@@ -165,7 +168,7 @@ function uebungen(list, einheit) {
   list.forEach(function (e) { if (e.einheit === einheit) (map[e.uebung] = map[e.uebung] || []).push(e); });
   var names = plan.filter(function (n) { return map[n]; })
     .concat(Object.keys(map).filter(function (n) { return plan.indexOf(n) === -1; }));
-  return names.map(function (n) { return { name: n, es: map[n], frei: frei(n), alt: abgeloest(n) }; });
+  return names.map(function (n) { return { name: n, es: map[n], frei: frei(n), alt: abgeloest(n), opt: optional(n) }; });
 }
 
 /* ─── Zeichnen ──────────────────────────────────────── */
@@ -323,9 +326,9 @@ function raster(g) {
     h += '<div class="peinheit">' + einheitenKopf(u) + '<div class="kx-grid">';
     ue.forEach(function (x) {
       var k = uebKennz(x.es), pts = uebPts(x.es);
-      h += '<div class="kx-mini" style="--kc:' + c + '">' +
-        '<div class="kx-mn">' + esc(x.name) + (x.frei ? ' <span class="kx-frei">frei</span>' : "") + "</div>" +
-        '<div class="kx-mv"><b>' + fmtKg(k.kg) + '</b><span class="' + (k.dkg > 0 ? "up" : k.dkg < 0 ? "down" : "flat") + '">' + delta(k.dkg, true) + "</span></div>" +
+      h += '<div class="kx-mini' + (x.opt ? " kx-opt" : "") + '" style="--kc:' + c + '">' +
+        '<div class="kx-mn">' + esc(x.name) + (x.frei ? ' <span class="kx-frei">frei</span>' : "") + (x.opt ? ' <span class="kx-frei">optional</span>' : "") + "</div>" +
+        '<div class="kx-mv"><b>' + fmtKg(k.kg) + "</b>" + (x.opt ? "" : '<span class="' + (k.dkg > 0 ? "up" : k.dkg < 0 ? "down" : "flat") + '">' + delta(k.dkg, true) + "</span>") + "</div>" +
         (pts.length > 1 ? diagramm([{ pts: pts, farbe: c, dick: 2, punkte: true }], 150, 34, false)
                         : '<div class="kx-eins">1 Einheit</div>') +
         "</div>";
@@ -398,6 +401,7 @@ function css() {
     ".kx-frei{font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:0 4px;vertical-align:1px}" +
     ".kx-kopf{display:flex;gap:8px;margin:2px 0 4px}.kx-kopf div{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center}" +
     ".kx-kopf b{display:block;font:700 18px var(--fb)}.kx-kopf span{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}" +
+    ".kx-opt{border-left-style:dashed;opacity:.75}" +
     ".kx-alt{font-size:11px;color:var(--muted);margin-top:6px}" +
     ".kx-leer{font-size:13px;color:var(--muted);padding:12px 0}" +
     ".kx-fn{font-size:11px;color:var(--muted);line-height:1.45;margin-top:16px}";
