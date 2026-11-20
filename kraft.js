@@ -341,14 +341,22 @@ function raster(g) {
 }
 
 /* ─── Kopfzahlen (pro Studio) ───────────────────────── */
+/* Trainingstage: groß alle Studios (auch fremde), darunter der Anteil des
+   gewählten Studios in dessen Farbe (21.11.: nur der Studio-Anteil las
+   sich wie die Gesamtzahl – 77 statt 86). */
 function kopf(g) {
   var all = typeof loadEntries === "function" ? loadEntries() : [];
-  var l = all.filter(function (e) { return e && e.date && (gruppeVon(e) === g); });
-  var einh = {}, e30 = {}, grenze = new Date(Date.now() - 30 * 864e5);
-  var g30 = grenze.getFullYear() + "-" + String(grenze.getMonth() + 1).padStart(2, "0") + "-" + String(grenze.getDate()).padStart(2, "0");
-  l.forEach(function (e) { einh[e.date] = 1; if (e.date >= g30) e30[e.date] = 1; });
-  return '<div class="kx-kopf"><div><b>' + Object.keys(einh).length + "</b><span>Trainingstage</span></div>" +
-    "<div><b>" + Object.keys(e30).length + "</b><span>Letzte 30 Tage</span></div></div>";
+  var grenze = new Date(Date.now() - 30 * 864e5), g30 = iso(grenze.getTime());
+  var t = {}, t30 = {}, s = {}, s30 = {};
+  all.forEach(function (e) {
+    if (!e || !e.date) return;
+    t[e.date] = 1; if (e.date >= g30) t30[e.date] = 1;
+    if (gruppeVon(e) === g) { s[e.date] = 1; if (e.date >= g30) s30[e.date] = 1; }
+  });
+  var n = function (o) { return Object.keys(o).length; };
+  var davon = function (o) { return '<i style="color:' + farbe(g) + '">davon ' + n(o) + " " + esc(kurz(g)) + "</i>"; };
+  return '<div class="kx-kopf"><div><b>' + n(t) + "</b><span>Trainingstage</span>" + davon(s) + "</div>" +
+    "<div><b>" + n(t30) + "</b><span>Letzte 30 Tage</span>" + davon(s30) + "</div></div>";
 }
 
 /* ─── Render ────────────────────────────────────────── */
@@ -399,8 +407,9 @@ function css() {
     ".kx-mv{display:flex;align-items:baseline;gap:6px;margin:2px 0 3px}.kx-mv b{font:700 16px var(--fb);color:var(--text)}.kx-mv span{font-size:11px;font-weight:700}" +
     ".kx-eins{font-size:10px;color:var(--muted);height:34px;line-height:34px}" +
     ".kx-frei{font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:0 4px;vertical-align:1px}" +
-    ".kx-kopf{display:flex;gap:8px;margin:2px 0 4px}.kx-kopf div{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center}" +
+    ".kx-kopf{display:flex;gap:8px;margin:14px 0 4px}.kx-kopf div{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center}" +
     ".kx-kopf b{display:block;font:700 18px var(--fb)}.kx-kopf span{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}" +
+    ".kx-kopf i{display:block;font-style:normal;font-size:11px;font-weight:700;margin-top:2px}" +
     ".kx-opt{border-left-style:dashed;opacity:.75}" +
     ".kx-alt{font-size:11px;color:var(--muted);margin-top:6px}" +
     ".kx-leer{font-size:13px;color:var(--muted);padding:12px 0}" +
