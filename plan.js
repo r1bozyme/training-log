@@ -72,6 +72,7 @@
 // Studio, frühere Einträge dieses Studios zählen im Stats-Tab/Kraftindex
 // (kraft.js) nicht. Wadenheben (HSR) in Sendling ab 20.11. (Einstellung
 // vorher noch nicht gefunden: 69 → 125 → 157 → 138 kg).
+// Wadenheben (HSR-Block) in Sendling ab 19.11. (133 kg, läuft an allen Tagen).
 // ersetzt:[…] = abgelöste Übungen. Der Stats-Tab zeigt sie nicht mehr als
 // Karte, nur als Hinweis; ihre alten Einheiten bleiben im Kraftindex.
 // optional:true = Übung darf ausfallen (Reverse Crunches am Leg Day). Plan
@@ -129,7 +130,7 @@ const PLAN = {
       tipp:"Links weiter gereizt trotz Manschette – nicht forcieren. Erst wenn 3×12 schmerzfrei laufen, wieder aufbauen." },
     { name:"Wadenheben (HSR-Block)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:3, repzone:"6–8", aktuell:"3×8 @ 105 kg (22.10.) – ab 08.11. 120 kg", zielgewicht:120, ziel:"Frequenzblock – Last wie am Legs-Tag",
-      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen.", studioSchritt:{ "All Inclusive Fitness Sendling":8 } },
+      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen.", studioSchritt:{ "All Inclusive Fitness Sendling":8 }, abStudio:{ "All Inclusive Fitness Sendling":"2026-11-19" } },
       schritte:["3 Sek runter, am tiefsten Punkt direkt umkehren","3 Sek hoch, volle Streckung","Kein Halten unten, kein Abfedern"],
       tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche) – Sehnenadaptation braucht wiederholte Reize. Seit 25.09. mit derselben Last wie am Legs-Tag (105 kg). Steigerung weiter nur am Legs-Tag entscheiden, dann hier nachziehen." }
   ],
@@ -166,7 +167,7 @@ const PLAN = {
       tipp:"Schützt das Schultergelenk langfristig. Am 25.09. selbst auf 25 kg gegangen (3×12) – Plan auf den gefahrenen Stand gezogen. Ziel ist jetzt 3×15 bei 25 kg." },
     { name:"Wadenheben (HSR-Block)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:3, repzone:"6–8", aktuell:"3×8 @ 105 kg (22.10.) – ab 08.11. 120 kg", zielgewicht:120, ziel:"Frequenzblock – Last wie am Legs-Tag",
-      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen.", studioSchritt:{ "All Inclusive Fitness Sendling":8 } },
+      progression:{ gesperrt:true, grund:"Steuerung läuft über die Morgensteifigkeit im Werte-Tab, nicht über Wiederholungen.", studioSchritt:{ "All Inclusive Fitness Sendling":8 }, abStudio:{ "All Inclusive Fitness Sendling":"2026-11-19" } },
       schritte:["3 Sek runter, am tiefsten Punkt direkt umkehren","3 Sek hoch, volle Streckung","Kein Halten unten, kein Abfedern"],
       tipp:"Kurzer Zusatzblock am Ende der Einheit. Zweck ist Frequenz (3×/Woche) – Sehnenadaptation braucht wiederholte Reize. Seit 25.09. mit derselben Last wie am Legs-Tag (105 kg). Steigerung weiter nur am Legs-Tag entscheiden, dann hier nachziehen." }
   ],
