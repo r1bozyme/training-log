@@ -72,6 +72,8 @@
 // Studio, frühere Einträge dieses Studios zählen im Stats-Tab/Kraftindex
 // (kraft.js) nicht. Wadenheben (HSR) in Sendling ab 20.11. (Einstellung
 // vorher noch nicht gefunden: 69 → 125 → 157 → 138 kg).
+// ersetzt:[…] = abgelöste Übungen. Der Stats-Tab zeigt sie nicht mehr als
+// Karte, nur als Hinweis; ihre alten Einheiten bleiben im Kraftindex.
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "November 2026 (Rev. 31.10.)",
@@ -97,7 +99,7 @@ const PLAN = {
       progression:{ schwelle:40, schritt:2.5 },
       schritte:["Arme immer leicht gebeugt – Ellenbogenschutz!","Langsam zur Mitte, 1–2 Sek halten","Brust aktiv zusammenquetschen","Kontrolliert öffnen bis zur vollen Dehnung","Einstellung Stufe 2 für mehr Dehnung"],
       tipp:"Nach elf Wochen auf 57,5 kg am 20.09. auf 60 kg – die Summe lag davor bei 40 (14/14/12 am 17.09.). Jetzt 32–33 Wdh: normale Anpassung nach dem Sprung. Schwelle bleibt 40." },
-    { name:"Schulterdrücken KH (Neutralgriff)", muskel:"Schulter vorne/mitte · Trizeps", typ:"compound", studiofrei:true,
+    { name:"Schulterdrücken KH (Neutralgriff)", muskel:"Schulter vorne/mitte · Trizeps", typ:"compound", studiofrei:true, ersetzt:["Shoulder Press"],
       saetze:3, repzone:"8–12", aktuell:"Neu ab 19.11. – Ersatz für die Shoulder Press (Stechen rechts mit Quergriff, 14.11.)", ziel:"Summe ≥34 Wdh → + 4 kg (2 kg pro Hand)",
       progression:{ schritt:4 },
       schritte:["Sitzend, Lehne steil, Core anspannen","Kurzhanteln im Neutralgriff – Handflächen zeigen zueinander","Drücken bis kurz vor Streckung, Hanteln bleiben über den Schultern","3 Sek runter bis Ohrhöhe","Gesamtgewicht eintragen (beide Hanteln, z. B. 2×12 = 24)"],

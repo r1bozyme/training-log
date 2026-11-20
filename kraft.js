@@ -22,6 +22,8 @@
        und Wiedereinstiege (progression.ab) unterbrechen die Kette.
      · Basislinie je Studio (progression.abStudio, 20.11.): Einträge
        davor fallen in diesem Studio ganz heraus (HSR Sendling ab 20.11.).
+     · Abgelöste Übungen (PLAN …ersetzt) erscheinen nicht als Karte, nur
+       als Hinweiszeile; ihre alten Einheiten bleiben im Index.
      · Geglättet: monotone kubische Kurve, ab 8 Punkten zusätzlich EMA.
 
    FARBEN: ausschließlich window.tlStudio.farbe() – Clever fit
@@ -97,6 +99,12 @@ function findEx(name) {
   }
   return exCache[name] || null;
 }
+/* Abgelöste Übung → Nachfolger (PLAN …ersetzt) */
+function abgeloest(name) {
+  findEx("");
+  for (var n in exCache) if ((exCache[n].ersetzt || []).indexOf(name) !== -1) return n;
+  return "";
+}
 function frei(name) { var x = findEx(name); return !!(x && x.studiofrei); }
 function abVon(name) { var x = findEx(name); return x && x.progression && x.progression.ab ? String(x.progression.ab) : ""; }
 /* Basislinie je Studio (progression.abStudio): frühere Einträge zählen nicht */
@@ -157,7 +165,7 @@ function uebungen(list, einheit) {
   list.forEach(function (e) { if (e.einheit === einheit) (map[e.uebung] = map[e.uebung] || []).push(e); });
   var names = plan.filter(function (n) { return map[n]; })
     .concat(Object.keys(map).filter(function (n) { return plan.indexOf(n) === -1; }));
-  return names.map(function (n) { return { name: n, es: map[n], frei: frei(n) }; });
+  return names.map(function (n) { return { name: n, es: map[n], frei: frei(n), alt: abgeloest(n) }; });
 }
 
 /* ─── Zeichnen ──────────────────────────────────────── */
@@ -310,6 +318,8 @@ function raster(g) {
   EINHEITEN.forEach(function (u) {
     var ue = uebungen(list, u);
     if (!ue.length) return;
+    var alt = ue.filter(function (x) { return x.alt; });
+    ue = ue.filter(function (x) { return !x.alt; });
     h += '<div class="peinheit">' + einheitenKopf(u) + '<div class="kx-grid">';
     ue.forEach(function (x) {
       var k = uebKennz(x.es), pts = uebPts(x.es);
@@ -320,7 +330,9 @@ function raster(g) {
                         : '<div class="kx-eins">1 Einheit</div>') +
         "</div>";
     });
-    h += "</div></div>";
+    h += "</div>" + (alt.length ? '<div class="kx-alt">Abgelöst: ' + alt.map(function (x) {
+      return esc(x.name) + " → " + esc(x.alt);
+    }).join(" · ") + "</div>" : "") + "</div>";
   });
   return h;
 }
@@ -386,6 +398,7 @@ function css() {
     ".kx-frei{font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:0 4px;vertical-align:1px}" +
     ".kx-kopf{display:flex;gap:8px;margin:2px 0 4px}.kx-kopf div{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center}" +
     ".kx-kopf b{display:block;font:700 18px var(--fb)}.kx-kopf span{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}" +
+    ".kx-alt{font-size:11px;color:var(--muted);margin-top:6px}" +
     ".kx-leer{font-size:13px;color:var(--muted);padding:12px 0}" +
     ".kx-fn{font-size:11px;color:var(--muted);line-height:1.45;margin-top:16px}";
   document.head.appendChild(st);
