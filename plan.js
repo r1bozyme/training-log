@@ -274,7 +274,7 @@ const PLAN = {
 //     Push da – ohne Build-Kennung, die man von Hand hochzählen müsste.
 // Kein Service Worker: Der HTTP-Cache ist die einzige Cache-Ebene.
 (function () {
-  var MODS = ["view.js", "diag.js", "dialog.js", "werte.js", "daily.js", "gewicht.js", "sync.js", "studio.js", "logkarten.js", "progress.js", "uebung.js", "tracker.js", "push.js", "header.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "speise.js", "scan.js", "energie.js", "abgleich.js", "eingang.js", "inbody.js", "reise.js", "nav.js", "swipe.js", "back.js"];
+  var MODS = ["view.js", "diag.js", "dialog.js", "werte.js", "daily.js", "gewicht.js", "sync.js", "studio.js", "logkarten.js", "progress.js", "kraft.js", "uebung.js", "tracker.js", "push.js", "header.js", "oura.js", "scrub.js", "vorrat-core.js", "vorrat.js", "label.js", "speise.js", "scan.js", "energie.js", "abgleich.js", "eingang.js", "inbody.js", "reise.js", "nav.js", "swipe.js", "back.js"];
   var STORE = "tl-mods", WAIT = 2500;
   var done = false, texts = {};
   function abs(u) { return new URL(u, location.href).href; }
