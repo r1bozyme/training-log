@@ -67,6 +67,11 @@
 // Seitbeugen 45° nur noch optional. Gilt nur in Sendling (kein Planwert).
 // Schrittweite je Studio: Sendling hat an allen Steckblöcken 5-kg-Stufen,
 // keine Zusatzgewichte; Beinpresse (auch HSR) in 8-kg-Stufen (…149, 157, 165).
+//
+// 20.11.: progression.abStudio = { Studio: "JJJJ-MM-TT" } – Basislinie je
+// Studio, frühere Einträge dieses Studios zählen im Stats-Tab/Kraftindex
+// (kraft.js) nicht. Wadenheben (HSR) in Sendling ab 20.11. (Einstellung
+// vorher noch nicht gefunden: 69 → 125 → 157 → 138 kg).
 // ═══════════════════════════════════════════════════
 const PLAN = {
   version: "November 2026 (Rev. 31.10.)",
@@ -173,7 +178,7 @@ const PLAN = {
       tipp:"KERNBLOCK – läuft auch an kurzen Tagen. 60 → 64 kg im September, der Stillstand aus dem Sommer ist gelöst. Bei 64 kg jetzt 28 Wdh – die Wiederholungen aufbauen, nicht das Gewicht. eGym kann 1-kg-Schritte; 2 kg als Kompromiss." },
     { name:"Wadenheben (HSR)", muskel:"Gastrocnemius · Soleus · Achillessehne", typ:"compound",
       saetze:4, repzone:"6–8", aktuell:"Neu ab 120 kg 3×8 – zuletzt 3×12 @ 110 kg (29.10.)", zielgewicht:120, ziel:"5-kg-Stufen Richtung echtes 8RM – Steuerung über Morgensteifigkeit",
-      progression:{ gesperrt:true, grund:"Steuerung läuft über den 7-Tage-Schnitt der Morgensteifigkeit im Werte-Tab: fallend oder unter 2 = weiter steigern, steigend = zurück.", studioSchritt:{ "All Inclusive Fitness Sendling":8 } },
+      progression:{ gesperrt:true, grund:"Steuerung läuft über den 7-Tage-Schnitt der Morgensteifigkeit im Werte-Tab: fallend oder unter 2 = weiter steigern, steigend = zurück.", studioSchritt:{ "All Inclusive Fitness Sendling":8 }, abStudio:{ "All Inclusive Fitness Sendling":"2026-11-20" } },
       schritte:["Nur Vorderfuß auf der Platte – Ferse hängt frei","3 Sek kontrolliert runter bis zur vollen Dehnung","Am tiefsten Punkt NICHT halten – direkt umkehren, ohne Abfedern","3 Sek hoch bis zur vollen Streckung","Volle ROM (Midportion-Tendinopathie – keine Einschränkung nötig)"],
       tipp:"KERNBLOCK – läuft auch an kurzen Tagen. 90 → 105 kg am 25./27.09. ohne Reaktion: 7-Tage-Schnitt der Morgensteifigkeit 1,86 (24.–30.09.), erstmals unter 2, am 28.09. sogar 1. 90 kg im 3/3-Tempo waren zu leicht (Wadenheben lief früher mit ~135 kg). Weiter in 5-kg-Stufen Richtung echtes 8RM, solange der Schnitt nicht steigt. Sonographie-Frage entfällt." },
     { name:"Rückenstrecker", muskel:"Erector spinae (unterer Rücken)", typ:"isolation",

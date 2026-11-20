@@ -20,6 +20,8 @@
        studiofreie Übungen (PLAN …studiofrei) aus jedem Studio.
        Fremde Studios zählen sonst nicht. Deload-Fenster (PLAN.deload)
        und Wiedereinstiege (progression.ab) unterbrechen die Kette.
+     · Basislinie je Studio (progression.abStudio, 20.11.): Einträge
+       davor fallen in diesem Studio ganz heraus (HSR Sendling ab 20.11.).
      · Geglättet: monotone kubische Kurve, ab 8 Punkten zusätzlich EMA.
 
    FARBEN: ausschließlich window.tlStudio.farbe() – Clever fit
@@ -97,6 +99,12 @@ function findEx(name) {
 }
 function frei(name) { var x = findEx(name); return !!(x && x.studiofrei); }
 function abVon(name) { var x = findEx(name); return x && x.progression && x.progression.ab ? String(x.progression.ab) : ""; }
+/* Basislinie je Studio (progression.abStudio): frühere Einträge zählen nicht */
+function abStudio(name, e) {
+  var x = findEx(name), m = x && x.progression && x.progression.abStudio;
+  var st = String(e.studio || "").trim() || (S() ? S().heim() : "");
+  return m && m[st] ? String(m[st]) : "";
+}
 function deload(d) {
   var w = typeof PLAN !== "undefined" ? PLAN.deload : null;
   return !!(w && d >= w.von && d <= w.bis);
@@ -109,6 +117,8 @@ function eintraege(g) {
   return all.filter(function (e) {
     if (!e || !e.date || deload(e.date)) return false;
     if (!(frei(e.uebung) || gruppeVon(e) === g)) return false;
+    var ab = abStudio(e.uebung, e);
+    if (ab && e.date < ab) return false;
     e._r = e1rm(e);
     return e._r !== null;
   }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
