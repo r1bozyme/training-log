@@ -26,13 +26,11 @@
    Bernstein, Sendling Blau, fremde grau. Push/Pull/Legs-Farben nur
    für die Überschriften.
 
-   ZWEI VARIANTEN (zur Auswahl durch Thomas, danach fliegt eine raus):
-     A "Raster" – Studio-Chips, Kraftindex-Karte des gewählten Studios,
-                  je Einheit ein 2-spaltiges Raster kleiner Karten.
-     B "Kurven" – Kraftindex beider Studios übereinander, je Einheit
-                  eine Karte mit Index-Kurve und kompakter Übungsliste.
-   Umschalter oben rechts. Storage-Key tl-kx {studio, variante}
-   (nur Ansicht, nicht im Backup nötig).
+   ANSICHT (Wahl 20.11.: Raster): Studio-Chips, Kraftindex-Karte des
+   gewählten Studios mit geglätteter Fläche, je Einheit ein 2-spaltiges
+   Raster kleiner Übungskarten. Die Variante "Kurven" (beide Studios
+   übereinander) ist verworfen. Storage-Key tl-kx {studio} (nur
+   Ansicht, nicht im Backup nötig).
 
    Zusammenspiel: hört auf tl:view (view.js), liest loadEntries/PLAN/
    scrubAttr aus index.html bzw. plan.js, tlStudio aus studio.js.
@@ -264,11 +262,6 @@ function chips(g) {
       '<i style="background:' + c + '"></i>' + esc(kurz(x)) + "</button>";
   }).join("") + "</div>";
 }
-function umschalter(v) {
-  return '<div class="kx-var">' + [["A", "Raster"], ["B", "Kurven"]].map(function (x) {
-    return '<button type="button" data-kx-var="' + x[0] + '" class="' + (v === x[0] ? "an" : "") + '">' + x[1] + "</button>";
-  }).join("") + "</div>";
-}
 function aenderung(ser, tage) {
   if (ser.length < 2) return null;
   var l = ser[ser.length - 1], grenze = iso(ms(l.d) - tage * 864e5), b = ser[0];
@@ -292,8 +285,8 @@ function fussnote() {
     "Studiofreie Übungen (Kurzhanteln …) zählen in jedem Studio mit. Gedrückt halten zeigt die Werte.</div>";
 }
 
-/* ─── Variante A: Raster ────────────────────────────── */
-function varianteA(g) {
+/* ─── Raster ───────────────────────────────────────── */
+function raster(g) {
   var c = farbe(g), ser = index(g), list = eintraege(g);
   var h = chips(g);
   if (!ser.length) return h + '<div class="kx-card"><div class="kx-leer">Noch keine Einheit in ' + esc(voll(g)) + ".</div></div>";
@@ -322,45 +315,6 @@ function varianteA(g) {
   return h;
 }
 
-/* ─── Variante B: Kurven ────────────────────────────── */
-function varianteB(g) {
-  var gs = gruppen(), list = eintraege(g);
-  /* gewähltes Studio zuerst (bekommt den Scrub), andere matt dahinter */
-  var reihen = [g].concat(gs.filter(function (x) { return x !== g; })).map(function (x) {
-    return { g: x, ser: index(x) };
-  }).filter(function (r) { return r.ser.length; });
-  var h = '<div class="kx-card"><div class="kx-top"><div class="kx-lbl">Kraftindex je Studio</div></div>' +
-    '<div class="kx-leg">' + reihen.map(function (r) {
-      var s = r.ser, v = s[s.length - 1].v;
-      return '<button type="button" class="kx-legi' + (r.g === g ? " an" : "") + '" data-kx-studio="' + esc(r.g) + '" style="--kc:' + farbe(r.g) + '">' +
-        '<i style="background:' + farbe(r.g) + '"></i>' + esc(kurz(r.g)) + " <b>" + fmtI(v) + "</b></button>";
-    }).join("") + "</div>" +
-    diagramm(reihen.map(function (r) {
-      return { pts: info(r.ser), farbe: farbe(r.g), dick: r.g === g ? 2.8 : 2, matt: r.g !== g, flaeche: r.g === g };
-    }), 320, 110, true) + "</div>";
-
-  EINHEITEN.forEach(function (u) {
-    var ue = uebungen(list, u);
-    if (!ue.length) return;
-    var ser = index(g, u), other = gs.filter(function (x) { return x !== g; }).map(function (x) { return { g: x, s: index(x, u) }; });
-    var v = ser.length ? fmtI(ser[ser.length - 1].v) : "–";
-    h += '<div class="peinheit">' + einheitenKopf(u, '<span class="kx-uv" style="color:' + farbe(g) + '">' + v + "</span>") +
-      '<div class="kx-card kx-ucard">' +
-      diagramm([{ pts: info(ser), farbe: farbe(g), dick: 2.5, flaeche: true }].concat(other.filter(function (o) { return o.s.length; }).map(function (o) {
-        return { pts: info(o.s), farbe: farbe(o.g), dick: 1.6, matt: true };
-      })), 320, 56, false) +
-      '<div class="kx-rows">';
-    ue.forEach(function (x) {
-      var k = uebKennz(x.es), pts = uebPts(x.es);
-      h += '<div class="kx-row"><div class="kx-rn">' + esc(x.name) + (x.frei ? ' <span class="kx-frei">frei</span>' : "") + "</div>" +
-        '<div class="kx-rs">' + (pts.length > 1 ? diagramm([{ pts: pts, farbe: farbe(g), dick: 1.8 }], 64, 20, false) : "") + "</div>" +
-        '<div class="kx-rk"><b>' + fmtKg(k.kg) + '</b><span class="' + (k.dkg > 0 ? "up" : k.dkg < 0 ? "down" : "flat") + '">' + delta(k.dkg, true) + "</span></div></div>";
-    });
-    h += "</div></div></div>";
-  });
-  return h;
-}
-
 /* ─── Kopfzahlen (pro Studio) ───────────────────────── */
 function kopf(g) {
   var all = typeof loadEntries === "function" ? loadEntries() : [];
@@ -380,10 +334,10 @@ function render() {
   var all = typeof loadEntries === "function" ? loadEntries() : [];
   if (!all.length) return;   // Leerzustand aus buildStats bleibt stehen
   css();
-  var g = gewaehlt(), v = opt().variante === "B" ? "B" : "A";
+  var g = gewaehlt();
   cont.innerHTML = '<div class="kx">' +
-    '<div class="kx-head"><div class="kx-h">Stats</div>' + umschalter(v) + "</div>" +
-    (v === "B" ? chips(g) + kopf(g) + varianteB(g) : varianteA(g) + kopf(g)) +
+    '<div class="kx-head"><div class="kx-h">Stats</div></div>' +
+    raster(g) + kopf(g) +
     fussnote() + "</div>";
 }
 
@@ -395,12 +349,9 @@ function css() {
     ".kx{padding:16px 20px 24px}" +
     ".kx-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}" +
     ".kx-h{font-family:var(--fd);font-size:22px;letter-spacing:2px;color:var(--text)}" +
-    ".kx-var{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:2px}" +
-    ".kx-var button{border:0;background:transparent;color:var(--muted);font:600 12px var(--fb);padding:5px 10px;border-radius:7px;cursor:pointer}" +
-    ".kx-var button.an{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}" +
     ".kx-chips{display:flex;gap:8px;margin-bottom:12px}" +
     ".kx-chip{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font:700 13px var(--fb);cursor:pointer}" +
-    ".kx-chip i,.kx-legi i{width:9px;height:9px;border-radius:50%;flex:none}" +
+    ".kx-chip i{width:9px;height:9px;border-radius:50%;flex:none}" +
     ".kx-chip.an{border-color:var(--kc);color:var(--kc);background:color-mix(in srgb,var(--kc) 9%,var(--surface))}" +
     ".kx-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 12px 10px;margin-bottom:12px}" +
     ".kx-hero{border-top:3px solid var(--kc)}" +
@@ -420,18 +371,9 @@ function css() {
     ".kx-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}" +
     ".kx-mini{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--kc);border-radius:10px;padding:8px 9px 6px;min-width:0}" +
     ".kx-mn{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
-    ".kx-mv{display:flex;align-items:baseline;gap:6px;margin:2px 0 3px}.kx-mv b{font:700 16px var(--fb);color:var(--text)}.kx-mv span,.kx-rk span{font-size:11px;font-weight:700}" +
+    ".kx-mv{display:flex;align-items:baseline;gap:6px;margin:2px 0 3px}.kx-mv b{font:700 16px var(--fb);color:var(--text)}.kx-mv span{font-size:11px;font-weight:700}" +
     ".kx-eins{font-size:10px;color:var(--muted);height:34px;line-height:34px}" +
     ".kx-frei{font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:0 4px;vertical-align:1px}" +
-    ".kx-leg{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px}" +
-    ".kx-legi{display:flex;align-items:center;gap:6px;border:1.5px solid var(--border);background:var(--surface);border-radius:20px;padding:4px 10px;font:600 12px var(--fb);color:var(--muted);cursor:pointer}" +
-    ".kx-legi b{color:var(--kc)}.kx-legi.an{border-color:var(--kc);color:var(--text)}" +
-    ".kx-uv{font:700 18px var(--fb)}" +
-    ".kx-ucard{padding:8px 12px 4px}" +
-    ".kx-rows{margin-top:6px}" +
-    ".kx-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border)}" +
-    ".kx-rn{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
-    ".kx-rs{width:64px;flex:none}.kx-rk{width:86px;flex:none;text-align:right;display:flex;justify-content:flex-end;align-items:baseline;gap:5px}.kx-rk b{font:700 14px var(--fb)}" +
     ".kx-kopf{display:flex;gap:8px;margin:2px 0 4px}.kx-kopf div{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;text-align:center}" +
     ".kx-kopf b{display:block;font:700 18px var(--fb)}.kx-kopf span{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}" +
     ".kx-leer{font-size:13px;color:var(--muted);padding:12px 0}" +
@@ -444,10 +386,9 @@ document.addEventListener("tl:view", function (e) {
   if (e.detail && e.detail.view === "stats") render();
 });
 document.addEventListener("click", function (e) {
-  var t = e.target && e.target.closest ? e.target.closest("[data-kx-studio],[data-kx-var]") : null;
+  var t = e.target && e.target.closest ? e.target.closest("[data-kx-studio]") : null;
   if (!t || !document.getElementById("stats-cont") || !document.getElementById("stats-cont").contains(t)) return;
-  if (t.hasAttribute("data-kx-studio")) setOpt("studio", t.getAttribute("data-kx-studio"));
-  else setOpt("variante", t.getAttribute("data-kx-var"));
+  setOpt("studio", t.getAttribute("data-kx-studio"));
   render();
 });
 
