@@ -13,7 +13,7 @@ kopiere den Code nicht blind.
 
 **Pflege:** Wird hier ein Muster neu gebaut oder geändert, das sich übertragen
 lässt, kommt es im selben Arbeitsgang hier rein bzw. wird hier aktualisiert.
-Zuletzt aktualisiert: 18.11.2026 (Smoke-Test vor jedem Push, CLAUDE.md).
+Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit).
 
 ---
 
@@ -275,6 +275,35 @@ Zuletzt aktualisiert: 18.11.2026 (Smoke-Test vor jedem Push, CLAUDE.md).
   (nie als fehlend/Stillstand werten), `ersetzt` (nur Hinweiszeile),
   Basislinie je Kontext (`abStudio`).
 - **Code:** `kraft.js`
+
+### Nachtmodus: Auto, Hell, Dunkel
+- **Herkunft:** zuerst im Finanz-Cockpit gebaut (regel-cockpit 0ccf931,
+  21.11.2026), Vorbild demter.com/kontraindikatoren. **In training-log noch
+  nicht umgesetzt** – Voraussetzung siehe Stolperfallen.
+- **Lösung:**
+  - Alle Farben als CSS-Variablen in `:root` (hell), die Dunkel-Palette genau
+    einmal unter `:root[data-theme="dark"]`.
+  - Kleines Skript im `<head>` direkt nach `<style>` setzt `data-theme`
+    **vor dem ersten Zeichnen** (kein heller Blitz). Wahl in localStorage
+    (`auto` = kein Eintrag, sonst `light`/`dark`).
+  - **Auto** folgt `matchMedia("(prefers-color-scheme: dark)")` und hört auf
+    dessen `change`-Ereignis. Android schaltet das System im
+    Energiesparmodus auf dunkel, die App zieht live mit.
+  - Ein rundes Icon im Kopf wechselt Auto → Hell → Dunkel (halber Kreis,
+    Sonne, Mond) mit `aria-label`. Manuelle Wahl schlägt das System.
+  - `<meta name="theme-color">` per Skript mitziehen (Attribut `media`
+    entfernen, `content` setzen), sonst bleibt die Statusleiste hell.
+- **Stolperfallen:**
+  - Fest eingetragene Farben (`#fff`, `rgba(…)`, Fallbacks wie
+    `var(--bg, #F4F4F2)`) bleiben im Dunkelmodus hell. Vorher alle auf
+    Variablen umstellen; training-log hat Stand 21.11. rund 310 davon
+    (68 in index.html, Rest im CSS der Module).
+  - Storage-Key mit Präfix der App (`tl-theme`, im Cockpit `fc-theme`): Beide
+    Apps teilen sich die Herkunft.
+  - Tests über HTTP, nicht `file://`: Dort gingen localStorage-Schreibvorgänge
+    bei schnellem Neuladen gelegentlich verloren.
+- **Code:** regel-cockpit `app/index.html` (Abschnitt „Nachtmodus“),
+  Test `tests/theme_test.py`
 
 ### Kontext-Chip im Kopf
 - Oben rechts zeigt ein Chip je Ansicht passende Infos (fällige Erhöhungen,
