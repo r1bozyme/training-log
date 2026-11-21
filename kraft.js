@@ -65,10 +65,21 @@ function gruppen() { return S() ? S().stamm() : [""]; }
 function farbe(g) { return S() ? S().farbe(g) : "var(--st-1)"; }
 function voll(g) { return S() ? S().name(g) : "Heimstudio"; }
 function farbeEintrag(e) { return S() ? S().farbe(String(e.studio || "").trim()) : "var(--st-1)"; }
+/* Kurzname = Ort (21.11.): Markenname vorn abschneiden, damit Chips und
+   „davon …“-Zeilen einheitlich den Ort zeigen („Berg am Laim“ · „Sendling“)
+   statt gemischt Marke/Ort. Unbekannte Marke → alte Kürzung (Füllwörter
+   raus, höchstens zwei Wörter). Neue Kette: hier in MARKEN ergänzen. */
+var MARKEN = ["all inclusive fitness", "all inclusive", "clever fit", "mcfit", "fitx", "john reed",
+              "fitness first", "kieser training", "holmes place", "injoy", "easyfitness", "fit star"];
 var FUELL = { all: 1, inclusive: 1, fitness: 1, studio: 1, gym: 1, club: 1 };
 function kurz(g) {
-  var w = voll(g).split(/\s+/).filter(function (x) { return x && !FUELL[x.toLowerCase()]; });
-  if (!w.length) return voll(g);
+  var v = voll(g), l = v.toLowerCase();
+  for (var i = 0; i < MARKEN.length; i++) {
+    var m = MARKEN[i];
+    if (l.indexOf(m + " ") === 0 && v.slice(m.length).trim()) return v.slice(m.length).trim();
+  }
+  var w = v.split(/\s+/).filter(function (x) { return x && !FUELL[x.toLowerCase()]; });
+  if (!w.length) return v;
   return w.length <= 2 ? w.join(" ") : w.slice(0, 2).join(" ");
 }
 function gewaehlt() {
