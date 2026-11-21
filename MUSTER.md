@@ -13,7 +13,7 @@ kopiere den Code nicht blind.
 
 **Pflege:** Wird hier ein Muster neu gebaut oder geändert, das sich übertragen
 lässt, kommt es im selben Arbeitsgang hier rein bzw. wird hier aktualisiert.
-Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit).
+Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in training-log umgesetzt).
 
 ---
 
@@ -278,8 +278,8 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit).
 
 ### Nachtmodus: Auto, Hell, Dunkel
 - **Herkunft:** zuerst im Finanz-Cockpit gebaut (regel-cockpit 0ccf931,
-  21.11.2026), Vorbild demter.com/kontraindikatoren. **In training-log noch
-  nicht umgesetzt** – Voraussetzung siehe Stolperfallen.
+  21.11.2026), Vorbild demter.com/kontraindikatoren. In training-log seit
+  21.11.2026 (Branch nachtmodus).
 - **Lösung:**
   - Alle Farben als CSS-Variablen in `:root` (hell), die Dunkel-Palette genau
     einmal unter `:root[data-theme="dark"]`.
@@ -296,14 +296,34 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit).
 - **Stolperfallen:**
   - Fest eingetragene Farben (`#fff`, `rgba(…)`, Fallbacks wie
     `var(--bg, #F4F4F2)`) bleiben im Dunkelmodus hell. Vorher alle auf
-    Variablen umstellen; training-log hat Stand 21.11. rund 310 davon
-    (68 in index.html, Rest im CSS der Module).
+    Variablen umstellen, **als eigenen Schritt ohne optische Änderung**
+    (helle Werte = alte Werte). In training-log waren es rund 310.
+    Prüfen: Ganzseiten-Screenshots aller Ansichten mit Testdaten vorher/
+    nachher pixelgleich, dazu jede CSS-Regel auf ein Probe-Element legen
+    und die aufgelösten Farben vergleichen (erfasst auch Zustände, die
+    gerade nicht sichtbar sind).
+  - **Alpha-Suffix an Hexwerten** (`farbe + "1F"`) geht mit `var()` nicht
+    und fällt still auf transparent. Eigene Tint-Variable je Farbe
+    (`--st-1-tint`). Nur der Screenshot-Vergleich hat das gefunden.
+  - `var()` in SVG-Attributen (`fill="var(--x)"`, `stop-color`) funktioniert
+    in Chrome, Diagramme brauchen keinen Umbau.
+  - Bewusst fest bleiben dürfen: Overlays, die immer dunkel sind (Scanner),
+    App-Icon (Canvas), Schatten und Abdunkler auf Schwarzbasis.
+  - **Kein `</style>` in CSS-Kommentaren:** Der Parser beendet den
+    Style-Block dort, der Rest der Seite zerfällt.
+  - Neutrale Knöpfe (dunkel mit weißer Schrift) einfach umkehren:
+    `--neutral` wird hell, `--on-neutral` dunkel.
+  - Knopf neben dem Titel kostet Breite. Lange Kopf-Chips dürfen dann
+    schrumpfen (`flex-shrink: 1` + Auslassungspunkte), sonst wird die
+    Seite breiter als der Bildschirm.
   - Storage-Key mit Präfix der App (`tl-theme`, im Cockpit `fc-theme`): Beide
     Apps teilen sich die Herkunft.
   - Tests über HTTP, nicht `file://`: Dort gingen localStorage-Schreibvorgänge
     bei schnellem Neuladen gelegentlich verloren.
-- **Code:** regel-cockpit `app/index.html` (Abschnitt „Nachtmodus“),
-  Test `tests/theme_test.py`
+- **Code:** training-log `index.html` (`:root[data-theme="dark"]`, Skript
+  direkt nach `</style>`, `#theme-btn`), Test `test/theme_test.py` (auch
+  statisch: keine neuen festen Farben) · regel-cockpit `app/index.html`
+  (Abschnitt „Nachtmodus“), Test `tests/theme_test.py`
 
 ### Kontext-Chip im Kopf
 - Oben rechts zeigt ein Chip je Ansicht passende Infos (fällige Erhöhungen,

@@ -25,6 +25,10 @@ Trainingsplan und Entscheidungen stehen nicht hier (siehe „Quellen“).
   `r1bozyme/training-log-data`. Der CSV-Export kommt nur aus sync.js.
 - Kopfkommentar jeder Datei: Zweck, Datum, Zusammenspiel. Bei
   Änderungen mitpflegen.
+- Farben nur über Variablen (`var(--…)`, ohne Fallback). Neue Farbe =
+  Variable in `:root` **und** in `:root[data-theme="dark"]` (index.html).
+  Kein Alpha-Suffix an Farben anhängen, dafür eigene Tint-Variable.
+  `test/theme_test.py` prüft das statisch.
 
 ## Storage (harte Regeln)
 
@@ -62,6 +66,7 @@ Trainingsplan und Entscheidungen stehen nicht hier (siehe „Quellen“).
    einmal vorkommt (`assert s.count(old) == 1`).
 3. Vor jedem Push: `python3 test/smoke.py` (Syntax, MODS-Liste,
    Storage-Keys, Headless-Start aller Ansichten). Muss „BESTANDEN“ melden.
+   Bei Änderungen an Farben oder am Kopf zusätzlich `python3 test/theme_test.py`.
 4. Thomas gibt sein Go, erst dann geht der Branch auf main.
 5. Nach dem Push: Raw-Datei zum Commit abrufen und byte-genau
    vergleichen. GitHub Pages braucht danach bis zu 1–2 Minuten, der

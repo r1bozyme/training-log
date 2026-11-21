@@ -41,12 +41,14 @@ var MON_KURZ = ["Jan.","Feb.","März","Apr.","Mai","Juni","Juli",
                 "Aug.","Sep.","Okt.","Nov.","Dez."];
 
 var CSS = `
-.hchip { flex-shrink: 0; margin-left: 12px; margin-bottom: 1px; padding: 7px 12px; border-radius: 999px;
+.hchip { flex-shrink: 1; margin-left: 12px; margin-bottom: 1px; padding: 7px 12px; border-radius: 999px;
   border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
   font-family: var(--fb); font-size: 12.5px; font-weight: 700; line-height: 1; white-space: nowrap;
   font-variant-numeric: tabular-nums; transition: opacity .15s;
   min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .hdr-title { white-space: nowrap; }
+/* 21.11.: Seit dem Nachtmodus-Knopf neben dem Titel darf der Chip schrumpfen (… am Ende),
+   sonst wird der Kopf bei langem Inhalt (Plan: Revision + Review) breiter als der Bildschirm. */
 .hchip[hidden] { display: none; }
 .hchip.tap { cursor: pointer; }
 .hchip.tap:active { opacity: .6; }
