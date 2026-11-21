@@ -81,7 +81,7 @@ var CSS = [
   ".dg-card { margin:0 20px 24px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:6px 16px 14px; font-size:13px; }",
   ".dg-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); }",
   ".dg-row span:first-child { color:var(--muted); } .dg-row span:last-child { text-align:right; }",
-  ".dg-ok { color:var(--go); font-weight:700; } .dg-warn { color:#B87A15; font-weight:700; }",
+  ".dg-ok { color:var(--go); font-weight:700; } .dg-warn { color:var(--amb-tx); font-weight:700; }",
   ".dg-err { padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); word-break:break-word; line-height:1.4; }",
   ".dg-err b { color:var(--text); font-weight:600; display:block; }",
   ".dg-btns { display:flex; gap:8px; margin-top:12px; }",

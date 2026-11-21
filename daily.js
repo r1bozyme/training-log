@@ -425,7 +425,7 @@ window.buildDaily = function () {
           <button class="destbtn trip${day && day.trip ? " on" : ""}" id="dc-trip" onclick="toggleTrip()">Reisetag</button>
           <button type="button" class="wt-done" onclick="tlWerte.edit('kcal', false)">Fertig</button></div>` : ""}
         <div class="wt-grid">${grid}</div>
-        ${W.legend([["Ziel", "#4FA34F"], ["darunter", "#E8A33D"], ["darüber", "#D96A6A"]])}
+        ${W.legend([["Ziel", "var(--go-dot)"], ["darunter", "var(--amb)"], ["darüber", "var(--bad-2)"]])}
         ${moreBtn("kcal", "Legende &amp; Erläuterung")}
         ${W.isMore("kcal") ? `<div class="dhint">Gestrichelt = Werte teilweise geschätzt, blauer Rand = Reisetag. Ab 2 markierten Tagen fällt die Woche im Review aus der Kalibrierung Kalorien gegen Waage – ihre Zahl rechts steht dann in Orange statt Grün.</div><div class="dhint">${kHint}</div>` : ""}
       </div>`;
@@ -463,8 +463,8 @@ window.buildDaily = function () {
     : "noch offen";
   const sChart = rateAll.length
     ? W.graph({ end: date, days: W.range(), label: "Verlauf Morgensteifigkeit",
-        series: [{ vals: rv, kind: "raw", color: "#D8D8D8", width: 1.5, name: "Tag" }, { vals: rv, kind: "avg", color: "#1A1A1A", name: "Ø 7" }] })
-      + W.legend([["Tageswert", "#D8D8D8"], ["Ø 7 Tage", "#1A1A1A"]])
+        series: [{ vals: rv, kind: "raw", color: "var(--ch-raw)", width: 1.5, name: "Tag" }, { vals: rv, kind: "avg", color: "var(--text)", name: "Ø 7" }] })
+      + W.legend([["Tageswert", "var(--ch-raw)"], ["Ø 7 Tage", "var(--text)"]])
     : `<div class="dhint">Direkt nach dem Aufstehen auf den ersten ~20 Schritten bewerten. 0 = nichts zu spüren, 10 = maximal steif. Immer dieselbe Belastung, unabhängig davon, wie der Morgen weiterläuft – das ist der Grund für die Skala statt der Uhr.</div>`;
   const stiffHtml = isMini("stiff", stiffOpen)
     ? mini("stiff", "Morgensteifigkeit", a1 === null ? "–" : "Ø " + fmtNum(a1, 1) + (sDelta === null ? "" : " · " + sign1(sDelta)))
@@ -510,8 +510,8 @@ window.buildDaily = function () {
   const hNow = day && (typeof day.hgL === "number" || typeof day.hgR === "number") ? `L ${vv(day.hgL)} · R ${vv(day.hgR)}` : "noch offen";
   const hChart = hAll.length
     ? W.graph({ end: date, days: W.range(), label: "Verlauf Handgelenk links und rechts, Ø 7 Tage",
-        series: [{ vals: hvL, kind: "avg", color: "#1A1A1A", name: "L" }, { vals: hvR, kind: "avg", color: "#2F6FB0", dash: true, name: "R" }] })
-      + W.legend([["Links Ø 7 Tage", "#1A1A1A"], ["Rechts Ø 7 Tage (gestrichelt)", "#2F6FB0"]])
+        series: [{ vals: hvL, kind: "avg", color: "var(--text)", name: "L" }, { vals: hvR, kind: "avg", color: "var(--blue-2)", dash: true, name: "R" }] })
+      + W.legend([["Links Ø 7 Tage", "var(--text)"], ["Rechts Ø 7 Tage (gestrichelt)", "var(--blue-2)"]])
     : `<div class="dhint">Morgens, gleiche Zeit wie die Steifigkeit: Daumen gegen leichten Widerstand der anderen Hand strecken und den Schmerz über dem Griffelfortsatz bewerten. Immer derselbe Test. Bewertet wird der 7-Tage-Trend, nicht der einzelne Tag.</div>`;
   const recentH = hAll.filter(d => d.date <= date).slice(-7).reverse();
   const thumbHtml = isMini("thumb", thumbOpen)
@@ -544,7 +544,7 @@ window.buildDaily = function () {
 const CSS = `
 .dtodo { margin: 8px 20px 0; padding: 12px 16px; border-radius: 11px; border: 1.5px solid var(--text); background: var(--surface); cursor: pointer; }
 .dtodo.done { border-color: var(--border); border-style: dashed; cursor: default; }
-.dtodo.past { border-color: #2F5D8A; cursor: default; }
+.dtodo.past { border-color: var(--blue); cursor: default; }
 .dtrow { display: flex; align-items: center; gap: 10px; min-height: 22px; }
 .dtodo .dtl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
 .dtodo .dtv { font-size: 13.5px; font-weight: 700; color: var(--text); flex: 1; }
@@ -554,7 +554,7 @@ const CSS = `
 .dtodo .dtrow + .dsupbtn { margin-top: 10px; }
 .dtodo > .dsupbtn:first-child { margin-top: 0; }
 .dtsup { display: flex; justify-content: flex-end; margin-top: 4px; }
-.dsupok { border: none; background: transparent; padding: 4px 0; font-family: var(--fb); font-weight: 700; font-size: 12px; color: #2A7A2A; cursor: pointer; }
+.dsupok { border: none; background: transparent; padding: 4px 0; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--go); cursor: pointer; }
 .dtback { padding: 6px 12px; border-radius: 14px; border: 1.5px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--text); cursor: pointer; flex-shrink: 0; }
 .wt-wrap.dflash { animation: none; }
 .wt-wrap.dflash > * { animation: dflash 1.5s ease-out; }
@@ -562,32 +562,32 @@ const CSS = `
 .dsub { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
 .dstates { display: flex; gap: 8px; }
 .dsbtn { flex: 1; padding: 12px 0; border-radius: 10px; border: 2px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; }
-.dsbtn.on-under { border-color: #E8A33D; color: #B87A15; background: #FDF3E4; }
-.dsbtn.on-hit   { border-color: #4FA34F; color: #2A7A2A; background: #E8F4E8; }
-.dsbtn.on-over  { border-color: #D96A6A; color: #B33A3A; background: #FBE9E9; }
+.dsbtn.on-under { border-color: var(--amb); color: var(--amb-tx); background: var(--amb-bg); }
+.dsbtn.on-hit   { border-color: var(--go-dot); color: var(--go); background: var(--go-bg); }
+.dsbtn.on-over  { border-color: var(--bad-2); color: var(--bad); background: var(--bad-bg); }
 .drow2 { display: flex; gap: 8px; }
 .drow2 input { flex: 1; margin-bottom: 0; }
-.dsave { padding: 14px 22px; border-radius: 10px; border: none; background: var(--text); color: #FFF; font-family: var(--fb); font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+.dsave { padding: 14px 22px; border-radius: 10px; border: none; background: var(--text); color: var(--on-neutral); font-family: var(--fb); font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0; }
 .dkpi { display: flex; gap: 8px; margin-top: 12px; }
 .dkc { flex: 1; text-align: center; padding: 10px 4px; background: var(--bg); border-radius: 8px; }
 .dkn { font-family: var(--fd); font-size: 24px; line-height: 1; color: var(--text); }
-.dkn.good { color: #2A7A2A; }
-.dkn.warn { color: #B33A3A; }
+.dkn.good { color: var(--go); }
+.dkn.warn { color: var(--bad); }
 .dkn-d { font-family: var(--fb); font-size: 12px; font-weight: 700; color: var(--muted); }
-.dkn-d.good { color: #2A7A2A; }
-.dkn-d.warn { color: #B33A3A; }
+.dkn-d.good { color: var(--go); }
+.dkn-d.warn { color: var(--bad); }
 .dhside { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin: 10px 0 6px; }
 .dhside:first-of-type { margin-top: 0; }
 .dkl { font-size: 9px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
 .ddots { display: flex; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
 .ddot { width: 20px; height: 20px; border-radius: 5px; background: var(--bg); border: 1px solid var(--border); }
-.ddot.under { background: #E8A33D; border-color: #E8A33D; }
-.ddot.hit   { background: #4FA34F; border-color: #4FA34F; }
-.ddot.over  { background: #D96A6A; border-color: #D96A6A; }
+.ddot.under { background: var(--amb); border-color: var(--amb); }
+.ddot.hit   { background: var(--go-dot); border-color: var(--go-dot); }
+.ddot.over  { background: var(--bad-2); border-color: var(--bad-2); }
 .ddot.est   { border: 2px dashed var(--text); }
-.ddot.trip  { box-shadow: 0 0 0 2px #2F5D8A; }
+.ddot.trip  { box-shadow: 0 0 0 2px var(--blue); }
 .dleg { font-size: 10.5px; color: var(--muted); margin-top: 6px; }
-.destbtn.trip.on { border-color: #2F5D8A; color: #2F5D8A; background: #EEF3F9; }
+.destbtn.trip.on { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
 .destbtn { display: block; width: 100%; margin-top: 8px; padding: 9px 0; border-radius: 10px; border: 1.5px dashed var(--border); background: transparent; font-family: var(--fb); font-weight: 600; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; }
 .destbtn.on { border-style: solid; border-color: var(--text); color: var(--text); background: var(--bg); }
 .dhint { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 12px; }
@@ -600,7 +600,7 @@ const CSS = `
 .dsrow-t.dim { color: var(--dim); font-weight: 500; font-size: 11px; }
 .drscale { display: flex; gap: 3px; }
 .drbtn { flex: 1; padding: 11px 0; border-radius: 7px; border: 1.5px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .12s; min-width: 0; }
-.drbtn.on { border-color: var(--text); background: var(--text); color: #FFF; }
+.drbtn.on { border-color: var(--text); background: var(--text); color: var(--on-neutral); }
 .drends { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); font-weight: 600; margin-top: 6px; }
 .dmin { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .dminl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
@@ -612,7 +612,7 @@ const CSS = `
 .ddate label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; }
 .ddate input { flex: 1; margin-bottom: 0; }
 .dsupbtn { display: block; width: 100%; padding: 14px 0; border-radius: 10px; border: 2px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; transition: all .15s; }
-.dsupbtn.on { border-color: #4FA34F; color: #2A7A2A; background: #E8F4E8; }
+.dsupbtn.on { border-color: var(--go-dot); color: var(--go); background: var(--go-bg); }
 .dsupbtn span { font-weight: 600; font-size: 11px; opacity: .8; margin-left: 4px; }
 .dflash { animation: dflash 1.5s ease-out; border-radius: 12px; }
 @keyframes dflash { 0%, 55% { box-shadow: 0 0 0 2px var(--text); } 100% { box-shadow: 0 0 0 0 transparent; } }

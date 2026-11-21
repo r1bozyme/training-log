@@ -32,24 +32,24 @@ function css() {
   var s = document.createElement("style"); s.id = "sp-css";
   s.textContent = [
     "#sp-ov { position:fixed; inset:0; z-index:9000; background:rgba(26,26,26,.35); display:flex; align-items:flex-end; justify-content:center; }",
-    "#sp-ov .sp-sh { width:100%; max-width:480px; max-height:86vh; overflow:auto; background:var(--surface, #fff); color:var(--text, #1A1A1A);",
+    "#sp-ov .sp-sh { width:100%; max-width:480px; max-height:86vh; overflow:auto; background:var(--surface); color:var(--text);",
     "  border-radius:18px 18px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom)); box-sizing:border-box; font-family:var(--fb, sans-serif); }",
     "#sp-ov .sp-t { font-size:18px; font-weight:700; margin-bottom:4px; }",
-    "#sp-ov .sp-x { font-size:13px; color:var(--muted, #777); line-height:1.45; margin-bottom:12px; }",
+    "#sp-ov .sp-x { font-size:13px; color:var(--muted); line-height:1.45; margin-bottom:12px; }",
     "#sp-ov .sp-bud { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:8px 0 14px; text-align:center; }",
-    "#sp-ov .sp-bud div { background:var(--bg, #F4F4F2); border-radius:10px; padding:7px 2px; font-size:15px; font-weight:700; }",
-    "#sp-ov .sp-bud span { display:block; font-size:10px; font-weight:400; color:var(--muted, #777); letter-spacing:.04em; }",
-    "#sp-ov .sp-g { border:1px solid var(--border, #E3E3E0); border-radius:14px; padding:12px 14px; margin-bottom:10px; }",
-    "#sp-ov .sp-g.top { border-color:var(--neutral, #1A1A1A); }",
+    "#sp-ov .sp-bud div { background:var(--bg); border-radius:10px; padding:7px 2px; font-size:15px; font-weight:700; }",
+    "#sp-ov .sp-bud span { display:block; font-size:10px; font-weight:400; color:var(--muted); letter-spacing:.04em; }",
+    "#sp-ov .sp-g { border:1px solid var(--border); border-radius:14px; padding:12px 14px; margin-bottom:10px; }",
+    "#sp-ov .sp-g.top { border-color:var(--neutral); }",
     "#sp-ov .sp-gn { font-size:15px; font-weight:700; }",
-    "#sp-ov .sp-gm { font-size:13px; color:var(--muted, #777); margin:3px 0 6px; }",
+    "#sp-ov .sp-gm { font-size:13px; color:var(--muted); margin:3px 0 6px; }",
     "#sp-ov .sp-gr { font-size:13px; line-height:1.4; }",
     "#sp-ov .sp-gb { margin-top:10px; display:flex; gap:8px; }",
-    "#sp-ov textarea { width:100%; box-sizing:border-box; border:1px solid var(--border, #E3E3E0); border-radius:12px; padding:12px; font-size:15px; font-family:inherit; min-height:74px; resize:vertical; background:var(--bg, #F4F4F2); color:inherit; }",
-    "#sp-ov .sp-b { display:block; width:100%; margin-top:10px; padding:13px; border-radius:12px; border:1px solid var(--border, #E3E3E0); background:transparent; font-size:15px; font-family:inherit; color:inherit; }",
-    "#sp-ov .sp-b.prim { background:var(--neutral, #1A1A1A); color:#fff; border-color:transparent; }",
+    "#sp-ov textarea { width:100%; box-sizing:border-box; border:1px solid var(--border); border-radius:12px; padding:12px; font-size:15px; font-family:inherit; min-height:74px; resize:vertical; background:var(--bg); color:inherit; }",
+    "#sp-ov .sp-b { display:block; width:100%; margin-top:10px; padding:13px; border-radius:12px; border:1px solid var(--border); background:transparent; font-size:15px; font-family:inherit; color:inherit; }",
+    "#sp-ov .sp-b.prim { background:var(--neutral); color:var(--on-neutral); border-color:transparent; }",
     "#sp-ov .sp-b.sm { margin-top:0; padding:10px; font-size:14px; flex:1; }",
-    "#sp-ov .sp-warn { font-size:13px; color:#B87A15; margin-bottom:10px; line-height:1.4; }"
+    "#sp-ov .sp-warn { font-size:13px; color:var(--amb-tx); margin-bottom:10px; line-height:1.4; }"
   ].join("\n");
   document.head.appendChild(s);
 }
@@ -81,7 +81,7 @@ function budget() {
   return b;
 }
 function budHTML(b) {
-  var c = function (k, l) { var v = b.frei[k]; return "<div" + (v < 0 ? ' style="color:#A33A2A"' : "") + ">" + n0(v) + "<span>" + l + "</span></div>"; };
+  var c = function (k, l) { var v = b.frei[k]; return "<div" + (v < 0 ? ' style="color:var(--err)"' : "") + ">" + n0(v) + "<span>" + l + "</span></div>"; };
   return '<div class="sp-bud">' + c("kcal", "KCAL FREI") + c("kh", "G KH") + c("f", "G FETT") + c("p", "G PROT.") + "</div>" +
     (b.fehlt.length ? '<div class="sp-x">Darin schon abgezogen: ' + b.fehlt.length + " noch offene" + (b.reise ? " Reise-" : " ") + "Basis-Posten (" + esc(b.fehlt.join(", ")) + ").</div>" : "");
 }
@@ -160,7 +160,7 @@ function showKarte(b, x) {
     var over = ["kcal", "kh", "f"].filter(function (k) { return g[k] > b.frei[k]; });   // mehr Protein ist kein Problem
     return '<div class="sp-g' + (i === 0 ? " top" : "") + '"><div class="sp-gn">' + esc(g.n) + "</div>" +
       '<div class="sp-gm">~ ' + n0(g.kcal) + " kcal · " + n0(g.kh) + " KH · " + n0(g.f) + " F · " + n0(g.p) + " P" +
-        (over.length ? ' · <span style="color:#A33A2A">über Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett", p: "Protein" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
+        (over.length ? ' · <span style="color:var(--err)">über Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett", p: "Protein" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
       '<div class="sp-gr">' + esc(g.grund) + "</div>" +
       '<div class="sp-gb"><button class="sp-b sm prim" onclick="tlSpeise.nimm(' + i + ')">Eintragen</button>' +
       '<button class="sp-b sm" onclick="tlSpeise.anpassen(' + i + ')">Werte anpassen</button></div></div>';
@@ -261,7 +261,7 @@ function showGericht(x, txt) {
     (x.sicher === false ? '<div class="sp-warn">Unsichere Schätzung – Beschreibung war knapp.</div>' : "") +
     '<div class="sp-bud"><div>' + n0(g.kcal) + "<span>KCAL</span></div><div>" + n0(g.kh) + "<span>G KH</span></div><div>" + n0(g.f) + "<span>G FETT</span></div><div>" + n0(g.p) + "<span>G PROT.</span></div></div>" +
     '<div class="sp-x">Spanne ' + n0(x.kcal_min) + "–" + n0(x.kcal_max) + " kcal" + (x.annahmen ? " · " + esc(x.annahmen) : "") +
-      (over.length ? '<br><span style="color:#A33A2A">Über dem freien Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett", p: "Protein" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
+      (over.length ? '<br><span style="color:var(--err)">Über dem freien Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett", p: "Protein" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
     '<button class="sp-b prim" onclick="tlSpeise.nimm(0)">Eintragen</button>' +
     '<button class="sp-b" onclick="tlSpeise.anpassen(0)">Werte anpassen</button>' +
     '<button class="sp-b" onclick="tlSpeise.gericht()">Neu beschreiben</button>' +

@@ -105,8 +105,8 @@ function name(g) { return g ? g : cfg().heim; }
 /* FARBEN (17.11.): jedes Stammstudio eine feste Farbe, fremde grau.
    Reihenfolge = Heim, dann Stammstudios in Listenreihenfolge. Dieselben
    Farben gelten für Stats und Kraftindex (window.tlStudio.farbe). */
-var FARBEN = ["#B07810", "#2F6FA8", "#7A4FA0", "#2E8A6E"];
-var FREMD = "#7A7A7A";
+var FARBEN = ["var(--st-1)", "var(--st-2)", "var(--st-3)", "var(--st-4)"];
+var FREMD = "var(--st-x)";
 function farbeName(n) {
   var c = cfg(), g = gruppeVon(n, c);
   if (g === null) return FREMD;
@@ -115,7 +115,8 @@ function farbeName(n) {
 }
 function tagHTML(n) {
   var s = clean(n) || cfg().heim, f = farbeName(s);
-  return '<span class="st-tag" style="color:' + f + ';background:' + f + '1F">' + esc(s) + "</span>";
+  /* Hintergrund: eigene Variable je Farbe (--st-1-tint …), weil an var() kein Alpha-Suffix gehängt werden kann */
+  return '<span class="st-tag" style="color:' + f + ';background:' + f.replace(")", "-tint)") + '">' + esc(s) + "</span>";
 }
 
 function esc(s) {
@@ -232,12 +233,12 @@ var CSS = `
 .st-ed { width: 52px; flex-shrink: 0; margin-bottom: 16px; border-radius: 10px; border: 2px solid var(--border);
   background: var(--surface); color: var(--muted); font-size: 17px; cursor: pointer; }
 .st-ed:active { background: var(--bg); }
-#f-studio.fremd { border-color: #E0A030; }
+#f-studio.fremd { border-color: var(--gold-bd); }
 .st-hint { display: none; margin: -8px 0 16px; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .st-hint.show { display: block; }
-.st-hint b { color: #B07810; }
-.st-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .5px; color: #B07810;
-  background: rgba(224,160,48,.14); border-radius: 6px; padding: 1px 6px; margin-left: 4px; vertical-align: 1px; }
+.st-hint b { color: var(--gold); }
+.st-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .5px; color: var(--gold);
+  background: var(--gold-tint); border-radius: 6px; padding: 1px 6px; margin-left: 4px; vertical-align: 1px; }
 `;
 
 function optionsHTML(c, wert) {

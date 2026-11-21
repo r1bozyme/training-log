@@ -206,11 +206,11 @@ function render() {
 
 var CSS = [
   ".rs-start { display:block; margin:12px 20px 0 auto; padding:7px 14px; border-radius:999px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:var(--fb); font-size:12.5px; font-weight:700; }",
-  ".rs-sec { border-color:#E0A030; }",
+  ".rs-sec { border-color:var(--gold-bd); }",
   ".rs-hd { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }",
   ".rs-t { font-size:15px; font-weight:700; color:var(--text); }",
   ".rs-act { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px 10px; }",
-  ".rs-l { border:none; background:none; padding:2px 0; font-family:var(--fb); font-size:12px; font-weight:700; color:#B07810; }",
+  ".rs-l { border:none; background:none; padding:2px 0; font-family:var(--fb); font-size:12px; font-weight:700; color:var(--gold); }",
   ".rs-k { font-size:11px; font-weight:700; color:var(--muted); margin-top:14px; }",
   ".rs-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }",
   ".rs-chip { padding:8px 10px; border-radius:8px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-family:var(--fb); font-size:12.5px; font-weight:600; text-align:left; }",

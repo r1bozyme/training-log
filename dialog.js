@@ -49,7 +49,7 @@ var CSS = `
 .ask-bs { display: flex; gap: 10px; margin-top: 20px; }
 .ask-b { flex: 1; padding: 15px 0; border-radius: 12px; border: 2px solid var(--border); background: var(--surface);
   font-family: var(--fb); font-weight: 700; font-size: 15px; color: var(--muted); cursor: pointer; }
-.ask-b.ok { background: var(--neutral); border-color: var(--neutral); color: #FFF; }
+.ask-b.ok { background: var(--neutral); border-color: var(--neutral); color: var(--on-neutral); }
 .ask-b.ok.danger { background: var(--legs); border-color: var(--legs); }
 .ask-b:disabled { opacity: .35; cursor: default; }
 `;

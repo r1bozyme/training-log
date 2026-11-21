@@ -752,34 +752,34 @@ function pauseVon(name, typ) {
 // ─── INIT ────────────────────────────────────────
 const CSS = `
 .pgb { border-radius: 10px; padding: 11px 14px; margin-bottom: 12px; border: 1px solid var(--border); background: var(--surface); }
-.pgb.hit  { border-color: #B8DCB8; background: var(--go-bg); }
-.pgb.warn { border-color: #E8C84A; background: #FFF6DC; }
+.pgb.hit  { border-color: var(--go-bd); background: var(--go-bg); }
+.pgb.warn { border-color: var(--warn-bd); background: var(--warn-bg); }
 .pgb.lock { border-style: dashed; }
-.pgb.done { border-color: #B8C8DC; background: #EEF3F9; }
+.pgb.done { border-color: var(--blue-bd); background: var(--blue-bg); }
 .pgb-l { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); }
 .pgb-v { font-size: 14px; font-weight: 700; color: var(--text); margin-top: 3px; }
 .pgb.hit .pgb-v  { color: var(--go); }
-.pgb.warn .pgb-v { color: #8A6D00; }
+.pgb.warn .pgb-v { color: var(--warn-tx); }
 .pgb.lock .pgb-v { color: var(--muted); }
-.pgb.done .pgb-v { color: #2F5D8A; }
+.pgb.done .pgb-v { color: var(--blue); }
 .pgb-bar { height: 5px; border-radius: 3px; background: var(--border); margin-top: 9px; overflow: hidden; }
 .pgb-bar i { display: block; height: 100%; background: var(--text); border-radius: 3px; transition: width .25s; }
 .pgb.hit .pgb-bar i { background: var(--go); }
 .pgb-h { font-size: 11.5px; color: var(--muted); line-height: 1.55; margin-top: 8px; }
 .pgb-h strong { color: var(--text); font-weight: 700; }
-.pgo { margin: 16px 20px 0; padding: 14px; background: var(--go-bg); border: 1px solid #B8DCB8; border-radius: 10px; }
+.pgo { margin: 16px 20px 0; padding: 14px; background: var(--go-bg); border: 1px solid var(--go-bd); border-radius: 10px; }
 .pgo-h { font-family: var(--fd); font-size: 15px; letter-spacing: 2px; color: var(--go); margin-bottom: 10px; }
-.pgo-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #C8E4C8; }
+.pgo-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--go-line); }
 .pgo-row:last-of-type { border-bottom: none; }
 .pgo-i { flex: 1; min-width: 0; }
 .pgo-n { font-size: 13.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pgo-o { margin-top: 2px; }
 .pgo-o .st-tag { margin-left: 0; white-space: normal; }
-.pgo-m { font-size: 11px; color: #4A7A4A; margin-top: 1px; }
+.pgo-m { font-size: 11px; color: var(--go-tx); margin-top: 1px; }
 .pgo-z { font-size: 13px; font-weight: 700; color: var(--go); flex-shrink: 0; }
-.pgo-f { font-size: 11px; color: #4A7A4A; line-height: 1.5; margin-top: 10px; padding-top: 9px; border-top: 1px solid #C8E4C8; }
+.pgo-f { font-size: 11px; color: var(--go-tx); line-height: 1.5; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--go-line); }
 .pgo-f strong { color: var(--go); }
-.pgo-t { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; border: 1px solid #B8DCB8; color: var(--go); margin-left: 4px; }
+.pgo-t { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--go-bd); color: var(--go); margin-left: 4px; }
 .pgo-t.m { border-color: var(--text); color: var(--text); }
 .pgh-sel { display: flex; gap: 8px; align-items: center; margin: 10px 20px 0; }
 .pgh-sel select { flex: 1; margin-bottom: 0 !important; font-size: 13px !important; padding: 11px 12px !important; }

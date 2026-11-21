@@ -358,7 +358,7 @@ function fabCss() {
   var s = document.createElement("style"); s.id = "scanfab-css";
   s.textContent =
     ".scanfab { position:fixed; right:max(16px, calc(50% - 224px)); z-index:102; width:52px; height:52px; border:none; border-radius:50%;" +
-    " background:var(--neutral); color:#FFF; font-size:24px; line-height:52px; text-align:center; padding:0;" +
+    " background:var(--neutral); color:var(--on-neutral); font-size:24px; line-height:52px; text-align:center; padding:0;" +
     " box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; }" +
     ".scanfab[hidden] { display:none; }" +
     ".scanfab.hi { bottom:calc(136px + var(--sb)); } .scanfab.lo { bottom:calc(76px + var(--sb)); }" +

@@ -51,9 +51,9 @@ var CSS = `
 .hchip.tap { cursor: pointer; }
 .hchip.tap:active { opacity: .6; }
 .hchip .hc-m { color: var(--muted); font-weight: 600; }
-.hchip.open { border-color: #E8C84A; background: #FFF6DC; color: #7A6200; }
-.hchip.open .hc-m { color: #A88E2E; }
-.hchip.go   { border-color: #B8DCB8; background: var(--go-bg); color: var(--go); }
+.hchip.open { border-color: var(--warn-bd); background: var(--warn-bg); color: var(--warn-tx-3); }
+.hchip.open .hc-m { color: var(--warn-tx-4); }
+.hchip.go   { border-color: var(--go-bd); background: var(--go-bg); color: var(--go); }
 .hchip.Push { border-color: var(--push-bd); background: var(--push-bg); color: var(--push); }
 .hchip.Legs { border-color: var(--legs-bd); background: var(--legs-bg); color: var(--legs); }
 .hchip.Push .hc-m, .hchip.Legs .hc-m, .hchip.go .hc-m { color: inherit; opacity: .7; }

@@ -161,7 +161,7 @@ function build() {
     if (pts.length >= 2) {
       var fc = wForecast(cur);
       h += '<div class="wt-wchart">' + weightChart(pts) + '</div>' +
-        W.legend([["Messung", "#D8D8D8"], ["Trend", "#1A1A1A"], ["Korridor", "rgba(46,125,50,.45)"]]) +
+        W.legend([["Messung", "var(--ch-raw)"], ["Trend", "var(--text)"], ["Korridor", "var(--fc-a45)"]]) +
         '<div class="wfc">In 4 Wochen (' + fmtDate(fc.date).slice(0, 6) + '): Ziel ≈ <b>' + kgStr(fc.ziel) + ' kg</b> · Korridor ' +
         kgStr(fc.lo) + '–' + kgStr(fc.hi) +
         (ph ? (rate !== null ? " · ab Rohwerten seit " + dm(ph.von)

@@ -91,7 +91,7 @@ function init() {
   var fv = document.getElementById("view-food");
   if (!fv || document.getElementById("abg-yday")) return;
   var st = document.createElement("style");
-  st.textContent = ".abg-y { cursor:pointer; border-style:solid; border-color:#E8A33D; background:#FDF3E4; color:#7A5310; }";
+  st.textContent = ".abg-y { cursor:pointer; border-style:solid; border-color:var(--amb); background:var(--amb-bg); color:var(--amb-tx-2); }";
   document.head.appendChild(st);
   var box = document.createElement("div"); box.id = "abg-yday";
   fv.insertBefore(box, fv.firstChild);

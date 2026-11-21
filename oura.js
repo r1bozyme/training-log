@@ -190,7 +190,7 @@ var METR = [
   { f: "sscore",   l: "Schlaf-Score", night: 1, dec: 0, zu: 1 },
   { f: "steps",    l: "Schritte",     night: 0, dec: 0, zu: 1 }
 ];
-var C_AVG = "#1A1A1A", C_PT = "#8A8A8A";
+var C_AVG = "var(--text)", C_PT = "var(--ch-lbl)";
 
 /* Aufklappzustand: eigener Zweig in "tlui-werte" (kein tl-*-Key → nicht im Backup) */
 function ui() { try { return JSON.parse(ls("tlui-werte")) || {}; } catch (e) { return {}; } }
@@ -244,11 +244,11 @@ function chart(m, vals, isT, end, start) {
   var ax = axis(m.f, lo, hi);
   var x = function (k) { return X0 + k * (X1 - X0) / n; };
   var y = function (v) { return Y0 - ((v - ax.a) / (ax.b - ax.a)) * (Y0 - Y1); };
-  var font = ' font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif"';
+  var font = ' font-size="9" fill="var(--ch-lbl)" font-family="Figtree,sans-serif"';
 
   var svg = "";
   [ax.a, (ax.a + ax.b) / 2, ax.b].forEach(function (t) {
-    svg += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + y(t).toFixed(1) + '" y2="' + y(t).toFixed(1) + '" stroke="#EEEEEE"/>'
+    svg += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + y(t).toFixed(1) + '" y2="' + y(t).toFixed(1) + '" stroke="var(--ch-grid)"/>'
          + '<text x="' + (X0 - 5) + '" y="' + (y(t) + 3.5).toFixed(1) + '" text-anchor="end"' + font + '>' + ax.lab(t) + '</text>';
   });
   var seg = [];
@@ -258,7 +258,7 @@ function chart(m, vals, isT, end, start) {
   raw.forEach(function (v, k) {
     if (v === null) return;
     svg += '<circle cx="' + x(k).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="' + r + '"'
-         + (isT(days[k]) ? ' fill="' + C_PT + '" stroke="' + C_PT + '"' : ' fill="#FFFFFF" stroke="' + C_PT + '"') + ' stroke-width="1.3"/>';
+         + (isT(days[k]) ? ' fill="' + C_PT + '" stroke="' + C_PT + '"' : ' fill="var(--surface)" stroke="' + C_PT + '"') + ' stroke-width="1.3"/>';
   });
   svg += '<text x="' + X0 + '" y="107"' + font + '>' + shortD(start) + '</text>'
        + '<text x="' + X1 + '" y="107" text-anchor="end"' + font + '>' + shortD(end) + '</text>';
@@ -312,7 +312,7 @@ function cardHtml(m, src, train) {
     + '<div class="wt-sub">Ø 7 Tage · Vorwoche ' + (old && old.n >= 3 ? fmtAvg(m, old.a) : "–") + '</div></div></div>'
     + chart(m, vals, isT, end, start)
     + '<div class="wt-leg"><span><i style="background:' + C_PT + '"></i>' + tag(m, true) + '</span>'
-    + '<span><i style="background:#FFF;box-shadow:inset 0 0 0 1.5px ' + C_PT + '"></i>' + tag(m, false) + '</span>'
+    + '<span><i style="background:var(--surface);box-shadow:inset 0 0 0 1.5px ' + C_PT + '"></i>' + tag(m, false) + '</span>'
     + '<span><i style="background:' + C_AVG + '"></i>Ø 7 Tage</span></div>'
     + '<div class="ou-cmp">' + cmp + '</div>'
     + '</div>';
@@ -371,7 +371,7 @@ function render() {
   var box = document.getElementById("ou-cont");
   if (!box) return;
   var h = '<div class="dsec" id="ou-sec"><button class="dsupbtn on" onclick="ouRefresh()">' + (busy ? "Lade …" : "Aktualisieren") + '</button>';
-  if (lastErr) h += '<div class="dhint" style="color:#B33A3A">' + esc(lastErr) + '</div>';
+  if (lastErr) h += '<div class="dhint" style="color:var(--bad)">' + esc(lastErr) + '</div>';
 
   if (!data) {
     h += '<div class="dhint">Noch nicht geladen.</div>';

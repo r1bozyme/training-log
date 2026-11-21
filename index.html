@@ -41,6 +41,85 @@
   --pull: #0077AA; --pull-bg: #E0F2FF; --pull-bd: #80C8EE;
   --legs: #C04015; --legs-bg: #FFE8E0; --legs-bd: #FF9977;
   --neutral: #1A1A1A; --go: #2A7A2A; --go-bg: #E8F4E8;
+  /* Seit 21.11.2026 stehen alle Farben hier (Vorbereitung Nachtmodus). Module nutzen nur var(--…),
+     keine festen Werte und keine Fallbacks. Bewusst fest: Scanner-Overlay (immer dunkel), App-Icon,
+     Schatten und Abdunkler (rgba(0,0,0,…) bzw. rgba(26,26,26,…)). */
+  /* Grundtöne */
+  --on-neutral: #FFFFFF;
+  --on-neutral-2: rgba(255,255,255,.7);
+  --knob: #FFF;
+  --scrim: rgba(245,245,243,.72);
+  --focus: #AAAAAA;
+  --text-2: #666;
+  --text-3: #777;
+  --text-4: #888;
+  --fill-1: #F0F0F0;
+  --fill-2: #F2F2F2;
+  --fill-3: #EAEAEA;
+  --fill-4: #F8F8F8;
+  /* Diagramme */
+  --ch-lbl: #8A8A8A;
+  --ch-lbl-2: #BBBBBB;
+  --ch-raw: #D8D8D8;
+  --ch-grid: #EEEEEE;
+  --ch-grid-2: #E4E4E4;
+  /* Einheiten (Hinweis-Hintergrund) */
+  --push-tint: #D8E84020;
+  --pull-tint: #0077AA20;
+  --legs-tint: #C0401520;
+  /* Grün */
+  --go-bd: #B8DCB8;
+  --go-line: #C8E4C8;
+  --go-tx: #4A7A4A;
+  --go-dk: #2A5A2A;
+  --go-dot: #4FA34F;
+  --fc: #2E7D32;
+  --fc-a18: rgba(46,125,50,.18);
+  --fc-a45: rgba(46,125,50,.45);
+  --up: #2E8A3E;
+  --done: #3E8E5A;
+  --done-fill: #5FA877;
+  /* Rot */
+  --bad: #B33A3A;
+  --bad-2: #D96A6A;
+  --bad-bg: #FBE9E9;
+  --err: #A33A2A;
+  --err-bg: #FBE9E7;
+  --err-bd: #E8B4AC;
+  --alarm: #CC2200;
+  --alarm-bg: #FFE8E0;
+  --danger: #CC0000;
+  --over-tx: #8A2E10;
+  --down: #C04015;
+  /* Gelb (offen, Bearbeiten) */
+  --warn-bg: #FFF6DC;
+  --warn-bd: #E8C84A;
+  --warn-tx: #8A6D00;
+  --warn-tx-2: #A8892A;
+  --warn-tx-3: #7A6200;
+  --warn-tx-4: #A88E2E;
+  /* Orange (knapp, darunter) */
+  --amb: #E8A33D;
+  --amb-bg: #FDF3E4;
+  --amb-tx: #B87A15;
+  --amb-tx-2: #7A5310;
+  --amb-tx-3: #8A5A0E;
+  --amb-tx-4: #9A6410;
+  --gold: #B07810;
+  --gold-bd: #E0A030;
+  --gold-tint: rgba(224,160,48,.14);
+  /* Blau (Reise, erledigt) */
+  --blue: #2F5D8A;
+  --blue-bg: #EEF3F9;
+  --blue-bd: #B8C8DC;
+  --blue-2: #2F6FB0;
+  /* Studios (Stats, Kraftindex) */
+  --st-1: #B07810;
+  --st-2: #2F6FA8;
+  --st-3: #7A4FA0;
+  --st-4: #2E8A6E;
+  --st-x: #7A7A7A;
+  --st-1-tint: #B078101F; --st-2-tint: #2F6FA81F; --st-3-tint: #7A4FA01F; --st-4-tint: #2E8A6E1F; --st-x-tint: #7A7A7A1F;
   --fd: 'Bebas Neue', sans-serif; --fb: 'Figtree', sans-serif;
   --sb: env(safe-area-inset-bottom, 0px);
 }
@@ -60,9 +139,9 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--fb); 
 }
 /* Statusleiste: Inhalt läuft dahinter, ein leicht milchiger Schleier hält Uhrzeit und Akku lesbar */
 .status-scrim { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 150; pointer-events: none;
-  background: rgba(245, 245, 243, .72); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
+  background: var(--scrim); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
 .nbtn { flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 11px; letter-spacing: -0.2px; transition: all .15s; background: transparent; color: var(--muted); }
-.nbtn.active { background: var(--neutral); color: #FFFFFF; }
+.nbtn.active { background: var(--neutral); color: var(--on-neutral); }
 
 .view { display: none; } .view.active { display: block; }
 
@@ -78,7 +157,7 @@ input[type="date"], input[type="number"], input[type="text"], select {
   border-radius: 10px; color: var(--text); font-family: var(--fb); font-size: 15px;
   margin-bottom: 16px; appearance: none; -webkit-appearance: none; outline: none; transition: border-color .15s;
 }
-input:focus, select:focus { border-color: #AAAAAA; }
+input:focus, select:focus { border-color: var(--focus); }
 input::placeholder { color: var(--dim); }
 input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
 .sr { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -99,10 +178,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .hint.Legs .hint-ziel { color: var(--legs); }
 .hint-muskel { font-size: 11px; color: var(--muted); text-align: right; max-width: 120px; }
 .hint-reps { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
-.hint.Push .hint-reps { background: #D8E84020; color: var(--push); }
-.hint.Pull .hint-reps { background: #0077AA20; color: var(--pull); }
-.hint.Legs .hint-reps { background: #C0401520; color: var(--legs); }
-.hint-tipp { font-size: 12px; color: #777; line-height: 1.4; }
+.hint.Push .hint-reps { background: var(--push-tint); color: var(--push); }
+.hint.Pull .hint-reps { background: var(--pull-tint); color: var(--pull); }
+.hint.Legs .hint-reps { background: var(--legs-tint); color: var(--legs); }
+.hint-tipp { font-size: 12px; color: var(--text-3); line-height: 1.4; }
 
 /* LAST ENTRY */
 .last-entry { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
@@ -110,7 +189,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .last-icon { font-size: 16px; flex-shrink: 0; }
 .last-lbl { font-size: 10px; font-weight: 700; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
 .last-data { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
-.last-up { background: #E8F4E8; color: var(--go); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
+.last-up { background: var(--go-bg); color: var(--go); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
 
 /* TIMER */
 .timer-wrap { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; transition: border-color .3s; }
@@ -121,8 +200,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .timer-wrap.running .timer-disp { color: var(--neutral); }
 .timer-wrap.done .timer-disp { color: var(--go); font-size: 22px; }
 .timer-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.timer-btn { padding: 12px 18px; border-radius: 10px; border: none; font-family: var(--fd); font-size: 17px; letter-spacing: 1px; cursor: pointer; transition: all .15s; background: var(--neutral); color: #FFFFFF; flex-shrink: 0; }
-.timer-btn.running { background: #CC2200; }
+.timer-btn { padding: 12px 18px; border-radius: 10px; border: none; font-family: var(--fd); font-size: 17px; letter-spacing: 1px; cursor: pointer; transition: all .15s; background: var(--neutral); color: var(--on-neutral); flex-shrink: 0; }
+.timer-btn.running { background: var(--alarm); }
 .timer-btn.done { background: var(--go); }
 
 /* TOGGLE */
@@ -131,20 +210,20 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .tlbl { font-size: 14px; font-weight: 500; color: var(--muted); }
 .tsw { width: 46px; height: 26px; border-radius: 13px; background: var(--dim); position: relative; transition: background .2s; flex-shrink: 0; }
 .trow.on .tsw { background: var(--neutral); }
-.tkn { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #FFF; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.tkn { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--knob); transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .trow.on .tkn { left: 23px; }
 
 /* EDIT */
-.edit-banner { display: none; background: #FFF6DC; border: 1px solid #E8C84A; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 10px; }
+.edit-banner { display: none; background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 10px; }
 .edit-banner.show { display: flex; }
-.edit-txt { font-size: 13px; font-weight: 700; color: #8A6D00; }
-.edit-sub { font-size: 12px; color: #A8892A; margin-top: 2px; }
-.edit-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid #E8C84A; background: transparent; color: #8A6D00; font-family: var(--fb); font-weight: 700; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+.edit-txt { font-size: 13px; font-weight: 700; color: var(--warn-tx); }
+.edit-sub { font-size: 12px; color: var(--warn-tx-2); margin-top: 2px; }
+.edit-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--warn-bd); background: transparent; color: var(--warn-tx); font-family: var(--fb); font-weight: 700; font-size: 12px; cursor: pointer; flex-shrink: 0; }
 
-.sbtn { width: 100%; padding: 18px; background: var(--neutral); border: none; border-radius: 12px; font-family: var(--fd); font-size: 22px; letter-spacing: 3px; color: #FFFFFF; cursor: pointer; transition: opacity .15s, transform .1s; margin-bottom: 8px; }
+.sbtn { width: 100%; padding: 18px; background: var(--neutral); border: none; border-radius: 12px; font-family: var(--fd); font-size: 22px; letter-spacing: 3px; color: var(--on-neutral); cursor: pointer; transition: opacity .15s, transform .1s; margin-bottom: 8px; }
 .sbtn:active { opacity: 0.85; transform: scale(0.98); }
 
-.flash { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--neutral); color: #FFFFFF; padding: 10px 28px; border-radius: 24px; font-weight: 700; font-size: 14px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; }
+.flash { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--neutral); color: var(--on-neutral); padding: 10px 28px; border-radius: 24px; font-weight: 700; font-size: 14px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; }
 .flash.show { opacity: 1; }
 
 .sbar { display: flex; gap: 8px; padding: 16px 20px 0; }
@@ -158,7 +237,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .frow { display: flex; gap: 8px; padding: 16px 20px 0; overflow-x: auto; scrollbar-width: none; }
 .frow::-webkit-scrollbar { display: none; }
 .fbtn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer; font-family: var(--fb); font-weight: 600; font-size: 13px; background: var(--surface); color: var(--muted); white-space: nowrap; flex-shrink: 0; transition: all .15s; }
-.fbtn.active { background: var(--neutral); color: #FFFFFF; border-color: var(--neutral); }
+.fbtn.active { background: var(--neutral); color: var(--on-neutral); border-color: var(--neutral); }
 
 .dg { padding: 16px 20px 0; }
 .dl2 { font-family: var(--fd); font-size: 13px; letter-spacing: 2px; color: var(--dim); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
@@ -171,12 +250,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .ei { flex: 1; min-width: 0; }
 .en { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .em { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.ubdg { background: #E8F4E8; color: #2A7A2A; font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 5px; flex-shrink: 0; }
+.ubdg { background: var(--go-bg); color: var(--go); font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 5px; flex-shrink: 0; }
 .dbtn { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 20px; padding: 0 2px; flex-shrink: 0; line-height: 1; transition: color .15s; }
-.dbtn.confirm { color: #CC0000; }
+.dbtn.confirm { color: var(--danger); }
 
 .xbtn { margin: 16px 20px; width: calc(100% - 40px); padding: 14px; background: var(--surface); border: 2px solid var(--border); border-radius: 12px; font-family: var(--fb); font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; display: block; }
-.xbtn:hover { border-color: #AAAAAA; color: var(--text); }
+.xbtn:hover { border-color: var(--focus); color: var(--text); }
 
 .empty { text-align: center; padding: 60px 20px; color: var(--dim); }
 .ei2 { font-size: 48px; margin-bottom: 16px; }
@@ -198,13 +277,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .pmuscle { font-size: 11px; color: var(--muted); margin-top: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 .prow { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .ppill { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-.pill-a { background: #F0F0F0; color: #888; }
-.pill-z { background: #EAEAEA; color: var(--neutral); }
-.ppause { background: #F0F0F0; color: #666; }
+.pill-a { background: var(--fill-1); color: var(--text-4); }
+.pill-z { background: var(--fill-3); color: var(--neutral); }
+.ppause { background: var(--fill-1); color: var(--text-2); }
 .psteps { margin-top: 10px; padding-left: 0; list-style: none; }
-.psteps li { font-size: 13px; color: #666; line-height: 1.5; padding: 3px 0 3px 16px; position: relative; }
+.psteps li { font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 3px 0 3px 16px; position: relative; }
 .psteps li::before { content: "→"; position: absolute; left: 0; color: var(--dim); font-size: 11px; top: 5px; }
-.ptipp { margin-top: 10px; padding: 8px 10px; background: #F8F8F8; border-left: 2px solid var(--neutral); border-radius: 0 6px 6px 0; font-size: 12px; color: #666; line-height: 1.4; }
+.ptipp { margin-top: 10px; padding: 8px 10px; background: var(--fill-4); border-left: 2px solid var(--neutral); border-radius: 0 6px 6px 0; font-size: 12px; color: var(--text-2); line-height: 1.4; }
 .ptipp strong { color: var(--neutral); }
 .pnote { margin: 16px 20px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
 .pver { text-align: center; font-size: 11px; color: var(--dim); padding: 8px 20px 4px; }
@@ -215,8 +294,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .stc-name { font-weight: 700; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stc-delta { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; flex-shrink: 0; }
 .stc-delta.up { background: var(--go-bg); color: var(--go); }
-.stc-delta.down { background: #FFE8E0; color: #CC2200; }
-.stc-delta.flat { background: #F0F0F0; color: var(--muted); }
+.stc-delta.down { background: var(--alarm-bg); color: var(--alarm); }
+.stc-delta.flat { background: var(--fill-1); color: var(--muted); }
 .spark { width: 100%; height: 44px; display: block; }
 .spark-none { font-size: 12px; color: var(--dim); padding: 12px 0; text-align: center; }
 .stc-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
@@ -231,9 +310,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .wkpi-num.slow { color: var(--muted); }
 .wkpi-lbl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-top: 3px; text-transform: uppercase; }
 .wverdict { margin: 8px 20px 0; padding: 10px 14px; border-radius: 10px; font-size: 12px; line-height: 1.45; border: 1px solid; }
-.wverdict.ok   { background: var(--go-bg);  border-color: #B8DCB8; color: #2A5A2A; }
-.wverdict.fast { background: var(--legs-bg); border-color: var(--legs-bd); color: #8A2E10; }
-.wverdict.slow { background: #F0F0F0; border-color: var(--border); color: #666; }
+.wverdict.ok   { background: var(--go-bg);  border-color: var(--go-bd); color: var(--go-dk); }
+.wverdict.fast { background: var(--legs-bg); border-color: var(--legs-bd); color: var(--over-tx); }
+.wverdict.slow { background: var(--fill-1); border-color: var(--border); color: var(--text-2); }
 .wverdict strong { font-weight: 700; }
 .wchart { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 16px 20px 0; padding: 14px 12px 10px; }
 .wchart-hd { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 10px; }
@@ -241,28 +320,28 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .wlegend { display: flex; gap: 12px; font-size: 10px; color: var(--muted); font-weight: 600; }
 .wlegend span { display: flex; align-items: center; gap: 4px; }
 .wdot { width: 14px; height: 2.5px; border-radius: 2px; display: inline-block; }
-.wdot-fc { height: 8px; background: rgba(46,125,50,.18); border: 1px solid rgba(46,125,50,.45); box-sizing: border-box; }
+.wdot-fc { height: 8px; background: var(--fc-a18); border: 1px solid var(--fc-a45); box-sizing: border-box; }
 .wfc { font-size: 11.5px; color: var(--muted); padding: 8px 4px 2px; font-variant-numeric: tabular-nums; }
-.wfc b { color: #2E7D32; font-weight: 700; }
+.wfc b { color: var(--fc); font-weight: 700; }
 .wsvg { width: 100%; height: auto; display: block; }
 .wrange { display: flex; gap: 6px; padding: 12px 20px 0; }
 .wrbtn { flex: 1; padding: 8px 0; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-family: var(--fb); font-weight: 600; font-size: 12px; cursor: pointer; transition: all .15s; }
-.wrbtn.active { background: var(--neutral); color: #FFFFFF; border-color: var(--neutral); }
+.wrbtn.active { background: var(--neutral); color: var(--on-neutral); border-color: var(--neutral); }
 .wlist { padding: 16px 20px 0; }
 .wrow { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; margin-bottom: 6px; }
 .wrow-d { font-size: 13px; color: var(--muted); width: 78px; flex-shrink: 0; font-weight: 600; }
 .wrow-kg { font-size: 15px; font-weight: 700; flex: 1; }
 .wrow-tr { font-size: 12px; color: var(--muted); flex-shrink: 0; }
 .wnote { margin: 16px 20px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
-.wstart { margin: 8px 20px 0; padding: 11px 14px; background: var(--go-bg); border: 1px solid #B8DCB8; border-radius: 10px; display: flex; align-items: center; gap: 12px; }
+.wstart { margin: 8px 20px 0; padding: 11px 14px; background: var(--go-bg); border: 1px solid var(--go-bd); border-radius: 10px; display: flex; align-items: center; gap: 12px; }
 .wstart-num { font-family: var(--fd); font-size: 26px; letter-spacing: 1px; color: var(--go); line-height: 1; flex-shrink: 0; }
-.wstart-txt { font-size: 11.5px; color: #2A5A2A; line-height: 1.45; }
+.wstart-txt { font-size: 11.5px; color: var(--go-dk); line-height: 1.45; }
 .wstart-txt strong { font-weight: 700; }
 .wset { margin: 16px 20px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
 .wset-h { font-family: var(--fd); font-size: 14px; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
 .wset-sub { font-size: 11px; color: var(--dim); line-height: 1.45; margin-bottom: 12px; }
 .wset-btn { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; }
-.wset-btn.prim { background: var(--neutral); border-color: var(--neutral); color: #FFFFFF; }
+.wset-btn.prim { background: var(--neutral); border-color: var(--neutral); color: var(--on-neutral); }
 </style>
 </head>
 <body>
@@ -1071,8 +1150,8 @@ function weightChart(pts) {
   const stepKg = (hi - lo) > 6 ? 2 : ((hi - lo) > 3 ? 1 : 0.5);
   let grid = "";
   for (let g = Math.ceil(lo / stepKg) * stepKg; g <= hi; g += stepKg) {
-    grid += `<line x1="${padL}" y1="${Y(g).toFixed(1)}" x2="${W - padR}" y2="${Y(g).toFixed(1)}" stroke="#EEEEEE" stroke-width="1"/>
-      <text x="${padL - 5}" y="${(Y(g) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#BBBBBB" font-family="Figtree,sans-serif">${fmtNum(g, stepKg < 1 ? 1 : 0)}</text>`;
+    grid += `<line x1="${padL}" y1="${Y(g).toFixed(1)}" x2="${W - padR}" y2="${Y(g).toFixed(1)}" stroke="var(--ch-grid)" stroke-width="1"/>
+      <text x="${padL - 5}" y="${(Y(g) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--ch-lbl-2)" font-family="Figtree,sans-serif">${fmtNum(g, stepKg < 1 ? 1 : 0)}</text>`;
   }
 
   const raw   = pts.map(p => X(p.day).toFixed(1) + "," + Y(p.kg).toFixed(1)).join(" ");
@@ -1081,26 +1160,26 @@ function weightChart(pts) {
   // Trichter: Korridor W_MIN–W_MAX ab dem letzten Trendpunkt (nach Zielwechsel ab
   // dem Startpunkt aus wFcBase), Ziellinie gestrichelt
   const x0 = X(lastP.day).toFixed(1), y0 = Y(fc.base).toFixed(1), x1 = X(fc.day).toFixed(1);
-  const funnel = `<line x1="${x0}" y1="${padT}" x2="${x0}" y2="${H - padB}" stroke="#E4E4E4" stroke-width="1" stroke-dasharray="2 3"/>
-    <polygon points="${x0},${y0} ${x1},${Y(fc.hi).toFixed(1)} ${x1},${Y(fc.lo).toFixed(1)}" fill="#2E7D32" fill-opacity="0.13" stroke="#2E7D32" stroke-opacity="0.35" stroke-width="1" stroke-linejoin="round"/>
-    <line x1="${x0}" y1="${y0}" x2="${x1}" y2="${Y(fc.ziel).toFixed(1)}" stroke="#2E7D32" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>`;
+  const funnel = `<line x1="${x0}" y1="${padT}" x2="${x0}" y2="${H - padB}" stroke="var(--ch-grid-2)" stroke-width="1" stroke-dasharray="2 3"/>
+    <polygon points="${x0},${y0} ${x1},${Y(fc.hi).toFixed(1)} ${x1},${Y(fc.lo).toFixed(1)}" fill="var(--fc)" fill-opacity="0.13" stroke="var(--fc)" stroke-opacity="0.35" stroke-width="1" stroke-linejoin="round"/>
+    <line x1="${x0}" y1="${y0}" x2="${x1}" y2="${Y(fc.ziel).toFixed(1)}" stroke="var(--fc)" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>`;
 
   const lblFirst = fmtDate(pts[0].date).slice(0, 6);
   const lblLast  = fmtDate(fc.date).slice(0, 6);
 
   const scrub = scrubAttr(pts.map(p => ({
-    x: X(p.day), y: [Y(p.kg), Y(p.trend)], c: ["#BBBBBB", "#1A1A1A"],
+    x: X(p.day), y: [Y(p.kg), Y(p.trend)], c: ["var(--ch-lbl-2)", "var(--text)"],
     v: fmtNum(p.kg, 1) + " kg", t: fmtDate(p.date) + " · Trend " + fmtNum(p.trend, 1)
   })));
 
   return `<svg class="wsvg" viewBox="0 0 ${W} ${H}"${scrub}>
     ${grid}
     ${funnel}
-    <polyline points="${raw}" fill="none" stroke="#D8D8D8" stroke-width="1.5" stroke-linejoin="round"/>
-    <polyline points="${trend}" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="${X(lastP.day).toFixed(1)}" cy="${Y(lastP.trend).toFixed(1)}" r="3.5" fill="#1A1A1A"/>
-    <text x="${padL}" y="${H - 5}" font-size="9" fill="#BBBBBB" font-family="Figtree,sans-serif">${lblFirst}</text>
-    <text x="${W - padR}" y="${H - 5}" text-anchor="end" font-size="9" fill="#BBBBBB" font-family="Figtree,sans-serif">${lblLast}</text>
+    <polyline points="${raw}" fill="none" stroke="var(--ch-raw)" stroke-width="1.5" stroke-linejoin="round"/>
+    <polyline points="${trend}" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${X(lastP.day).toFixed(1)}" cy="${Y(lastP.trend).toFixed(1)}" r="3.5" fill="var(--text)"/>
+    <text x="${padL}" y="${H - 5}" font-size="9" fill="var(--ch-lbl-2)" font-family="Figtree,sans-serif">${lblFirst}</text>
+    <text x="${W - padR}" y="${H - 5}" text-anchor="end" font-size="9" fill="var(--ch-lbl-2)" font-family="Figtree,sans-serif">${lblLast}</text>
   </svg>`;
 }
 
@@ -1160,8 +1239,8 @@ function buildWeight() {
       <div class="wchart-hd">
         <div class="wchart-t">VERLAUF</div>
         <div class="wlegend">
-          <span><i class="wdot" style="background:#D8D8D8"></i>Messung</span>
-          <span><i class="wdot" style="background:#1A1A1A"></i>Trend</span>
+          <span><i class="wdot" style="background:var(--ch-raw)"></i>Messung</span>
+          <span><i class="wdot" style="background:var(--text)"></i>Trend</span>
           <span><i class="wdot wdot-fc"></i>Korridor</span>
         </div>
       </div>

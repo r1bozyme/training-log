@@ -325,13 +325,13 @@ function ibLinie(list, key, titel, einheit, farbe, von, bis) {
   lo -= pad; hi += pad;
   var x = function (d) { return X0 + (dn(d) - dn(von)) / Math.max(1, dn(bis) - dn(von)) * (X1 - X0); };
   var y = function (v) { return Y0 - (v - lo) / (hi - lo) * (Y0 - Y1); };
-  var s = '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + Y1 + '" y2="' + Y1 + '" stroke="#EEEEEE"/><line x1="' + X0 + '" x2="' + X1 + '" y1="' + Y0 + '" y2="' + Y0 + '" stroke="#EEEEEE"/>' +
-    '<text x="' + (X0 - 4) + '" y="' + (Y1 + 3) + '" text-anchor="end" font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif">' + f1(hi) + '</text>' +
-    '<text x="' + (X0 - 4) + '" y="' + (Y0 + 3) + '" text-anchor="end" font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif">' + f1(lo) + '</text>' +
+  var s = '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + Y1 + '" y2="' + Y1 + '" stroke="var(--ch-grid)"/><line x1="' + X0 + '" x2="' + X1 + '" y1="' + Y0 + '" y2="' + Y0 + '" stroke="var(--ch-grid)"/>' +
+    '<text x="' + (X0 - 4) + '" y="' + (Y1 + 3) + '" text-anchor="end" font-size="9" fill="var(--ch-lbl)" font-family="Figtree,sans-serif">' + f1(hi) + '</text>' +
+    '<text x="' + (X0 - 4) + '" y="' + (Y0 + 3) + '" text-anchor="end" font-size="9" fill="var(--ch-lbl)" font-family="Figtree,sans-serif">' + f1(lo) + '</text>' +
     '<polyline points="' + list.map(function (m) { return x(m.date).toFixed(1) + "," + y(m[key]).toFixed(1); }).join(" ") + '" fill="none" stroke="' + farbe + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
     list.map(function (m) {
       var ok = m.bed === "ok";
-      return '<circle cx="' + x(m.date).toFixed(1) + '" cy="' + y(m[key]).toFixed(1) + '" r="3.5" fill="' + (ok ? farbe : "#FFFFFF") + '" stroke="' + farbe + '" stroke-width="1.5"/>';
+      return '<circle cx="' + x(m.date).toFixed(1) + '" cy="' + y(m[key]).toFixed(1) + '" r="3.5" fill="' + (ok ? farbe : "var(--surface)") + '" stroke="' + farbe + '" stroke-width="1.5"/>';
     }).join("");
   var scrub = typeof window.scrubAttr === "function" ? window.scrubAttr(list.map(function (m) {
     return { x: x(m.date), y: [y(m[key])], c: [farbe], v: titel + " " + f1(m[key]) + " " + einheit, t: dmy(m.date) + (m.bed === "ok" ? " · Bedingungen ✓" : "") };
@@ -345,7 +345,7 @@ function ibVerlauf(a, W) {
   var list = a.filter(function (m) { return m.date >= von; });
   if (list.length < 2) return '<div class="dhint">Im gewählten Zeitraum liegen weniger als zwei Messungen – für den Verlauf 3M oder Alles wählen.</div>';
   if (list[0].date > von) von = list[0].date;
-  return '<div style="margin-top:12px">' + ibLinie(list, "smm", "Muskelmasse SMM", "kg", "#1A1A1A", von, t) + ibLinie(list, "kfa", "Körperfett", "%", "#B87A15", von, t) +
+  return '<div style="margin-top:12px">' + ibLinie(list, "smm", "Muskelmasse SMM", "kg", "var(--text)", von, t) + ibLinie(list, "kfa", "Körperfett", "%", "var(--amb-tx)", von, t) +
     '<div class="wt-leg" style="margin-top:4px"><span>● Bedingungen ✓</span><span>○ ohne Bestätigung</span><span>' + dm(von) + "–" + dm(t) + '</span></div></div>';
 }
 
@@ -505,27 +505,27 @@ var CSS = [
   ".ib-vt { font-size:11px; font-weight:700; color:var(--muted); margin-top:8px; } .ib-vt span { font-weight:600; color:var(--dim); }",
   ".ib-h { font-size:14px; font-weight:700; padding:8px 12px; border-radius:8px; margin-bottom:6px; }",
   ".ib-h.ib-ok { background:var(--go-bg); color:var(--go); }",
-  ".ib-h.ib-offen { background:#F2F2F2; color:var(--text); }",
-  ".ib-h.ib-fehlt { background:#FFF6DC; color:#7A6200; }",
-  ".ib-h.ib-nein { background:#FBE9E7; color:#A33A2A; }",
+  ".ib-h.ib-offen { background:var(--fill-2); color:var(--text); }",
+  ".ib-h.ib-fehlt { background:var(--warn-bg); color:var(--warn-tx-3); }",
+  ".ib-h.ib-nein { background:var(--err-bg); color:var(--err); }",
   ".ib-r { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }",
   ".ib-r:last-of-type { border-bottom:none; }",
   ".ib-i { flex:0 0 22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }",
   ".ib-r.ib-ok .ib-i { background:var(--go-bg); color:var(--go); }",
-  ".ib-r.ib-offen .ib-i { background:#F2F2F2; color:var(--muted); }",
-  ".ib-r.ib-fehlt .ib-i { background:#FFF6DC; color:#7A6200; }",
-  ".ib-r.ib-nein .ib-i { background:#FBE9E7; color:#A33A2A; }",
+  ".ib-r.ib-offen .ib-i { background:var(--fill-2); color:var(--muted); }",
+  ".ib-r.ib-fehlt .ib-i { background:var(--warn-bg); color:var(--warn-tx-3); }",
+  ".ib-r.ib-nein .ib-i { background:var(--err-bg); color:var(--err); }",
   ".ib-k { font-size:13.5px; font-weight:700; color:var(--text); }",
   ".ib-x { font-size:12.5px; color:var(--muted); line-height:1.5; margin-top:2px; }",
   ".ib-x2 { font-size:11.5px; color:var(--muted); margin-top:4px; }",
-  ".ib-c { display:inline-block; font-size:12px; font-weight:600; padding:3px 8px; border-radius:6px; margin:4px 4px 0 0; background:#F2F2F2; color:var(--text); font-variant-numeric:tabular-nums; }",
+  ".ib-c { display:inline-block; font-size:12px; font-weight:600; padding:3px 8px; border-radius:6px; margin:4px 4px 0 0; background:var(--fill-2); color:var(--text); font-variant-numeric:tabular-nums; }",
   ".ib-c.ib-ok { background:var(--go-bg); color:var(--go); }",
-  ".ib-c.ib-nein { background:#FBE9E7; color:#A33A2A; }",
-  ".ib-c.ib-fehlt { background:#FFF6DC; color:#7A6200; }",
+  ".ib-c.ib-nein { background:var(--err-bg); color:var(--err); }",
+  ".ib-c.ib-fehlt { background:var(--warn-bg); color:var(--warn-tx-3); }",
   ".ib-btns { display:flex; gap:8px; margin-top:8px; }",
   ".ib-b { flex:1; padding:9px 6px; border-radius:8px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); font-family:var(--fb); font-size:12.5px; font-weight:700; }",
-  ".ib-b.on { border-color:#B8DCB8; background:var(--go-bg); color:var(--go); }",
-  ".ib-b.on.no { border-color:#E8B4AC; background:#FBE9E7; color:#A33A2A; }",
+  ".ib-b.on { border-color:var(--go-bd); background:var(--go-bg); color:var(--go); }",
+  ".ib-b.on.no { border-color:var(--err-bd); background:var(--err-bg); color:var(--err); }",
   /* Messungen */
   ".ib-m { margin-top:0; }",
   ".ib-big { display:flex; gap:8px; margin-bottom:8px; }",
@@ -537,7 +537,7 @@ var CSS = [
   ".ib-rd { flex:0 0 78px; font-size:12.5px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; }",
   ".ib-rv { flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--text); font-variant-numeric:tabular-nums; }",
   ".ib-tag { display:block; font-size:11px; font-weight:600; margin-top:2px; }",
-  ".ib-tag.ib-ok { color:var(--go); } .ib-tag.ib-nein { color:#A33A2A; }",
+  ".ib-tag.ib-ok { color:var(--go); } .ib-tag.ib-nein { color:var(--err); }",
   ".ib-del { flex:0 0 32px; height:32px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:16px; line-height:1; }",
   ".ib-add { padding:10px 0 2px; border-top:1px solid var(--border); }",
   ".ib-done { padding:10px 0 2px; border-top:1px solid var(--border); font-size:13px; color:var(--muted); }",

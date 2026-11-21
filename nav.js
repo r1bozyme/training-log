@@ -49,11 +49,11 @@ var CSS = [
   ".chipnav::-webkit-scrollbar { display:none; }",
   ".chipnav button { flex:none; font-family:var(--fb); font-size:13px; font-weight:600; color:var(--text); padding:7px 14px;",
   "  border-radius:99px; background:var(--surface); border:1px solid var(--border); white-space:nowrap; cursor:pointer; }",
-  ".chipnav button.on { background:var(--neutral); border-color:var(--neutral); color:#FFFFFF; }",
+  ".chipnav button.on { background:var(--neutral); border-color:var(--neutral); color:var(--on-neutral); }",
   ".chipnav .soon { flex:none; font-size:12px; color:var(--dim); padding:7px 4px; white-space:nowrap; }",
 
   ".navfab { position:fixed; right:max(16px, calc(50% - 224px)); bottom:calc(76px + var(--sb)); z-index:101;",
-  "  border:none; border-radius:99px; padding:14px 20px; background:var(--neutral); color:#FFFFFF;",
+  "  border:none; border-radius:99px; padding:14px 20px; background:var(--neutral); color:var(--on-neutral);",
   "  font-family:var(--fb); font-weight:700; font-size:14px; box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; }",
   ".navfab[hidden] { display:none; }",
   /* Platz unter dem letzten Inhalt, damit der schwebende Knopf nichts verdeckt */

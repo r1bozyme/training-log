@@ -62,9 +62,9 @@ function setOpt(k, v) {
 /* ─── Studio-Helfer ─────────────────────────────────── */
 function S() { return window.tlStudio || null; }
 function gruppen() { return S() ? S().stamm() : [""]; }
-function farbe(g) { return S() ? S().farbe(g) : "#B07810"; }
+function farbe(g) { return S() ? S().farbe(g) : "var(--st-1)"; }
 function voll(g) { return S() ? S().name(g) : "Heimstudio"; }
-function farbeEintrag(e) { return S() ? S().farbe(String(e.studio || "").trim()) : "#B07810"; }
+function farbeEintrag(e) { return S() ? S().farbe(String(e.studio || "").trim()) : "var(--st-1)"; }
 var FUELL = { all: 1, inclusive: 1, fitness: 1, studio: 1, gym: 1, club: 1 };
 function kurz(g) {
   var w = voll(g).split(/\s+/).filter(function (x) { return x && !FUELL[x.toLowerCase()]; });
@@ -392,7 +392,7 @@ function css() {
     ".kx-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}" +
     ".kx-big{font-family:var(--fd);font-size:40px;line-height:1;color:var(--kc);letter-spacing:1px}" +
     ".kx-d{font-family:var(--fb);font-size:12px;font-weight:700;margin-left:8px;letter-spacing:0}" +
-    ".up{color:#2E8A3E}.down{color:#C04015}.flat{color:var(--muted)}" +
+    ".up{color:var(--up)}.down{color:var(--down)}.flat{color:var(--muted)}" +
     ".kx-svg{display:block;width:100%;overflow:visible}" +
     "line.kx-gl{stroke:var(--border);stroke-width:1}" +
     "text.kx-ax{font:9px var(--fb);fill:var(--muted)}" +

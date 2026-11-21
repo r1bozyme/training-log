@@ -95,8 +95,8 @@ function graph(o) {
 
   var svg = "";
   [0, max / 2, max].forEach(function (t) {
-    svg += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + y(t).toFixed(1) + '" y2="' + y(t).toFixed(1) + '" stroke="#EEEEEE"/>' +
-           '<text x="' + (X0 - 5) + '" y="' + (y(t) + 3.5).toFixed(1) + '" text-anchor="end" font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif">' + String(t).replace(".", ",") + '</text>';
+    svg += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + y(t).toFixed(1) + '" y2="' + y(t).toFixed(1) + '" stroke="var(--ch-grid)"/>' +
+           '<text x="' + (X0 - 5) + '" y="' + (y(t) + 3.5).toFixed(1) + '" text-anchor="end" font-size="9" fill="var(--ch-lbl)" font-family="Figtree,sans-serif">' + String(t).replace(".", ",") + '</text>';
   });
   lines.forEach(function (l, si) {
     var s = o.series[si], seg = [], segs = [];
@@ -115,8 +115,8 @@ function graph(o) {
   var ai = -1;
   o.series.forEach(function (s, si) { if (ai < 0 && s.kind === "avg") ai = si; });
   if (ai >= 0 && lines[ai][n] !== null) svg += '<circle cx="' + x(n).toFixed(1) + '" cy="' + y(lines[ai][n]).toFixed(1) + '" r="3.5" fill="' + o.series[ai].color + '"/>';
-  svg += '<text x="' + X0 + '" y="107" font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif">' + dm(start) + '</text>' +
-         '<text x="' + X1 + '" y="107" text-anchor="end" font-size="9" fill="#8A8A8A" font-family="Figtree,sans-serif">' + dm(o.end) + '</text>';
+  svg += '<text x="' + X0 + '" y="107" font-size="9" fill="var(--ch-lbl)" font-family="Figtree,sans-serif">' + dm(start) + '</text>' +
+         '<text x="' + X1 + '" y="107" text-anchor="end" font-size="9" fill="var(--ch-lbl)" font-family="Figtree,sans-serif">' + dm(o.end) + '</text>';
 
   /* Abtasten */
   var pts = [];
@@ -152,11 +152,11 @@ var CSS = [
   ".wt-date > button { width:44px; height:44px; border:none; background:transparent; font-size:22px; color:var(--muted); cursor:pointer; }",
   ".wt-date > button:disabled { color:var(--dim); cursor:default; }",
   ".wt-dt { position:relative; font-family:var(--fd); font-size:21px; letter-spacing:1px; color:var(--text); padding:6px 4px; white-space:nowrap; }",
-  ".wt-dt.past { color:#2F5D8A; }",
+  ".wt-dt.past { color:var(--blue); }",
   ".wt-dt input { position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; padding:0; border:none; cursor:pointer; }",
   ".wt-range { display:flex; justify-content:flex-end; gap:6px; margin:14px 20px 0; }",
   ".wt-range button { padding:7px 14px; border-radius:16px; border:1.5px solid var(--border); background:transparent; color:var(--muted); font-family:var(--fb); font-size:12px; font-weight:700; cursor:pointer; }",
-  ".wt-range button.on { background:var(--text); border-color:var(--text); color:#FFF; }",
+  ".wt-range button.on { background:var(--text); border-color:var(--text); color:var(--on-neutral); }",
   ".wt-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 20px 0; }",
   ".wt-hd { display:flex; align-items:baseline; gap:10px; }",
   ".wt-lbl { flex:1; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }",
@@ -165,7 +165,7 @@ var CSS = [
   ".wt-ks { font-size:11px; font-weight:700; color:var(--muted); margin:0 1px 0 8px; }",
   ".wt-ks:first-child { margin-left:0; }",
   ".wt-kd { font-size:12px; font-weight:700; color:var(--muted); margin-left:4px; }",
-  ".wt-kd.good { color:#2A7A2A; } .wt-kd.warn { color:#B33A3A; }",
+  ".wt-kd.good { color:var(--go); } .wt-kd.warn { color:var(--bad); }",
   ".wt-sub { font-size:11px; color:var(--muted); margin-top:2px; }",
   ".wt-today { display:flex; align-items:center; gap:10px; margin-top:12px; padding:6px 4px 6px 12px; background:var(--bg); border-radius:10px; min-height:36px; }",
   ".wt-tl { font-size:12px; font-weight:600; color:var(--muted); flex-shrink:0; }",
@@ -181,19 +181,19 @@ var CSS = [
   ".wt-more.open { color:var(--text); }",
   ".wt-mini { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin:12px 20px 0; cursor:pointer; }",
   ".wt-mv { font-size:12px; color:var(--muted); font-weight:600; }",
-  ".wt-mv.warn { color:#9A6410; font-weight:700; }",
+  ".wt-mv.warn { color:var(--amb-tx-4); font-weight:700; }",
   ".wt-mini > span:last-child { color:var(--dim); }",
   ".wt-fold { border:none; background:transparent; padding:6px 0; margin:-6px 0; text-align:left; font-family:var(--fb); cursor:pointer; }",
   ".wt-fold span { color:var(--dim); letter-spacing:0; }",
   ".wt-mplus { width:40px; height:32px; margin:-6px -6px -6px 0; border:1.5px solid var(--border); border-radius:10px; background:transparent; font-size:16px; color:var(--text); cursor:pointer; flex-shrink:0; }",
   ".wt-grid { display:grid; grid-template-columns:38px repeat(7, minmax(0,1fr)) 66px; gap:4px; align-items:center; margin-top:12px; }",
   ".wt-c { height:24px; border-radius:5px; background:var(--bg); border:1px solid var(--border); box-sizing:border-box; }",
-  ".wt-c.hit { background:#4FA34F; border-color:#4FA34F; } .wt-c.under { background:#E8A33D; border-color:#E8A33D; } .wt-c.over { background:#D96A6A; border-color:#D96A6A; }",
-  ".wt-c.est { border:2px dashed var(--text); } .wt-c.trip { box-shadow:inset 0 0 0 2px #2F5D8A; }",
+  ".wt-c.hit { background:var(--go-dot); border-color:var(--go-dot); } .wt-c.under { background:var(--amb); border-color:var(--amb); } .wt-c.over { background:var(--bad-2); border-color:var(--bad-2); }",
+  ".wt-c.est { border:2px dashed var(--text); } .wt-c.trip { box-shadow:inset 0 0 0 2px var(--blue); }",
   ".wt-c.fut { background:transparent; border:1px dashed var(--border); }",
   ".wt-c.sel { outline:2px solid var(--text); outline-offset:1px; }",
   ".wt-wk { font-size:11px; font-weight:600; color:var(--muted); white-space:nowrap; }",
-  ".wt-wk.c { text-align:center; } .wt-wk.good { color:#2A7A2A; } .wt-wk.warn { color:#9A6410; }",
+  ".wt-wk.c { text-align:center; } .wt-wk.good { color:var(--go); } .wt-wk.warn { color:var(--amb-tx-4); }",
   /* Gewicht: Zeitraum kommt von oben (Push 2 baut die Karte um) */
   "#weight-cont .wrange { display:none; }"
 ].join("\n");

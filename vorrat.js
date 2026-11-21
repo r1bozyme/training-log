@@ -276,7 +276,7 @@ function rerender() {
 var CSS = [
   ".vr-b { flex-shrink:0; min-width:40px; height:34px; border-radius:8px; border:1.5px solid var(--border); background:transparent;",
   "  font-family:var(--fb); font-weight:700; font-size:13px; color:var(--text); cursor:pointer; padding:0 8px; }",
-  ".vr-warn { color:#B87A15 !important; font-weight:600; }"
+  ".vr-warn { color:var(--amb-tx) !important; font-weight:600; }"
 ].join("\n");
 
 function init() {
