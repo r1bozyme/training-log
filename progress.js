@@ -33,6 +33,10 @@
 //   Maßgeblich ist das im Eintrag gewählte Studio; fremde Studios
 //   zählen nicht. Der Kasten "Erhöhung fällig" zeigt alle Gruppen.
 //
+// NEU 23.11.: Pausentimer setzt sich 5 s nach Ablauf selbst zurück
+//   (Anzeige wieder volle Pausenzeit, Knopf ▶ START) – kein ↺ NEU mehr
+//   nötig. Ton, Vibration und Hinweis bleiben.
+//
 // NEU 19.11.: SCHRITTWEITE JE STUDIO. Sendling hat nur 5-kg-Stufen
 //   (Beinpresse 8 kg). schrittVon(ex, key) nimmt dort die Gerätestufe
 //   statt der Heim-Schrittweite (plan.js: PLAN.studioSchritt,
@@ -988,6 +992,11 @@ function init() {
         renderTimer();
         if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
         showFlash("Pause vorbei – nächster Satz! 💪");
+        // Nach 5 s von selbst zurück auf die volle Pausenzeit (wie der
+        // Tempo-Coach) – ein Tipp auf START reicht für die nächste Pause.
+        setTimeout(function () {
+          if (timerState === "done" && typeof toggleTimer === "function") toggleTimer();
+        }, 5000);
       }
     }, 250);
   };
