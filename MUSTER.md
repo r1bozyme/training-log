@@ -234,6 +234,17 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
 - Löschen per × zeigt 6 s lang „Rückgängig“, statt vorher nachzufragen.
 - **Commit:** 6193d9b
 
+### Töne auf der Audio-Uhr vormerken
+- **Problem:** Chrome drosselt `setInterval` im Hintergrund bzw. bei
+  ausgeschaltetem Bildschirm – Signaltöne aus JavaScript kommen zu spät.
+- **Lösung:** Alle Töne beim Start (Nutzergeste) als Oszillatoren auf
+  `ctx.currentTime + n` vormerken; die Anzeige rechnet gegen einen
+  Startzeitstempel. Wake Lock, solange etwas läuft. Nach
+  `visibilitychange` den Rest ab der verstrichenen Zeit neu vormerken.
+  Gilt für Einzelton (Pausentimer) wie für ganze Sequenzen
+  (Tempo-Coach: Einzählen, Phasen-Töne, Klicks, Abschluss).
+- **Code:** `progress.js` (Pausentimer), `tempo.js` (Tempo-Coach)
+
 ### Datum in Ortszeit
 - „Heute“ wird aus der Ortszeit gebildet, nicht über `toISOString()` (UTC).
   Sonst wechselt der Tag in Deutschland erst um 1 bzw. 2 Uhr.
