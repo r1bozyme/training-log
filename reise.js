@@ -12,6 +12,7 @@
        statt Müsli, Skyr usw. Mengen in der Karte änderbar (0 = aus).
      · Schnellposten: Schätzwerte für unterwegs plus deine eigenen
        „Gerichte / Unterwegs“-Produkte, nach Häufigkeit.
+     · 24.11.: Knopf „Restaurants in der Nähe“ (speise.js, tlSpeise.naehe).
      · Studio steht morgens auf „Unterwegs“ statt auf dem Heimstudio
        (studio.js fragt tlReise.aktivAm). Von Hand umstellen geht.
    Reisetage fallen wie bisher aus der Energiebilanz (energie.js).
@@ -198,6 +199,7 @@ function render() {
     (c.bis !== h ? '<button class="rs-l" onclick="reiseLetzter()">Heute letzter</button>' : "") +
     '<button class="rs-l" onclick="reiseEnde()">Beenden</button></div></div>' +
     '<div class="rs-k">Schnell erfassen (Schätzwerte, Tap = 1 Portion)</div><div class="rs-chips">' + chips + "</div>" +
+    (window.tlSpeise && window.tlSpeise.naehe ? '<button class="fbtn2" style="width:100%;margin-top:12px" onclick="tlSpeise.naehe()">📍 Restaurants in der Nähe</button>' : "") +
     '<button class="fbtn2 prim" style="width:100%;margin-top:12px" onclick="reiseBasisEintragen()">Reise-Basis eintragen (~' + Math.round(kc) + " kcal)</button>" +
     '<details class="rs-det"><summary>Reise-Basis anpassen</summary>' + basis + "</details>" +
     '<div class="fhint">Reisetage sind automatisch als „Reise“ markiert und zählen nicht für die Energiebilanz. Studio steht morgens auf „Unterwegs“.</div>' +

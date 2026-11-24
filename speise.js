@@ -13,6 +13,16 @@
                       Portion“), wahlweise mit Foto vom Teller. Ergebnis mit
                       Spanne; eingetragen wird die Mitte, Werte anpassbar.
 
+   tlSpeise.naehe()   24.11.: Restaurants in der Nähe (Reise-Modus-Karte,
+                      Scanner). Standort per GPS (OpenStreetMap-Nominatim
+                      macht daraus eine Adresse) oder Freitext („Hotel …“),
+                      dazu Wunsch und Gehzeit. Claude sucht per Websuche
+                      (Server-Werkzeug, tlLabel.vision mit o.extra) 3–5 jetzt
+                      geöffnete Lokale und nennt je Lokal das passende
+                      vegetarische Gericht mit Schätzwerten fürs freie Budget.
+                      „Eintragen“ bucht „~ Gericht (Lokal)“, „Maps ↗“ öffnet
+                      Google Maps. Kosten ~10–20 Cent je Suche.
+
    Eingetragen wird immer als Einmal-Posten ohne Produkt (foodAddFrei,
    Name mit „~“), der Tag wird automatisch als „geschätzt“ markiert.
    ═══════════════════════════════════════════════════ */
@@ -49,6 +59,12 @@ function css() {
     "#sp-ov .sp-b { display:block; width:100%; margin-top:10px; padding:13px; border-radius:12px; border:1px solid var(--border); background:transparent; font-size:15px; font-family:inherit; color:inherit; }",
     "#sp-ov .sp-b.prim { background:var(--neutral); color:var(--on-neutral); border-color:transparent; }",
     "#sp-ov .sp-b.sm { margin-top:0; padding:10px; font-size:14px; flex:1; }",
+    "#sp-ov .sp-in { width:100%; box-sizing:border-box; border:1px solid var(--border); border-radius:12px; padding:11px 12px; font-size:15px; font-family:inherit; background:var(--bg); color:inherit; margin-bottom:8px; }",
+    "#sp-ov .sp-lo { font-size:12px; color:var(--muted); margin:-2px 0 10px; }",
+    "#sp-ov .sp-ln { font-size:12px; font-weight:700; color:var(--muted); letter-spacing:.03em; margin-bottom:2px; }",
+    "#sp-ov .sp-seg { display:flex; gap:6px; margin-bottom:10px; }",
+    "#sp-ov .sp-seg button { flex:1; padding:9px 4px; border-radius:10px; border:1px solid var(--border); background:transparent; color:inherit; font-family:inherit; font-size:14px; }",
+    "#sp-ov .sp-seg button.on { background:var(--neutral); color:var(--on-neutral); border-color:transparent; }",
     "#sp-ov .sp-warn { font-size:13px; color:var(--amb-tx); margin-bottom:10px; line-height:1.4; }"
   ].join("\n");
   document.head.appendChild(s);
@@ -268,7 +284,144 @@ function showGericht(x, txt) {
     '<button class="sp-b" onclick="tlSpeise.close()">Abbrechen</button>');
 }
 
+/* ─── In der Nähe (24.11.) ────────────────────────── */
+var TOOL_NAEHE = {
+  name: "lokale",
+  description: "3–5 Restaurants in Gehweite mit je einem passenden vegetarischen Gericht und geschätzten Nährwerten je Portion",
+  input_schema: {
+    type: "object",
+    properties: {
+      ort: { type: "string", description: "Wie du den Standort verstanden hast (kurz)" },
+      lokale: { type: "array", items: { type: "object", properties: {
+        lokal: { type: "string" },
+        adresse: { type: "string", description: "Straße und Hausnummer" },
+        minuten: { type: "number", description: "geschätzte Gehminuten vom Standort" },
+        offen: { type: "string", description: "Öffnungszeit heute, z. B. „bis 22 Uhr“, oder „unklar“" },
+        gericht: { type: "string", description: "konkretes Gericht, mit Anpassung in Klammern" },
+        kcal: { type: "number" }, kh: { type: "number" }, f: { type: "number" }, p: { type: "number" },
+        grund: { type: "string", description: "ein kurzer Satz: warum / was beim Bestellen sagen" },
+        passt: { type: "boolean", description: "bleibt im freien Budget (Protein zählt nicht)" }
+      }, required: ["lokal", "adresse", "minuten", "gericht", "kcal", "kh", "f", "p", "grund", "passt"] } },
+      hinweis: { type: "string", description: "kurz, z. B. wenn Fett kaum noch frei ist und was du dann rätst" }
+    },
+    required: ["lokale"]
+  }
+};
+var WEB = { type: "web_search_20250305", name: "web_search", max_uses: 5,
+            user_location: { type: "approximate", country: "DE", timezone: "Europe/Berlin" } };
+var nh = { pos: null, adr: "", stadt: "", min: 10 };
+
+function naehe() {
+  if (!window.tlLabel) return;
+  var b = budget();
+  if (!b) { flash("Ernährung-Tab nicht bereit"); return; }
+  open('<div class="sp-t">Restaurants in der Nähe</div>' + budHTML(b) +
+    '<div class="sp-ln">STANDORT</div>' +
+    '<input id="sp-ort" class="sp-in" placeholder="Hotel, Adresse – leer = aktueller Standort" value="' + esc(nh.frei || "") + '">' +
+    '<div class="sp-lo" id="sp-lo">' + (nh.adr ? "📍 " + esc(nh.adr) : "Standort wird ermittelt …") + "</div>" +
+    '<div class="sp-ln">GEHZEIT HÖCHSTENS</div><div class="sp-seg" id="sp-min">' +
+      [5, 10, 15, 20].map(function (m) { return '<button data-m="' + m + '"' + (m === nh.min ? ' class="on"' : "") + ">" + m + " Min</button>"; }).join("") + "</div>" +
+    '<div class="sp-ln">WUNSCH (OPTIONAL)</div>' +
+    '<input id="sp-wu" class="sp-in" placeholder="z. B. asiatisch, ruhig, schnell" value="' + esc(nh.wunsch || "") + '">' +
+    '<button class="sp-b prim" onclick="tlSpeise.suchen()">Passende Lokale suchen</button>' +
+    '<div class="sp-x" style="margin-top:8px">Claude sucht im Netz nach geöffneten Lokalen und schätzt je ein Gericht. Dauert 20–60 s, kostet ~10–20 Cent.</div>' +
+    '<button class="sp-b" onclick="tlSpeise.close()">Abbrechen</button>');
+  ov.querySelector("#sp-min").addEventListener("click", function (e) {
+    var m = e.target && e.target.getAttribute("data-m"); if (!m) return;
+    nh.min = Number(m);
+    [].forEach.call(this.children, function (x) { x.classList.toggle("on", x === e.target); });
+  });
+  orten();
+}
+
+function orten() {
+  var lo = function (t) { var el = document.getElementById("sp-lo"); if (el) el.textContent = t; };
+  if (!navigator.geolocation) { lo("Kein GPS – bitte Ort eintippen"); return; }
+  navigator.geolocation.getCurrentPosition(function (p) {
+    nh.pos = { lat: p.coords.latitude, lon: p.coords.longitude, acc: Math.round(p.coords.accuracy) };
+    lo("📍 " + nh.pos.lat.toFixed(4) + ", " + nh.pos.lon.toFixed(4) + " – Adresse wird gesucht …");
+    /* Adresse für Claude (Koordinaten allein sucht die Websuche schlecht) */
+    fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=de&lat=" + nh.pos.lat + "&lon=" + nh.pos.lon)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var a = (d && d.address) || {};
+        var str = [a.road, a.house_number].filter(Boolean).join(" ");
+        nh.stadt = a.city || a.town || a.village || "";
+        nh.adr = [str, a.postcode && nh.stadt ? a.postcode + " " + nh.stadt : nh.stadt, a.suburb].filter(Boolean).join(", ");
+        lo("📍 " + (nh.adr || "Standort gefunden"));
+      })
+      .catch(function () { lo("📍 Standort gefunden (ohne Adresse)"); });
+  }, function () { nh.pos = null; lo("Standort nicht verfügbar – bitte Ort eintippen"); },
+  { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 });
+}
+
+function suchen() {
+  var b = budget(); if (!b) return;
+  var f = document.getElementById("sp-ort"), w = document.getElementById("sp-wu");
+  nh.frei = f ? f.value.trim() : ""; nh.wunsch = w ? w.value.trim() : "";
+  if (!nh.frei && !nh.pos) { flash("Bitte Ort eintippen oder Standort erlauben"); return; }
+  var ort = nh.frei ? "Standort: " + nh.frei + (nh.stadt ? " (aktuell in " + nh.stadt + ")" : "")
+          : "Standort: " + (nh.adr || "") + " (GPS " + nh.pos.lat.toFixed(5) + ", " + nh.pos.lon.toFixed(5) + ", ±" + nh.pos.acc + " m)";
+  var jetzt = new Date(), wt = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"][jetzt.getDay()];
+  var prompt = [
+    "Ich bin unterwegs und suche jetzt ein Restaurant zum Essen. Ich bin Vegetarier (Eier und Milchprodukte ja, kein Fleisch, kein Fisch).",
+    ort + ". Höchstens " + nh.min + " Minuten zu Fuß.",
+    "Jetzt: " + wt + ", " + String(jetzt.getHours()).padStart(2, "0") + ":" + String(jetzt.getMinutes()).padStart(2, "0") + " Uhr.",
+    nh.wunsch ? "Wunsch: " + nh.wunsch + "." : "",
+    budText(b),
+    "Vorgehen: Suche mit der Websuche nach Restaurants in Gehweite, die jetzt geöffnet sind, und – wo möglich – nach ihrer Speisekarte. Wähle 3–5 Lokale mit je EINEM konkreten Gericht, das am besten ins freie Budget passt, und rufe dann das Werkzeug lokale auf.",
+    "Regeln:",
+    "- Nur Lokale, die es wirklich an dieser Adresse gibt (aus den Suchergebnissen), keine erfundenen. Lieber 3 sichere als 5 unsichere. Gehminuten realistisch schätzen, sortiert nach Eignung, beste zuerst.",
+    "- Fett und Kalorien sind Obergrenzen; der bindende Faktor entscheidet. Protein ist ein Mindestziel, Überschreitung ist nie ein Grund für passt=false. Ist noch viel Protein offen, proteinreich bevorzugen; sind viele Kohlenhydrate offen, KH-dichte, fettarme Gerichte (Reis, Nudeln, Brot, Brühe) bevorzugen.",
+    "- Ist kaum noch Fett frei, das fettärmste realistische Gericht wählen und im hinweis offen sagen, wie viel Fett es trotzdem kostet – nicht schönrechnen.",
+    "- Anpassungen sind erlaubt und oft klug („Extra Reis“, „ohne Käse“, „Dressing separat“, „Tofu nicht frittiert“) – in Klammern an das Gericht, Werte entsprechend.",
+    "- Nährwerte je Portion realistisch für deutsche Restaurantportionen (eher groß); Fett bei Käse, Sahne, Öl, Ghee, Frittiertem nicht unterschätzen.",
+    "- grund: ein kurzer Satz, konkret. offen: Öffnungszeit heute, falls gefunden."
+  ].filter(Boolean).join("\n");
+  set('<div class="sp-t">Restaurants in der Nähe</div>' + budHTML(b) + '<div class="sp-x">Claude sucht Lokale und Gerichte … (20–60 s)</div>');
+  window.tlLabel.vision({ prompt: prompt, tool: TOOL_NAEHE, extra: [WEB], maxTokens: 4000, limitMs: 120000, busy: "Lokale werden gesucht …" })
+    .then(function (x) { showNaehe(b, x); });
+}
+
+var lastL = [];
+function showNaehe(b, x) {
+  if (!ov) return;
+  if (!x || !Array.isArray(x.lokale) || !x.lokale.length) {
+    set('<div class="sp-t">Restaurants in der Nähe</div><div class="sp-x">' + (x && x.hinweis ? esc(x.hinweis) : "Nichts Passendes gefunden.") + "</div>" +
+      '<button class="sp-b prim" onclick="tlSpeise.naehe()">Nochmal</button><button class="sp-b" onclick="tlSpeise.close()">Schließen</button>');
+    return;
+  }
+  lastL = x.lokale.slice(0, 5).map(function (l) {
+    return { lokal: String(l.lokal || "Lokal").slice(0, 50), adr: String(l.adresse || ""), min: num(l.minuten), offen: String(l.offen || ""),
+             n: String(l.gericht || "Gericht").slice(0, 60), kcal: num(l.kcal) || 0, kh: num(l.kh) || 0, f: num(l.f) || 0, p: num(l.p) || 0,
+             grund: String(l.grund || ""), passt: l.passt !== false };
+  });
+  var h = '<div class="sp-t">Restaurants in der Nähe</div>' + budHTML(b) +
+    (x.hinweis ? '<div class="sp-warn">' + esc(x.hinweis) + "</div>" : "");
+  h += lastL.map(function (l, i) {
+    var over = ["kcal", "kh", "f"].filter(function (k) { return l[k] > b.frei[k]; });
+    var q = encodeURIComponent(l.lokal + " " + l.adr + (nh.stadt ? " " + nh.stadt : ""));
+    return '<div class="sp-g' + (i === 0 ? " top" : "") + '"><div class="sp-gn">' + esc(l.lokal) + "</div>" +
+      '<div class="sp-gm">' + esc(l.adr) + (l.min != null ? " · ~" + n0(l.min) + " Min" : "") + (l.offen ? " · " + esc(l.offen) : "") + "</div>" +
+      '<div class="sp-gr" style="font-weight:700">' + esc(l.n) + "</div>" +
+      '<div class="sp-gm">~ ' + n0(l.kcal) + " kcal · " + n0(l.kh) + " KH · " + n0(l.f) + " F · " + n0(l.p) + " P" +
+        (over.length ? ' · <span style="color:var(--err)">über Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
+      '<div class="sp-gr">' + esc(l.grund) + "</div>" +
+      '<div class="sp-gb"><button class="sp-b sm prim" onclick="tlSpeise.nimmL(' + i + ')">Eintragen</button>' +
+      '<button class="sp-b sm" onclick="tlSpeise.anpassenL(' + i + ')">Anpassen</button>' +
+      '<a class="sp-b sm" style="text-align:center;text-decoration:none" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=' + q + '">Maps ↗</a></div></div>';
+  }).join("");
+  h += '<div class="sp-x" style="margin-top:6px">Schätzwerte aus der Websuche – Öffnungszeiten vor Ort prüfen. Liegt die Karte vor dir, ist „Speisekarte“ genauer.</div>' +
+    '<button class="sp-b" onclick="tlSpeise.karte()">Speisekarte vor Ort fotografieren</button>' +
+    '<button class="sp-b" onclick="tlSpeise.close()">Schließen</button>';
+  set(h);
+}
+function lPosten(l) { return { n: l.n + " (" + l.lokal + ")", kcal: l.kcal, kh: l.kh, f: l.f, p: l.p }; }
+
 window.tlSpeise = {
+  naehe: naehe, suchen: suchen,
+  nimmL: function (i) { if (lastL[i]) eintragen(lPosten(lastL[i])); },
+  anpassenL: function (i) { if (lastL[i]) anpassen(lPosten(lastL[i])); },
   karte: karte, gericht: gericht, schaetzen: schaetzen, close: close,
   nimm: function (i) { if (lastG[i]) eintragen(lastG[i]); },
   anpassen: function (i) { if (lastG[i]) anpassen(lastG[i]); }

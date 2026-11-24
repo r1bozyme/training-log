@@ -98,7 +98,8 @@ function idle(msg) {
   panel('<div class="sc-st">' + (msg || hint) + '</div>' + logHTML() +
     (mode === "food" && window.tlLabel ? '<button class="sc-btn prim" data-a="labelonly">📷 Etikett fotografieren</button>' : "") +
     (mode === "food" && window.tlSpeise ? '<div class="sc-row"><button class="sc-btn" data-a="karte">🍽 Speisekarte</button>' +
-      '<button class="sc-btn" data-a="gericht">🍽 Gericht schätzen</button></div>' : "") +
+      '<button class="sc-btn" data-a="gericht">🍽 Gericht schätzen</button></div>' +
+      (window.tlSpeise.naehe ? '<button class="sc-btn" data-a="naehe">📍 Restaurants in der Nähe</button>' : "") : "") +
     '<div class="sc-row"><button class="sc-btn" data-a="manual">EAN eintippen</button>' +
     (mode === "vorrat" && log.length ? '<button class="sc-btn" data-a="undo">Letzte zurück</button>' : "") + '</div>' +
     (mode === "vorrat" && log.length ? '<button class="sc-btn prim" data-a="close">Fertig</button>' : ""));
@@ -335,6 +336,7 @@ function onClick(e) {
   }
   else if (a === "karte") { close(true); window.tlSpeise.karte(); }
   else if (a === "gericht") { close(true); window.tlSpeise.gericht(); }
+  else if (a === "naehe") { close(true); window.tlSpeise.naehe(); }
   else if (a === "link") linkPicker();
   else if (a === "linkok") {
     var pid = document.getElementById("sc-sel").value;

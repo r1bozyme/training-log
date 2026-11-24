@@ -222,6 +222,21 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
   (18.11.).
 - **Code:** `eingang.js`
 
+### Claude mit Websuche direkt aus der App
+- Der direkte API-Aufruf (Schlüssel nur auf dem Gerät) kann neben dem eigenen
+  Antwort-Werkzeug ein Server-Werkzeug mitschicken (`web_search_20250305`,
+  `max_uses` begrenzen). Bricht die Antwort mit `stop_reason: "pause_turn"` ab,
+  die Assistenten-Antwort unverändert anhängen und erneut senden (höchstens
+  3×). Eigenes, längeres Zeitlimit (120 s statt 45 s). Ein 400 mit Hinweis
+  auf die Websuche heißt: in der Konsole unter Capabilities abgeschaltet.
+- Standort: `navigator.geolocation`, daraus per OpenStreetMap-Nominatim
+  (`/reverse`, ohne Schlüssel) eine Adresse – Koordinaten allein sucht die
+  Websuche schlecht. Freitext („Hotel …“) hat Vorrang.
+- **Anlass:** Restaurant-Empfehlung im Reise-Modus passend zum Restbudget
+  (24.11.).
+- **Code:** `label.js` (`vision` mit `o.extra`, `o.limitMs`), `speise.js`
+  (`tlSpeise.naehe`)
+
 ### Diagnose & dauerhafter Speicher
 - `navigator.storage.persist()` beim Start. Das gilt für die ganze Herkunft
   r1bozyme.github.io, also auch für das Finanz-Cockpit. Ein Fehlerprotokoll

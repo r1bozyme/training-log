@@ -18,6 +18,9 @@
    08.11.: tlLabel.vision({ prompt, image, tool, maxTokens, busy }) ist die
    allgemeine Schnittstelle (Schlüssel, Anfrage, Fehler, Tool-/JSON-Antwort);
    speise.js nutzt sie für Speisekarte und Gericht.
+   24.11.: vision kann zusätzlich Server-Werkzeuge mitschicken (o.extra,
+   z. B. Websuche für „In der Nähe“), ein eigenes Zeitlimit (o.limitMs)
+   und setzt bei stop_reason "pause_turn" die Anfrage bis zu 3× fort.
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
@@ -125,19 +128,22 @@ function shrink(file) {
 /* ─── API ─────────────────────────────────────────── */
 /* 16.11.: Zeitlimit – bei schlechtem Netz hing die Laufanzeige sonst endlos */
 var LIMIT_MS = 45000;
-function limit() {
+function limit(ms) {
   if (!window.AbortController) return undefined;
   var c = new AbortController();
-  setTimeout(function () { c.abort(); }, LIMIT_MS);
+  setTimeout(function () { c.abort(); }, ms || LIMIT_MS);
   return c.signal;
 }
-function call(key, o) {
+function userMsg(o) {
   var content = [];
   if (o.image) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: o.image } });
   content.push({ type: "text", text: o.prompt });
+  return { role: "user", content: content };
+}
+function call(key, o, msgs) {
   return fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    signal: limit(),
+    signal: limit(o.limitMs),
     headers: {
       "x-api-key": key,
       "anthropic-version": "2023-06-01",
@@ -147,9 +153,9 @@ function call(key, o) {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: o.maxTokens || 2000,
-      tools: [o.tool],
+      tools: (o.extra || []).concat([o.tool]),
       tool_choice: { type: "auto" },
-      messages: [{ role: "user", content: content }]
+      messages: msgs || [userMsg(o)]
     })
   }).then(function (r) {
     return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, d: d }; });
@@ -175,12 +181,24 @@ function vision(o) {
   return getKey().then(function (k) {
     if (!k) return null;
     busy(true, o.busy || "Wird gelesen …");
-    return call(k, o).then(function (res) {
+    /* 24.11.: Server-Werkzeuge (Websuche) können mit pause_turn unterbrechen –
+       dann die Antwort unverändert zurückschicken und weitermachen */
+    var step = function (msgs, n) {
+      return call(k, o, msgs).then(function (res) {
+        if (res.status === 200 && res.d && res.d.stop_reason === "pause_turn" && n < 3)
+          return step(msgs.concat([{ role: "assistant", content: res.d.content }]), n + 1);
+        return res;
+      });
+    };
+    return step([userMsg(o)], 0).then(function (res) {
       busy(false);
       if (res.status === 401) { localStorage.removeItem(KEY); flash("Schlüssel ungültig – beim nächsten Mal neu eingeben"); return null; }
       if (res.status === 429 || res.status === 529) { flash("Claude ist gerade ausgelastet – gleich nochmal"); return null; }
       if (res.status !== 200) {
         var m = res.d && res.d.error && res.d.error.message;
+        if (o.extra && res.status === 400 && /web.?search|server.?tool|capabilit/i.test(m || "")) {
+          flash("Websuche für diesen API-Schlüssel nicht freigeschaltet (Konsole › Settings › Capabilities)"); return null;
+        }
         flash("Fehler " + res.status + (m ? ": " + m.slice(0, 80) : "")); return null;
       }
       var x = rawInput(res.d);
