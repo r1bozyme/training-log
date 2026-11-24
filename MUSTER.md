@@ -232,6 +232,9 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
 - Standort: `navigator.geolocation`, daraus per OpenStreetMap-Nominatim
   (`/reverse`, ohne Schlüssel) eine Adresse – Koordinaten allein sucht die
   Websuche schlecht. Freitext („Hotel …“) hat Vorrang.
+- Mehrere Fotos (z. B. Speisekarten-Seiten) erst sammeln – Vorschaubilder mit
+  ×, „＋ Seite“, höchstens 4 – und dann in EINER Anfrage schicken
+  (`o.images`), damit Claude über alles hinweg abwägt; Zeitlimit je Bild länger.
 - **Anlass:** Restaurant-Empfehlung im Reise-Modus passend zum Restbudget
   (24.11.).
 - **Code:** `label.js` (`vision` mit `o.extra`, `o.limitMs`), `speise.js`

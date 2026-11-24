@@ -21,6 +21,7 @@
    24.11.: vision kann zusätzlich Server-Werkzeuge mitschicken (o.extra,
    z. B. Websuche für „In der Nähe“), ein eigenes Zeitlimit (o.limitMs)
    und setzt bei stop_reason "pause_turn" die Anfrage bis zu 3× fort.
+   24.11.: o.images (Liste) statt o.image für mehrere Fotos in einer Anfrage.
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
@@ -136,7 +137,9 @@ function limit(ms) {
 }
 function userMsg(o) {
   var content = [];
-  if (o.image) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: o.image } });
+  (o.images || (o.image ? [o.image] : [])).forEach(function (img) {
+    content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: img } });
+  });
   content.push({ type: "text", text: o.prompt });
   return { role: "user", content: content };
 }

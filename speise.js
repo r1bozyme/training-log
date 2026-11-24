@@ -3,7 +3,8 @@
 
    Zwei Wege aus dem Scanner (scan.js), beide über tlLabel.vision:
 
-   tlSpeise.karte()   Foto der Speisekarte. Claude bekommt das FREIE Budget
+   tlSpeise.karte()   Foto der Speisekarte (24.11.: bis zu 4 Seiten sammeln,
+                      dann eine gemeinsame Anfrage). Claude bekommt das FREIE Budget
                       (foodBudgetFrei: Tagesrest minus noch fehlende Basis-
                       Posten, an Reisetagen die Reise-Basis), den bindenden
                       Faktor und „vegetarisch“, und nennt bis zu drei
@@ -65,6 +66,11 @@ function css() {
     "#sp-ov .sp-seg { display:flex; gap:6px; margin-bottom:10px; }",
     "#sp-ov .sp-seg button { flex:1; padding:9px 4px; border-radius:10px; border:1px solid var(--border); background:transparent; color:inherit; font-family:inherit; font-size:14px; }",
     "#sp-ov .sp-seg button.on { background:var(--neutral); color:var(--on-neutral); border-color:transparent; }",
+    "#sp-ov .sp-thumbs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }",
+    "#sp-ov .sp-th { position:relative; width:72px; height:96px; border-radius:10px; overflow:hidden; border:1px solid var(--border); }",
+    "#sp-ov .sp-th img { width:100%; height:100%; object-fit:cover; display:block; }",
+    "#sp-ov .sp-th button { position:absolute; top:3px; right:3px; width:24px; height:24px; border-radius:12px; border:none; background:var(--neutral); color:var(--on-neutral); font-size:15px; line-height:22px; padding:0; }",
+    "#sp-ov .sp-th span { position:absolute; left:4px; bottom:3px; font-size:11px; font-weight:700; color:var(--on-neutral); background:var(--neutral); border-radius:6px; padding:0 5px; }",
     "#sp-ov .sp-warn { font-size:13px; color:var(--amb-tx); margin-bottom:10px; line-height:1.4; }"
   ].join("\n");
   document.head.appendChild(s);
@@ -129,31 +135,59 @@ var TOOL_KARTE = {
   }
 };
 
+/* 24.11.: Mehrere Seiten – Fotos sammeln (höchstens MAXS), dann eine Anfrage */
+var MAXS = 4, seiten = [];
 function karte() {
   if (!window.tlLabel) return;
-  var b = budget();
-  if (!b) { flash("Ernährung-Tab nicht bereit"); return; }
+  if (!budget()) { flash("Ernährung-Tab nicht bereit"); return; }
   window.tlLabel.key().then(function (k) {
     if (!k) return;
-    return window.tlLabel.photo().then(function (img) {
-      if (!img) return;
-      var prompt = [
-        "Das Foto zeigt eine Speisekarte (Restaurant, Kantine o. ä.). Ich bin Vegetarier (Eier und Milchprodukte ja, kein Fleisch, kein Fisch).",
-        budText(b),
-        "Wähle bis zu drei vegetarische Gerichte, die am besten in dieses freie Budget passen, und rufe das Werkzeug empfehlung auf.",
-        "Regeln:",
-        "- Fett und Kalorien sind Obergrenzen, der bindende Faktor entscheidet, wenn es eng wird. Protein ist ein Mindestziel: Ist noch viel offen, proteinreiche Gerichte bevorzugen; ist es (fast) erreicht, zählt Protein nicht mehr – dann Gerichte mit vielen Kohlenhydraten und wenig Fett bevorzugen. Proteinüberschreitung ist nie ein Grund für passt=false.",
-        "- Schätze Nährwerte je Portion realistisch für deutsche/österreichische Restaurantportionen (eher groß). Fett bei Käse-, Sahne- und frittierten Gerichten nicht unterschätzen.",
-        "- Eine Anpassung ist erlaubt und oft klug (z. B. „Dressing separat“, „ohne Pommes, dafür Salat“, „halbe Portion“) – dann in Klammern an den Namen und die Werte entsprechend schätzen.",
-        "- Beste Wahl zuerst. passt=false, wenn das Gericht das freie Budget trotzdem sprengt, aber die beste Annäherung ist.",
-        "- grund: ein kurzer Satz, konkret (z. B. „28 g Protein, Fett knapp – Käse weglassen“).",
-        "- Ist die Karte nicht lesbar, lesbar=false und keine Gerichte erfinden."
-      ].join("\n");
-      open('<div class="sp-t">Speisekarte</div>' + budHTML(b) + '<div class="sp-x">Claude liest die Karte …</div>');
-      return window.tlLabel.vision({ prompt: prompt, image: img, tool: TOOL_KARTE, maxTokens: 2500, busy: "Speisekarte wird gelesen …" })
-        .then(function (x) { showKarte(b, x); });
-    });
+    seiten = [];
+    seite(false);
   });
+}
+function seite(gallery) {
+  if (seiten.length >= MAXS) return;
+  window.tlLabel.photo(gallery).then(function (img) {
+    if (img) seiten.push(img);
+    if (!seiten.length) { close(); return; }
+    zeigeSeiten();
+  });
+}
+function zeigeSeiten() {
+  var b = budget(); if (!b) return;
+  var n = seiten.length, voll = n >= MAXS;
+  var h = '<div class="sp-t">Speisekarte</div>' + budHTML(b) +
+    '<div class="sp-thumbs">' + seiten.map(function (img, i) {
+      return '<div class="sp-th"><img src="data:image/jpeg;base64,' + img + '" alt=""><button onclick="tlSpeise.seiteWeg(' + i + ')" aria-label="Seite entfernen">×</button><span>' + (i + 1) + "</span></div>";
+    }).join("") + "</div>" +
+    '<div class="sp-x">' + n + (n === 1 ? " Seite" : " Seiten") + (voll ? " – mehr passen nicht in eine Anfrage." : ". Weitere Seiten? Nur die mit Hauptgerichten reichen meist.") + "</div>" +
+    '<button class="sp-b prim" onclick="tlSpeise.auswerten()">Auswerten (' + n + (n === 1 ? " Seite" : " Seiten") + ")</button>" +
+    (voll ? "" : '<div class="sp-gb"><button class="sp-b sm" onclick="tlSpeise.seite(false)">＋ Seite fotografieren</button>' +
+      '<button class="sp-b sm" onclick="tlSpeise.seite(true)">＋ Aus Galerie</button></div>') +
+    '<button class="sp-b" onclick="tlSpeise.close()">Abbrechen</button>';
+  if (ov) set(h); else open(h);
+}
+function auswerten() {
+  var b = budget(); if (!b || !seiten.length) return;
+  var n = seiten.length;
+  var prompt = [
+    (n === 1 ? "Das Foto zeigt eine Speisekarte" : "Die " + n + " Fotos zeigen zusammen EINE Speisekarte (mehrere Seiten)") +
+      " (Restaurant, Kantine o. ä.). Ich bin Vegetarier (Eier und Milchprodukte ja, kein Fleisch, kein Fisch).",
+    budText(b),
+    "Wähle bis zu drei vegetarische Gerichte" + (n > 1 ? " aus allen Seiten zusammen" : "") + ", die am besten in dieses freie Budget passen, und rufe das Werkzeug empfehlung auf.",
+    "Regeln:",
+    "- Fett und Kalorien sind Obergrenzen, der bindende Faktor entscheidet, wenn es eng wird. Protein ist ein Mindestziel: Ist noch viel offen, proteinreiche Gerichte bevorzugen; ist es (fast) erreicht, zählt Protein nicht mehr – dann Gerichte mit vielen Kohlenhydraten und wenig Fett bevorzugen. Proteinüberschreitung ist nie ein Grund für passt=false.",
+    "- Schätze Nährwerte je Portion realistisch für deutsche/österreichische Restaurantportionen (eher groß). Fett bei Käse-, Sahne- und frittierten Gerichten nicht unterschätzen.",
+    "- Eine Anpassung ist erlaubt und oft klug (z. B. „Dressing separat“, „ohne Pommes, dafür Salat“, „halbe Portion“) – dann kurz in Klammern an den Namen und die Werte entsprechend schätzen.",
+    "- Beilagen oder Extras von einer anderen Seite (z. B. „Reis extra“) dürfen kombiniert werden.",
+    "- Beste Wahl zuerst. passt=false, wenn das Gericht das freie Budget trotzdem sprengt, aber die beste Annäherung ist.",
+    "- grund: ein kurzer Satz, konkret (z. B. „28 g Protein, Fett knapp – Käse weglassen“).",
+    "- Ist die Karte nicht lesbar, lesbar=false und keine Gerichte erfinden; ist nur eine Seite unlesbar, das im hinweis sagen."
+  ].join("\n");
+  set('<div class="sp-t">Speisekarte</div>' + budHTML(b) + '<div class="sp-x">Claude liest ' + (n === 1 ? "die Karte" : n + " Seiten") + " …</div>");
+  window.tlLabel.vision({ prompt: prompt, images: seiten, tool: TOOL_KARTE, maxTokens: 2500, limitMs: 45000 + 15000 * (n - 1), busy: "Speisekarte wird gelesen …" })
+    .then(function (x) { showKarte(b, x); });
 }
 
 var lastG = [];
@@ -420,6 +454,8 @@ function lPosten(l) { return { n: l.n + " (" + l.lokal + ")", kcal: l.kcal, kh: 
 
 window.tlSpeise = {
   naehe: naehe, suchen: suchen,
+  seite: seite, auswerten: auswerten,
+  seiteWeg: function (i) { seiten.splice(i, 1); if (seiten.length) zeigeSeiten(); else close(); },
   nimmL: function (i) { if (lastL[i]) eintragen(lPosten(lastL[i])); },
   anpassenL: function (i) { if (lastL[i]) anpassen(lPosten(lastL[i])); },
   karte: karte, gericht: gericht, schaetzen: schaetzen, close: close,
