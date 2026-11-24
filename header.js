@@ -24,7 +24,7 @@
 // Beim Monatsreview pflegen. date als "JJJJ-MM-TT", sobald fest;
 // bis dahin steht text bis einschließlich "bis".
 var TERMINE = [
-  { label: "InBody", date: "2026-11-12" }   // Kalender: 07:00, nüchtern (verschoben wg. Schnupfen + Deload)
+  { label: "InBody", date: "2026-12-02" }   // Kalender: 07:00, nüchtern (nach Geschäftsreise; Ruhetag 01.12.)
 ];
 // inbody.js liest den InBody-Termin von hier (Bereitschaftscheck im Werte-Tab).
 window.tlTermine = TERMINE;
