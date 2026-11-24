@@ -297,12 +297,12 @@ var TOOL_NAEHE = {
         adresse: { type: "string", description: "Straße und Hausnummer" },
         minuten: { type: "number", description: "geschätzte Gehminuten vom Standort" },
         offen: { type: "string", description: "Öffnungszeit heute, z. B. „bis 22 Uhr“, oder „unklar“" },
-        gericht: { type: "string", description: "konkretes Gericht, mit Anpassung in Klammern" },
+        gericht: { type: "string", description: "konkretes Gericht, kurz (höchstens 45 Zeichen); Anpassungen gehören in grund" },
         kcal: { type: "number" }, kh: { type: "number" }, f: { type: "number" }, p: { type: "number" },
-        grund: { type: "string", description: "ein kurzer Satz: warum / was beim Bestellen sagen" },
+        grund: { type: "string", description: "höchstens zwei kurze Sätze: warum und was beim Bestellen sagen" },
         passt: { type: "boolean", description: "bleibt im freien Budget (Protein zählt nicht)" }
       }, required: ["lokal", "adresse", "minuten", "gericht", "kcal", "kh", "f", "p", "grund", "passt"] } },
-      hinweis: { type: "string", description: "kurz, z. B. wenn Fett kaum noch frei ist und was du dann rätst" }
+      hinweis: { type: "string", description: "höchstens zwei Sätze, z. B. wenn Fett kaum noch frei ist und was du dann rätst" }
     },
     required: ["lokale"]
   }
@@ -374,7 +374,7 @@ function suchen() {
     "- Nur Lokale, die es wirklich an dieser Adresse gibt (aus den Suchergebnissen), keine erfundenen. Lieber 3 sichere als 5 unsichere. Gehminuten realistisch schätzen, sortiert nach Eignung, beste zuerst.",
     "- Fett und Kalorien sind Obergrenzen; der bindende Faktor entscheidet. Protein ist ein Mindestziel, Überschreitung ist nie ein Grund für passt=false. Ist noch viel Protein offen, proteinreich bevorzugen; sind viele Kohlenhydrate offen, KH-dichte, fettarme Gerichte (Reis, Nudeln, Brot, Brühe) bevorzugen.",
     "- Ist kaum noch Fett frei, das fettärmste realistische Gericht wählen und im hinweis offen sagen, wie viel Fett es trotzdem kostet – nicht schönrechnen.",
-    "- Anpassungen sind erlaubt und oft klug („Extra Reis“, „ohne Käse“, „Dressing separat“, „Tofu nicht frittiert“) – in Klammern an das Gericht, Werte entsprechend.",
+    "- Anpassungen sind erlaubt und oft klug („Extra Reis“, „ohne Käse“, „Dressing separat“, „Tofu nicht frittiert“) – im grund nennen, Werte entsprechend; der Gerichtname bleibt kurz.",
     "- Nährwerte je Portion realistisch für deutsche Restaurantportionen (eher groß); Fett bei Käse, Sahne, Öl, Ghee, Frittiertem nicht unterschätzen.",
     "- grund: ein kurzer Satz, konkret. offen: Öffnungszeit heute, falls gefunden."
   ].filter(Boolean).join("\n");
@@ -393,7 +393,7 @@ function showNaehe(b, x) {
   }
   lastL = x.lokale.slice(0, 5).map(function (l) {
     return { lokal: String(l.lokal || "Lokal").slice(0, 50), adr: String(l.adresse || ""), min: num(l.minuten), offen: String(l.offen || ""),
-             n: String(l.gericht || "Gericht").slice(0, 60), kcal: num(l.kcal) || 0, kh: num(l.kh) || 0, f: num(l.f) || 0, p: num(l.p) || 0,
+             n: String(l.gericht || "Gericht").slice(0, 90), kcal: num(l.kcal) || 0, kh: num(l.kh) || 0, f: num(l.f) || 0, p: num(l.p) || 0,
              grund: String(l.grund || ""), passt: l.passt !== false };
   });
   var h = '<div class="sp-t">Restaurants in der Nähe</div>' + budHTML(b) +
