@@ -29,7 +29,7 @@ var TERMINE = [
 // inbody.js liest den InBody-Termin von hier (Bereitschaftscheck im Werte-Tab).
 window.tlTermine = TERMINE;
 // Nächster Monatsreview (Kalender: Export-Termin am 1.). null → Monat aus PLAN.version.
-var REVIEW = "2026-12-01";
+var REVIEW = "2026-12-02";   // November-Review nach der InBody-Messung am 02.12.
 // Aktueller Trainingsplan (Google Doc) – Tap auf den Plan-Chip. Beim Review aktualisieren.
 var PLAN_DOC = "https://docs.google.com/document/d/1dKhKCOQBCGH7YJNfkfgXghoYDSuN8GYWfIsAEdYzA5c/edit";
 // Kurzfassung der Messbedingungen – Tap auf den InBody-Chip.
