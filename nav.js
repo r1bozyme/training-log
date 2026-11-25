@@ -19,6 +19,9 @@
    Label, aktiver Bereich zart getönt in seiner Farbe (Training orange,
    Ernährung grün, Körper blau) statt schwarzem Block. Die schwebenden
    Knöpfe (navfab, ffab, scanfab, Undo, Hinweise) sitzen 16 px höher.
+   Auf der Leiste selbst wechselt ein Wisch nach links/rechts den
+   Bereich (Training ↔ Ernährung ↔ Körper, ohne Rundlauf); das Wischen
+   im Inhalt (swipe.js) bleibt bei den Unteransichten.
 
    Lädt als letztes Modul und hört auf den Ansichtswechsel (tl:view, view.js).
    ═══════════════════════════════════════════════════ */
@@ -77,7 +80,13 @@ var CSS = [
   "body.has-fab #app { padding-bottom:calc(156px + var(--sb)); }"
 ].join("\n");
 
-var bar, fab, areaBtns = {};
+var bar, fab, areaBtns = {}, noClick = 0;
+
+/* Bereich öffnen: dort zuletzt offene Ansicht, sonst die erste */
+function goArea(a) {
+  window.showView(last[a.id] || DEFAULT[a.id]);
+  (window.tlScrollTop || function () { window.scrollTo(0, 0); })();
+}
 
 function renderChips() {
   var a = areaOf(cur);
@@ -117,16 +126,32 @@ function init() {
     b.dataset.a = a.id;
     b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[a.icon] + '</svg><span>' + a.label + '</span>';
     b.onclick = function () {
-      var target = last[a.id] || DEFAULT[a.id];
+      if (Date.now() < noClick) return;   // Wisch auf der Leiste, kein Tipp
       /* Erneuter Tipp auf den aktiven Bereich: zurück zur ersten Ansicht */
       var here = areaOf(cur);
-      if (here && here.id === a.id) target = a.views[0][0];
-      window.showView(target);
-      (window.tlScrollTop || function () { window.scrollTo(0, 0); })();
+      if (here && here.id === a.id) { window.showView(a.views[0][0]); (window.tlScrollTop || function () { window.scrollTo(0, 0); })(); }
+      else goArea(a);
     };
     areaBtns[a.id] = b;
     nav.appendChild(b);
   });
+
+  /* 25.11.: Wisch auf der Leiste wechselt den Bereich */
+  var t0 = null;
+  nav.addEventListener("touchstart", function (e) {
+    var t = e.touches[0]; t0 = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, ts: Date.now() } : null;
+  }, { passive: true });
+  nav.addEventListener("touchend", function (e) {
+    if (!t0) return;
+    var t = e.changedTouches[0], dx = t.clientX - t0.x, dy = t.clientY - t0.y;
+    t0 = null;
+    if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    var here = areaOf(cur), i = here ? AREAS.indexOf(here) : 0, j = i + (dx < 0 ? 1 : -1);
+    noClick = Date.now() + 400;
+    if (j < 0 || j >= AREAS.length) return;
+    goArea(AREAS[j]);
+  }, { passive: true });
+  nav.addEventListener("touchcancel", function () { t0 = null; }, { passive: true });
 
   /* Chips oben, direkt unter dem Kopf */
   bar = document.createElement("div");

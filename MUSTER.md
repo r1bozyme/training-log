@@ -151,6 +151,9 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
   plus kleines Label. Der aktive Bereich ist zart in seiner Farbe getönt
   (`--…-bg` als Fläche, `--…` als Schrift) statt schwarz gefüllt. Alle
   schwebenden Knöpfe und Hinweise müssen dann um die Leistenhöhe höher sitzen.
+- Wisch nach links/rechts auf der Leiste wechselt den Bereich (ohne Rundlauf,
+  Schwelle 36 px, waagerecht deutlich stärker als senkrecht); danach 400 ms
+  keine Tipps, damit der Wisch nicht zusätzlich einen Knopf auslöst.
 - **Code:** `nav.js` · Commits 8bf583b, 6b8762c · *Chips-Stil stammt aus dem
   Finanz-Cockpit, die schwebende Leiste aus der App Orva.*
 
