@@ -50,7 +50,7 @@ function showView(v) {
 window.showView = showView;
 
 /* 13.11.: Nach einem Ansichtswechsel nach oben – aber war der Kopf
-   („Training Log“) schon weggescrollt, bleibt er weg: die neue Ansicht
+   („Gain Train“, bis 25.11. „Training Log“) schon weggescrollt, bleibt er weg: die neue Ansicht
    beginnt direkt unter den Chips. */
 window.tlScrollTop = function () {
   var hdr = document.querySelector("#app .hdr");

@@ -114,7 +114,7 @@ function render() {
         (errs.length ? "" : '<span style="color:var(--muted)">▾</span>') + '</div>'
       : '<div class="dhead"><div class="dhl">DIAGNOSE</div><div class="dhline"></div></div><div class="dg-card">') +
     '<div class="dg-row"><span>Speicher</span>' + sp + "</div>" +
-    '<div class="dg-row"><span>Belegt</span><span>Training Log ' + kb(ls.tl) + " · Cockpit " + kb(ls.fc) +
+    '<div class="dg-row"><span>Belegt</span><span>Gain Train ' + kb(ls.tl) + " · Cockpit " + kb(ls.fc) +
       (est && est.usage ? " · gesamt " + mb(est.usage) : "") + "</span></div>" +
     '<div class="dg-row"><span>Fehler</span><span>' + (errs.length ? errs.length + " · zuletzt " + fmt(errs[0].t) : "keine") + "</span></div>";
   var show = allOpen ? errs : errs.slice(0, 3);
