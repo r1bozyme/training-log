@@ -73,7 +73,7 @@ function busy(on, txt) {
   if (!el) {
     el = document.createElement("div");
     el.id = "lbl-busy";
-    el.style.cssText = "position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);" +
+    el.style.cssText = "position:fixed;left:50%;bottom:calc(106px + env(safe-area-inset-bottom));transform:translateX(-50%);" +
       "z-index:9500;background:var(--neutral);color:var(--on-neutral);padding:12px 18px;border-radius:24px;font-size:14px;" +
       "box-shadow:0 6px 20px rgba(0,0,0,.25);font-family:var(--fb, sans-serif)";
     document.body.appendChild(el);

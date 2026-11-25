@@ -49,6 +49,7 @@
   --on-neutral-2: rgba(255,255,255,.7);
   --knob: #FFF;
   --scrim: rgba(245,245,243,.72);
+  --nav-sh: 0 4px 18px rgba(0,0,0,.08);
   --focus: #AAAAAA;
   --text-2: #666;
   --text-3: #777;
@@ -134,7 +135,7 @@
   --legs: #F08A62; --legs-bg: #361A11; --legs-bd: #A8492A;
   --neutral: #E8E8E5; --go: #6CCB6C; --go-bg: #15301A;
   --on-neutral: #141416; --on-neutral-2: rgba(20,20,22,.65); --knob: #F2F2F0;
-  --scrim: rgba(17,18,20,.72); --focus: #6A6D73;
+  --scrim: rgba(17,18,20,.72); --nav-sh: 0 4px 18px rgba(0,0,0,.45); --focus: #6A6D73;
   --text-2: #B4B6BB; --text-3: #A6A8AD; --text-4: #9A9CA1;
   --fill-1: #26282C; --fill-2: #26282C; --fill-3: #303237; --fill-4: #222327;
   --ch-lbl: #8A8D93; --ch-lbl-2: #6E7177; --ch-raw: #4A4D53; --ch-grid: #2A2C30; --ch-grid-2: #34363B;
@@ -157,7 +158,7 @@
   color-scheme: dark;
 }
 html, body { background: var(--bg); color: var(--text); font-family: var(--fb); min-height: 100vh; overscroll-behavior: none; }
-#app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(72px + var(--sb)); }
+#app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(88px + var(--sb)); }
 
 .hdr { padding: max(52px, calc(env(safe-area-inset-top, 0px) + 16px)) 20px 0; display: flex; justify-content: space-between; align-items: flex-end; }
 /* Titel in Manrope 800 wie im Finanz-Cockpit (05.11.2026); Bebas Neue bleibt für Zahlen und Überschriften */
@@ -171,16 +172,17 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--fb); 
 #theme-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hdr-sub { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
 
+/* Untere Leiste (25.11.2026): schwebende Pille mit Abstand zum Rand, Icon + Label je Bereich (nav.js) */
 .bnav {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 480px; background: var(--surface);
-  border-top: 1px solid var(--border);
-  display: flex; padding: 8px 8px calc(8px + var(--sb)); gap: 3px; z-index: 100;
+  position: fixed; bottom: calc(12px + var(--sb)); left: 50%; transform: translateX(-50%);
+  width: calc(100% - 24px); max-width: 456px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 99px; box-shadow: var(--nav-sh);
+  display: flex; padding: 6px; gap: 6px; z-index: 100;
 }
 /* Statusleiste: Inhalt läuft dahinter, ein leicht milchiger Schleier hält Uhrzeit und Akku lesbar */
 .status-scrim { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); z-index: 150; pointer-events: none;
   background: var(--scrim); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
-.nbtn { flex: 1; padding: 11px 0; border-radius: 10px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 11px; letter-spacing: -0.2px; transition: all .15s; background: transparent; color: var(--muted); }
+.nbtn { flex: 1; padding: 11px 0; border-radius: 99px; border: none; cursor: pointer; font-family: var(--fb); font-weight: 700; font-size: 11px; letter-spacing: -0.2px; transition: all .15s; background: transparent; color: var(--muted); }
 .nbtn.active { background: var(--neutral); color: var(--on-neutral); }
 
 .view { display: none; } .view.active { display: block; }
@@ -263,7 +265,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: po
 .sbtn { width: 100%; padding: 18px; background: var(--neutral); border: none; border-radius: 12px; font-family: var(--fd); font-size: 22px; letter-spacing: 3px; color: var(--on-neutral); cursor: pointer; transition: opacity .15s, transform .1s; margin-bottom: 8px; }
 .sbtn:active { opacity: 0.85; transform: scale(0.98); }
 
-.flash { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--neutral); color: var(--on-neutral); padding: 10px 28px; border-radius: 24px; font-weight: 700; font-size: 14px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; }
+.flash { position: fixed; bottom: calc(106px + var(--sb)); left: 50%; transform: translateX(-50%); background: var(--neutral); color: var(--on-neutral); padding: 10px 28px; border-radius: 24px; font-weight: 700; font-size: 14px; z-index: 200; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; }
 .flash.show { opacity: 1; }
 
 .sbar { display: flex; gap: 8px; padding: 16px 20px 0; }

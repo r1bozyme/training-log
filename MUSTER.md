@@ -146,8 +146,13 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
   Hauptaktion liegt als schwebender Knopf darüber („＋ Eintrag“, „Tag ▴“ mit
   Menü) statt in einer Aktionsleiste. Ein Tipp auf einen Bereich öffnet die
   Ansicht, die dort zuletzt offen war.
+- Seit 25.11.: Die untere Leiste schwebt als Pille (12 px Abstand zum Rand,
+  runde Ecken, leichter Schatten über `--nav-sh`), je Bereich Linien-Icon
+  plus kleines Label. Der aktive Bereich ist zart in seiner Farbe getönt
+  (`--…-bg` als Fläche, `--…` als Schrift) statt schwarz gefüllt. Alle
+  schwebenden Knöpfe und Hinweise müssen dann um die Leistenhöhe höher sitzen.
 - **Code:** `nav.js` · Commits 8bf583b, 6b8762c · *Chips-Stil stammt aus dem
-  Finanz-Cockpit.*
+  Finanz-Cockpit, die schwebende Leiste aus der App Orva.*
 
 ### Wischen zwischen Unteransichten
 - Die Seite folgt dem Finger. Sie rastet ab 22 % der Breite oder ab

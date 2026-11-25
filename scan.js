@@ -363,7 +363,7 @@ function fabCss() {
     " background:var(--neutral); color:var(--on-neutral); font-size:24px; line-height:52px; text-align:center; padding:0;" +
     " box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; }" +
     ".scanfab[hidden] { display:none; }" +
-    ".scanfab.hi { bottom:calc(136px + var(--sb)); } .scanfab.lo { bottom:calc(76px + var(--sb)); }" +
+    ".scanfab.hi { bottom:calc(152px + var(--sb)); } .scanfab.lo { bottom:calc(92px + var(--sb)); }" +
     "body.scanfab-on #view-food.ffab-on { padding-bottom:136px; } body.scanfab-on #view-vorrat { padding-bottom:76px; }";
   document.head.appendChild(s);
 }

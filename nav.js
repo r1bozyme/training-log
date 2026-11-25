@@ -15,19 +15,31 @@
    Ein Tipp auf einen Bereich öffnet die Ansicht, die dort zuletzt
    offen war (nur für diese Sitzung).
 
+   25.11.: Leiste als schwebende Pille (Vorbild Orva): Icon + kleines
+   Label, aktiver Bereich zart getönt in seiner Farbe (Training orange,
+   Ernährung grün, Körper blau) statt schwarzem Block. Die schwebenden
+   Knöpfe (navfab, ffab, scanfab, Undo, Hinweise) sitzen 16 px höher.
+
    Lädt als letztes Modul und hört auf den Ansichtswechsel (tl:view, view.js).
    ═══════════════════════════════════════════════════ */
 (function () {
 "use strict";
 
 var AREAS = [
-  { id: "training", label: "Training",  views: [["log", "Log"], ["stats", "Stats"], ["plan", "Plan"]], extra: ["add"] },
-  { id: "food",     label: "Ernährung", views: [["food", "Heute"], ["vorrat", "Vorrat"], ["einkauf", "Einkauf"]] },
-  { id: "body",     label: "Körper",    views: [["weight", "Werte"], ["health", "Tracker"]] }
+  { id: "training", label: "Training",  icon: "training", views: [["log", "Log"], ["stats", "Stats"], ["plan", "Plan"]], extra: ["add"] },
+  { id: "food",     label: "Ernährung", icon: "food", views: [["food", "Heute"], ["vorrat", "Vorrat"], ["einkauf", "Einkauf"]] },
+  { id: "body",     label: "Körper",    icon: "body", views: [["weight", "Werte"], ["health", "Tracker"]] }
 ];
 var DEFAULT = { training: "log", food: "food", body: "weight" };
 window.tlNavAreas = AREAS;   // swipe.js wischt entlang dieser Reihenfolge
 var last = {};        // zuletzt offene Ansicht je Bereich
+
+/* Linien-Icons (24er Raster, Strich in currentColor) */
+var ICONS = {
+  training: '<path d="M2 12h2M20 12h2M7 12h10"/><rect x="4" y="8" width="3" height="8" rx="1"/><rect x="17" y="8" width="3" height="8" rx="1"/><rect x="7" y="6" width="2.5" height="12" rx="1"/><rect x="14.5" y="6" width="2.5" height="12" rx="1"/>',
+  food: '<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 11c0-2.5 1.5-4 3.5-4.5M12 11c0-3 2-5 5-5M15 6.5c.5-1.5 1.8-2.5 3.5-2.5"/>',
+  body: '<path d="M20.5 12.6A5 5 0 0 0 12 6.4a5 5 0 0 0-8.5 6.2L12 21l8.5-8.4z"/><path d="M3 12h4l2-3 3 6 2-3h7"/>'
+};
 var cur = "add";
 
 function areaOf(v) {
@@ -41,7 +53,12 @@ function areaOf(v) {
 var CSS = [
   /* nur Bereichsknöpfe zeigen (falls index.html noch mit den alten Knöpfen aus dem Cache kommt), größer als die 10px aus tracker.js */
   ".bnav .nbtn:not(.nav3) { display:none; }",
-  ".bnav .nbtn.nav3 { font-size:13px; padding:12px 0; letter-spacing:0; }",
+  ".bnav .nbtn.nav3 { display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 0 6px;",
+  "  font-size:11px; font-weight:600; letter-spacing:0; color:var(--muted); background:transparent; }",
+  ".bnav .nav3 svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }",
+  ".bnav .nav3.active[data-a=training] { background:var(--legs-bg); color:var(--legs); }",
+  ".bnav .nav3.active[data-a=food] { background:var(--go-bg); color:var(--go); }",
+  ".bnav .nav3.active[data-a=body] { background:var(--blue-bg); color:var(--blue); }",
 
   ".chipnav { position:sticky; top:env(safe-area-inset-top, 0px); z-index:90; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;",
   "  padding:10px 20px; margin-top:14px; background:var(--bg); border-bottom:1px solid var(--border); }",
@@ -52,12 +69,12 @@ var CSS = [
   ".chipnav button.on { background:var(--neutral); border-color:var(--neutral); color:var(--on-neutral); }",
   ".chipnav .soon { flex:none; font-size:12px; color:var(--dim); padding:7px 4px; white-space:nowrap; }",
 
-  ".navfab { position:fixed; right:max(16px, calc(50% - 224px)); bottom:calc(76px + var(--sb)); z-index:101;",
+  ".navfab { position:fixed; right:max(16px, calc(50% - 224px)); bottom:calc(92px + var(--sb)); z-index:101;",
   "  border:none; border-radius:99px; padding:14px 20px; background:var(--neutral); color:var(--on-neutral);",
   "  font-family:var(--fb); font-weight:700; font-size:14px; box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; }",
   ".navfab[hidden] { display:none; }",
   /* Platz unter dem letzten Inhalt, damit der schwebende Knopf nichts verdeckt */
-  "body.has-fab #app { padding-bottom:calc(140px + var(--sb)); }"
+  "body.has-fab #app { padding-bottom:calc(156px + var(--sb)); }"
 ].join("\n");
 
 var bar, fab, areaBtns = {};
@@ -97,7 +114,8 @@ function init() {
     var b = document.createElement("button");
     b.type = "button";
     b.className = "nbtn nav3";
-    b.textContent = a.label;
+    b.dataset.a = a.id;
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[a.icon] + '</svg><span>' + a.label + '</span>';
     b.onclick = function () {
       var target = last[a.id] || DEFAULT[a.id];
       /* Erneuter Tipp auf den aktiven Bereich: zurück zur ersten Ansicht */
