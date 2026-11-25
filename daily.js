@@ -53,6 +53,13 @@
 // Einnahme-Haken, Reihenfolge Kalorienziel · Steifigkeit · Handgelenk.
 // Daten, Keys und Export unverändert.
 //
+// AUSNAHME (25.11.): Feld aus = "alk" | "spaet" | "impf" | "krank" je
+// Tag, gesetzt in der Heute-Box („Letzte Nacht“). Gilt für die Nacht VOR
+// dem Datum (Oura-Konvention: Tag des Aufwachens). Die Auswertung
+// „Frühindikator“ (review/auswertung.js im Daten-Repo) lässt solche Nächte
+// aus – Impfung zusätzlich die drei Nächte danach. Export: Spalte
+// "Ausnahme" in sync.js.
+//
 // Deep-Links (Abkürzung, nicht mehr tragende Schicht):
 //   ?v=stiff | ?v=weight | ?v=kcal
 // ═══════════════════════════════════════════════════
@@ -107,6 +114,22 @@ window.toggleTrip = function () {
   buildDaily();
   showFlash(next ? "Als Reisetag markiert ✓" : "Reise-Markierung entfernt");
 };
+
+const AUS = { alk: "Alkohol", spaet: "Spät", impf: "Impfung", krank: "Krank" };
+window.tlAusLabel = AUS;
+window.setAus = function (v) {
+  const date = dailyDate();
+  const cur  = getDay(date);
+  const next = cur && cur.aus === v ? null : v;
+  putDay(date, { aus: next });
+  buildDaily();
+  showFlash(next ? "Letzte Nacht: " + AUS[next] + " ✓" : "Ausnahme entfernt");
+};
+function ausRow(day) {
+  const cur = day && day.aus;
+  return `<div class="daus"><span class="dtl">Letzte Nacht</span><span class="dausc">${Object.keys(AUS).map(k =>
+    `<button type="button" class="dausb${cur === k ? " on" : ""}" onclick="event.stopPropagation();setAus('${k}')">${AUS[k]}</button>`).join("")}</span></div>`;
+}
 
 window.setRate = function (v) {
   const date = dailyDate();
@@ -287,14 +310,14 @@ function buildTodo() {
     el.onclick = null;
     el.innerHTML = `<div class="dtrow"><span class="dtl">Nachtragen</span><span class="dtv">${fmtDate(date)}</span>`
       + `<button type="button" class="dtback" onclick="event.stopPropagation();tlDailyShift(9999)">Zu heute</button></div>`
-      + (supOn ? `<div class="dtsup">${supOk}</div>` : supBtn);
+      + (supOn ? `<div class="dtsup">${supOk}</div>` : supBtn) + ausRow(day);
     return;
   }
   const items = openItems().filter(i => i.label !== "Einnahme");
   if (!items.length && supOn) {
     el.className = "dtodo done";
     el.onclick = null;
-    el.innerHTML = `<div class="dtrow"><span class="dtl">Heute vollständig</span><span class="dtv"></span>${supOk}</div>`;
+    el.innerHTML = `<div class="dtrow"><span class="dtl">Heute vollständig</span><span class="dtv"></span>${supOk}</div>` + ausRow(day);
     return;
   }
   el.className = "dtodo" + (items.length ? "" : " done");
@@ -302,7 +325,7 @@ function buildTodo() {
   el.innerHTML = (items.length
       ? `<div class="dtrow"><span class="dtl">Heute offen</span><span class="dtv">${items.map(i => `<button type="button" class="dtj" onclick="event.stopPropagation();tlJump('${i.id}')">${i.label}</button>`).join(" · ")}</span><span class="dta">→</span></div>`
       : "")
-    + (supOn ? `<div class="dtsup">${supOk}</div>` : supBtn);
+    + (supOn ? `<div class="dtsup">${supOk}</div>` : supBtn) + ausRow(day);
 }
 
 function sign1(x) { return (x >= 0 ? "+" : "−") + fmtNum(Math.abs(x), 1); }
@@ -553,6 +576,10 @@ const CSS = `
 .dtodo .dsupbtn { margin-top: 10px; padding: 12px 0; font-size: 13px; }
 .dtodo .dtrow + .dsupbtn { margin-top: 10px; }
 .dtodo > .dsupbtn:first-child { margin-top: 0; }
+.daus { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: default; }
+.dausc { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; justify-content: flex-end; }
+.dausb { border: 1.5px solid var(--border); background: transparent; border-radius: 16px; padding: 7px 8px; font-family: var(--fb); font-size: 11.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.dausb.on { border-color: var(--text); color: var(--text); font-weight: 700; }
 .dtsup { display: flex; justify-content: flex-end; margin-top: 4px; }
 .dsupok { border: none; background: transparent; padding: 4px 0; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--go); cursor: pointer; }
 .dtback { padding: 6px 12px; border-radius: 14px; border: 1.5px solid var(--border); background: transparent; font-family: var(--fb); font-weight: 700; font-size: 12px; color: var(--text); cursor: pointer; flex-shrink: 0; }
