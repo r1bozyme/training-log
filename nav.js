@@ -19,6 +19,10 @@
    Label, aktiver Bereich zart getönt in seiner Farbe (Training orange,
    Ernährung grün, Körper blau) statt schwarzem Block. Die schwebenden
    Knöpfe (navfab, ffab, scanfab, Undo, Hinweise) sitzen 16 px höher.
+   Die Pillen-Form steht hier im Modul (nicht nur in index.html):
+   Module holt der Loader immer frisch, index.html kann der Browser
+   bis zu 10 Minuten aus dem Cache nehmen – dann klebte die Leiste
+   unten und nur die Icons waren neu.
    Auf der Leiste selbst wechselt ein Wisch nach links/rechts den
    Bereich (Training ↔ Ernährung ↔ Körper, ohne Rundlauf); das Wischen
    im Inhalt (swipe.js) bleibt bei den Unteransichten.
@@ -55,9 +59,13 @@ function areaOf(v) {
 
 var CSS = [
   /* nur Bereichsknöpfe zeigen (falls index.html noch mit den alten Knöpfen aus dem Cache kommt), größer als die 10px aus tracker.js */
+  ".bnav { bottom:calc(12px + var(--sb)); width:calc(100% - 24px); max-width:456px; border:1px solid var(--border);",
+  "  border-radius:99px; box-shadow:var(--nav-sh); padding:6px; gap:6px; }",
+  "#app { padding-bottom:calc(88px + var(--sb)); }",
+  ".flash { bottom:calc(106px + var(--sb)); }",
   ".bnav .nbtn:not(.nav3) { display:none; }",
   ".bnav .nbtn.nav3 { display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 0 6px;",
-  "  font-size:11px; font-weight:600; letter-spacing:0; color:var(--muted); background:transparent; }",
+  "  font-size:11px; font-weight:600; letter-spacing:0; color:var(--muted); background:transparent; border-radius:99px; }",
   ".bnav .nav3 svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }",
   ".bnav .nav3.active[data-a=training] { background:var(--legs-bg); color:var(--legs); }",
   ".bnav .nav3.active[data-a=food] { background:var(--go-bg); color:var(--go); }",
