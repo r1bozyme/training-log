@@ -240,6 +240,11 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
 - Mehrere Fotos (z. B. Speisekarten-Seiten) erst sammeln – Vorschaubilder mit
   ×, „＋ Seite“, höchstens 4 – und dann in EINER Anfrage schicken
   (`o.images`), damit Claude über alles hinweg abwägt; Zeitlimit je Bild länger.
+- Seit 25.11. (Vorbild Orva): Unter jeder KI-Schätzung „Stimmt etwas nicht?“
+  mit Freitextfeld. „Korrigieren“ schickt bisherige Werte, Annahmen und die
+  Korrektur als reine Textanfrage (ohne Foto, dasselbe Werkzeug) und zeigt die
+  neue Schätzung; Korrekturen lassen sich verketten. Billiger und genauer als
+  neu fotografieren, und Zahlen muss man nicht selbst tippen.
 - **Anlass:** Restaurant-Empfehlung im Reise-Modus passend zum Restbudget
   (24.11.).
 - **Code:** `label.js` (`vision` mit `o.extra`, `o.limitMs`), `speise.js`

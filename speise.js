@@ -24,6 +24,13 @@
                       „Eintragen“ bucht „~ Gericht (Lokal)“, „Maps ↗“ öffnet
                       Google Maps. Kosten ~10–20 Cent je Suche.
 
+   25.11.: „Stimmt etwas nicht?“ (Vorbild Orva): Unter jeder Einzel-
+   schätzung ein Freitextfeld („nur halbe Portion Reis“, „ohne Käse“).
+   „Korrigieren“ schickt bisherige Schätzung, Annahmen und Korrektur an
+   Claude (ohne Foto, gleiches Werkzeug portion) und zeigt die neue
+   Schätzung; mehrere Korrekturen hintereinander gehen. Gerichte aus
+   Speisekarte und Restaurant-Suche öffnen per „Ändern“ dieselbe Ansicht.
+
    Eingetragen wird immer als Einmal-Posten ohne Produkt (foodAddFrei,
    Name mit „~“), der Tag wird automatisch als „geschätzt“ markiert.
    ═══════════════════════════════════════════════════ */
@@ -71,6 +78,8 @@ function css() {
     "#sp-ov .sp-th img { width:100%; height:100%; object-fit:cover; display:block; }",
     "#sp-ov .sp-th button { position:absolute; top:3px; right:3px; width:24px; height:24px; border-radius:12px; border:none; background:var(--neutral); color:var(--on-neutral); font-size:15px; line-height:22px; padding:0; }",
     "#sp-ov .sp-th span { position:absolute; left:4px; bottom:3px; font-size:11px; font-weight:700; color:var(--on-neutral); background:var(--neutral); border-radius:6px; padding:0 5px; }",
+    "#sp-ov .sp-kl { font-size:13px; font-weight:700; margin:16px 0 6px; padding-top:14px; border-top:1px solid var(--border); }",
+    "#sp-ov .sp-kr { display:flex; gap:8px; } #sp-ov .sp-kr .sp-in { flex:1; margin-bottom:0; } #sp-ov .sp-kr .sp-b { width:auto; margin-top:0; padding:10px 14px; font-size:14px; }",
     "#sp-ov .sp-warn { font-size:13px; color:var(--amb-tx); margin-bottom:10px; line-height:1.4; }"
   ].join("\n");
   document.head.appendChild(s);
@@ -213,7 +222,7 @@ function showKarte(b, x) {
         (over.length ? ' · <span style="color:var(--err)">über Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett", p: "Protein" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
       '<div class="sp-gr">' + esc(g.grund) + "</div>" +
       '<div class="sp-gb"><button class="sp-b sm prim" onclick="tlSpeise.nimm(' + i + ')">Eintragen</button>' +
-      '<button class="sp-b sm" onclick="tlSpeise.anpassen(' + i + ')">Werte anpassen</button></div></div>';
+      '<button class="sp-b sm" onclick="tlSpeise.aendern(' + i + ')">Ändern</button></div></div>';
   }).join("");
   h += '<div class="sp-x" style="margin-top:6px">Schätzwerte, ±25 % sind bei Restaurantportionen normal. Der Tag wird als „geschätzt“ markiert.</div>' +
     '<button class="sp-b" onclick="tlSpeise.gericht()">Anderes Gericht beschreiben</button>' +
@@ -297,6 +306,7 @@ function schaetzen(mitFoto) {
   });
 }
 
+var cur = null;   // 25.11.: aktuelle Einzelschätzung für „Korrigieren“
 function showGericht(x, txt) {
   if (!ov) return;
   if (!x || x.kcal == null) {
@@ -306,16 +316,48 @@ function showGericht(x, txt) {
   }
   var g = { n: String(x.name || txt || "Gericht").slice(0, 60), kcal: num(x.kcal) || 0, kh: num(x.kh) || 0, f: num(x.f) || 0, p: num(x.p) || 0 };
   lastG = [g];
+  cur = { g: g, annahmen: String(x.annahmen || ""), txt: txt || "", min: x.kcal_min, max: x.kcal_max };
   var b = budget(), over = b ? ["kcal", "kh", "f"].filter(function (k) { return g[k] > b.frei[k]; }) : [];
   set('<div class="sp-t">' + esc(g.n) + "</div>" +
     (x.sicher === false ? '<div class="sp-warn">Unsichere Schätzung – Beschreibung war knapp.</div>' : "") +
     '<div class="sp-bud"><div>' + n0(g.kcal) + "<span>KCAL</span></div><div>" + n0(g.kh) + "<span>G KH</span></div><div>" + n0(g.f) + "<span>G FETT</span></div><div>" + n0(g.p) + "<span>G PROT.</span></div></div>" +
-    '<div class="sp-x">Spanne ' + n0(x.kcal_min) + "–" + n0(x.kcal_max) + " kcal" + (x.annahmen ? " · " + esc(x.annahmen) : "") +
+    '<div class="sp-x">' + (x.kcal_min != null && x.kcal_max != null ? "Spanne " + n0(x.kcal_min) + "–" + n0(x.kcal_max) + " kcal" : "Schätzwert") + (x.annahmen ? " · " + esc(x.annahmen) : "") +
       (over.length ? '<br><span style="color:var(--err)">Über dem freien Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett", p: "Protein" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
     '<button class="sp-b prim" onclick="tlSpeise.nimm(0)">Eintragen</button>' +
     '<button class="sp-b" onclick="tlSpeise.anpassen(0)">Werte anpassen</button>' +
+    '<div class="sp-kl">Stimmt etwas nicht?</div>' +
+    '<div class="sp-kr"><input class="sp-in" id="sp-korr" placeholder="z. B. nur halbe Portion Reis" enterkeyhint="send">' +
+      '<button class="sp-b" onclick="tlSpeise.korrigieren()">Korrigieren</button></div>' +
     '<button class="sp-b" onclick="tlSpeise.gericht()">Neu beschreiben</button>' +
     '<button class="sp-b" onclick="tlSpeise.close()">Abbrechen</button>');
+  var k = document.getElementById("sp-korr");
+  if (k) k.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); korrigieren(); } });
+}
+
+/* 25.11.: Schätzung per Freitext nachbessern (ohne Foto, nur Text) */
+function korrigieren() {
+  var el = document.getElementById("sp-korr"), k = el ? el.value.trim() : "";
+  if (!cur) return;
+  if (!k) { flash("Bitte kurz schreiben, was nicht stimmt"); return; }
+  var g = cur.g, c = cur;
+  var prompt = [
+    "Du hast für mein Essen diese Nährwerte je Portion geschätzt:",
+    g.n + ": " + n0(g.kcal) + " kcal, " + n0(g.kh) + " g KH, " + n0(g.f) + " g Fett, " + n0(g.p) + " g Protein" +
+      (c.min != null && c.max != null ? " (Spanne " + n0(c.min) + "–" + n0(c.max) + " kcal)" : "") + ".",
+    c.annahmen ? "Deine Annahmen: " + c.annahmen : "",
+    c.txt ? "Bisherige Angaben von mir: " + c.txt : "",
+    "Meine Korrektur: " + k,
+    "Passe die Schätzung an die Korrektur an und rufe das Werkzeug portion auf. Ändere nur, was die Korrektur betrifft; der Rest bleibt wie geschätzt.",
+    "Fett bei Käse, Sahne, Butter, Frittiertem und Dressings nicht unterschätzen; Protein nicht überschätzen. annahmen: ein Satz zur jetzt angenommenen Portion."
+  ].filter(Boolean).join("\n");
+  window.tlLabel.vision({ prompt: prompt, image: null, tool: TOOL_GERICHT, maxTokens: 1500, busy: "Schätzung wird korrigiert …" })
+    .then(function (x) {
+      if (!x || x.kcal == null) return;   // Fehler meldet tlLabel; alte Schätzung bleibt stehen
+      showGericht(x, (c.txt ? c.txt + " · " : "") + "Korrektur: " + k);
+    });
+}
+function aendernAus(g, kontext) {
+  showGericht({ sicher: true, name: g.n, kcal: g.kcal, kh: g.kh, f: g.f, p: g.p, annahmen: g.grund || "" }, kontext + ": " + g.n);
 }
 
 /* ─── In der Nähe (24.11.) ────────────────────────── */
@@ -442,7 +484,7 @@ function showNaehe(b, x) {
         (over.length ? ' · <span style="color:var(--err)">über Budget: ' + over.map(function (k) { return { kcal: "kcal", kh: "KH", f: "Fett" }[k]; }).join(", ") + "</span>" : "") + "</div>" +
       '<div class="sp-gr">' + esc(l.grund) + "</div>" +
       '<div class="sp-gb"><button class="sp-b sm prim" onclick="tlSpeise.nimmL(' + i + ')">Eintragen</button>' +
-      '<button class="sp-b sm" onclick="tlSpeise.anpassenL(' + i + ')">Anpassen</button>' +
+      '<button class="sp-b sm" onclick="tlSpeise.aendernL(' + i + ')">Ändern</button>' +
       '<a class="sp-b sm" style="text-align:center;text-decoration:none" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=' + q + '">Maps ↗</a></div></div>';
   }).join("");
   h += '<div class="sp-x" style="margin-top:6px">Schätzwerte aus der Websuche – Öffnungszeiten vor Ort prüfen. Liegt die Karte vor dir, ist „Speisekarte“ genauer.</div>' +
@@ -458,6 +500,9 @@ window.tlSpeise = {
   seiteWeg: function (i) { seiten.splice(i, 1); if (seiten.length) zeigeSeiten(); else close(); },
   nimmL: function (i) { if (lastL[i]) eintragen(lPosten(lastL[i])); },
   anpassenL: function (i) { if (lastL[i]) anpassen(lPosten(lastL[i])); },
+  aendernL: function (i) { var l = lastL[i]; if (!l) return; var g = lPosten(l); g.grund = l.grund; aendernAus(g, "Gericht im Lokal " + l.lokal); },
+  aendern: function (i) { if (lastG[i]) aendernAus(lastG[i], "Gericht von der Speisekarte"); },
+  korrigieren: korrigieren,
   karte: karte, gericht: gericht, schaetzen: schaetzen, close: close,
   nimm: function (i) { if (lastG[i]) eintragen(lastG[i]); },
   anpassen: function (i) { if (lastG[i]) anpassen(lastG[i]); }
