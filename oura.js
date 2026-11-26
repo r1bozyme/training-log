@@ -35,6 +35,9 @@
    SCHRITTE (18.11.): Karten und Tabelle zeigen erst ab OURA_START
    (05.11.2026) – davor lagen Handy-Schritte aus Google Health in tl-d.
 
+   TABELLE „Letzte 7 Tage“ (26.11.): eingeklappt, Zustand unter
+   "tlui-werte" (Zweig ou.tab) – die Werte stehen schon in den Karten.
+
    FRÜHINDIKATOR (26.11.): Karte unter den Oura-Karten kommt aus frueh.js
    (window.tlFrueh.card, liest temp/hrAvg direkt aus data.days).
 
@@ -402,7 +405,12 @@ function render() {
       h += (window.tlWerte ? '<div class="wt-range">' + window.tlWerte.rangeRow() + '</div>' : "") + cards;
     }
     var tab = tableHtml(all, train);
-    if (tab) h += '<div class="dsec"><div class="wt-lbl" style="margin-bottom:10px">Letzte 7 Tage</div>' + tab + '</div>';
+    /* 26.11.: Tabelle = Rohwerte der Karten → standardmäßig eingeklappt */
+    if (tab) {
+      var tOpen = !!(ui().ou || {}).tab;
+      h += '<div class="dsec"><button type="button" class="wt-more' + (tOpen ? " open" : "") + '" style="margin-top:0;padding-top:0;border-top:none" onclick="ouTab()">Letzte 7 Tage – Tabelle<span>' + (tOpen ? "▾" : "▸") + '</span></button>'
+         + (tOpen ? '<div style="margin-top:10px">' + tab + '</div>' : '') + '</div>';
+    }
   }
   h += '<div class="dhint" style="text-align:right;margin:12px 20px 0"><a href="' + APP_URL + '" style="color:var(--text);font-weight:700;text-decoration:none">In Oura öffnen ↗</a></div>';
   box.innerHTML = h;
@@ -414,6 +422,11 @@ window.ouCard = function (f) {
   var m = METR.filter(function (x) { return x.f === f; })[0];
   if (!m) return;
   var s = ui(); s.ou = s.ou || {}; s.ou[f] = !isOpen(m);
+  lsSet("tlui-werte", JSON.stringify(s));
+  render();
+};
+window.ouTab = function () {
+  var s = ui(); s.ou = s.ou || {}; s.ou.tab = !s.ou.tab;
   lsSet("tlui-werte", JSON.stringify(s));
   render();
 };

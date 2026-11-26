@@ -17,6 +17,9 @@
    Zeichnet bei jedem Neuaufbau des Werte-Tabs mit (Ereignis "tl:werte"
    aus daily.js). Lädt nach daily.js.
 
+   26.11.: Liste „Letzte Messungen“ eingeklappt (tlWerte.more("wlist")) –
+   die Einzelwerte stehen schon im Graphen.
+
    19.11.: Übergang nach Zielwechsel (goalSince aus tl-fg). Mehr bzw.
    weniger Kohlenhydrate verschieben Glykogen und Wasser – die Waage
    springt in 3–5 Tagen um einige hundert Gramm ohne Gewebe. Der
@@ -196,7 +199,10 @@ function build() {
       h += startBanner(null);
     }
     if (allPts.length) {
-      h += '<div class="wlist"><div class="dl2">LETZTE MESSUNGEN</div>' + allPts.slice(-14).reverse().map(function (p) {
+      /* 26.11.: Rohwerte stehen im Graphen – Liste eingeklappt (tlWerte.more, Schlüssel wlist) */
+      var lOpen = W.isMore("wlist");
+      h += '<button type="button" class="wt-more' + (lOpen ? " open" : "") + '" onclick="tlWerte.more(\'wlist\')">Letzte Messungen (' + Math.min(14, allPts.length) + ')<span>' + (lOpen ? "▾" : "▸") + '</span></button>';
+      if (lOpen) h += '<div class="wlist">' + allPts.slice(-14).reverse().map(function (p) {
         var pend = typeof wPendingDel !== "undefined" && wPendingDel === p.id;
         return '<div class="wrow"><div class="wrow-d">' + fmtDate(p.date) + '</div><div class="wrow-kg">' + kgStr(p.kg) + ' kg</div>' +
           '<div class="wrow-tr">Trend ' + kgStr(p.trend) + '</div>' +
