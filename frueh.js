@@ -28,6 +28,9 @@
       < +0,3 °C bleibt und der Waagentrend steigt (gewicht.js). Beide
       Phasen brauchen ≥ MIN_N gewertete Nächte; Vergleichsphase = die
       jüngere frühere Phase, die das erfüllt.
+   Korridor (26.11.): Temperaturlinie +0,3 °C sofort; im Pulsgraphen ab
+   BEWERTUNG_AB Normalband (Ø ± 1 SD der Vergleichsphase, getönt wie der
+   Gewichtskorridor) und gestrichelte Schwelle Ø + 2.
 
    Eingebunden über oura.js (render ruft tlFrueh.card). Liest tl-d, tl-f,
    tl-e und die Ziel-Historie; schreibt nichts außer dem Aufklappzustand
@@ -127,6 +130,8 @@ function chart(ns, ph, key, opt) {
   ns.forEach(function (x) { if (num(x[key])) { lo = Math.min(lo, x[key]); hi = Math.max(hi, x[key]); } });
   if (lo === Infinity) return "";
   if (opt.zero) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  var ex = opt.extra || {};
+  (ex.lines || []).concat(ex.band ? [{ v: ex.band.lo }, { v: ex.band.hi }] : []).forEach(function (l) { lo = Math.min(lo, l.v); hi = Math.max(hi, l.v); });
   var st = opt.step, a = Math.floor(lo / st) * st, b = Math.ceil(hi / st) * st;
   if (b - a < 2 * st) b = a + 2 * st;
   if (Math.round((b - a) / st) % 2) b += st;
@@ -144,6 +149,13 @@ function chart(ns, ph, key, opt) {
   [a, (a + b) / 2, b].forEach(function (t) {
     svg += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + y(t).toFixed(1) + '" y2="' + y(t).toFixed(1) + '" stroke="var(--ch-grid-2)"/>'
          + '<text x="' + (X0 - 5) + '" y="' + (y(t) + 3.5).toFixed(1) + '" text-anchor="end"' + font + '>' + opt.lab(t) + '</text>';
+  });
+  /* Korridor (26.11.): Normalband der Vergleichsphase und Schwellenlinien */
+  var xs = ex.from ? Math.max(X0, x(ex.from)) : X0;   // ab Beginn der Vergleichsphase
+  if (ex.band) svg += '<rect x="' + xs.toFixed(1) + '" y="' + y(ex.band.hi).toFixed(1) + '" width="' + (X1 - xs).toFixed(1) + '" height="' + (y(ex.band.lo) - y(ex.band.hi)).toFixed(1) + '" fill="var(--fc-a18)"/>';
+  (ex.lines || []).forEach(function (l) {
+    svg += '<line x1="' + xs.toFixed(1) + '" x2="' + X1 + '" y1="' + y(l.v).toFixed(1) + '" y2="' + y(l.v).toFixed(1) + '" stroke="var(--bad-2)" stroke-width="1.2" stroke-dasharray="4 3"/>';
+    if (l.lab) svg += '<text x="' + (X1 - 2) + '" y="' + (y(l.v) - 3).toFixed(1) + '" text-anchor="end" font-size="8.5" fill="var(--bad-2)" font-family="Figtree,sans-serif">' + l.lab + '</text>';
   });
   if (opt.zero && a < 0 && b > 0) svg += '<line x1="' + X0 + '" x2="' + X1 + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '" stroke="var(--ch-lbl)" stroke-dasharray="2 3"/>';
   var seg = [], segs = [];
@@ -172,12 +184,30 @@ var HR = { l: "Ø Nachtpuls", step: 2, lab: function (v) { return String(v); }, 
 var TP = { l: "Temperatur", step: 0.2, zero: 1, lab: function (v) { return (Math.round(v * 10) / 10).toString().replace(".", ","); }, fmt: function (v) { return sgn(v, 2) + " °C"; } };
 
 /* ─── Bewertung (ab BEWERTUNG_AB) ─────────────────── */
+/* Vergleichsphase: die jüngste frühere Phase mit ≥ MIN_N gewerteten Nächten */
+function refPhase(ph) {
+  var cur = ph[ph.length - 1];
+  for (var i = ph.length - 2; i >= 0; i--) { if (ph[i].ok.length >= MIN_N && ph[i].goal !== cur.goal) return ph[i]; }
+  return null;
+}
+/* Korridor für die Graphen. Temperatur-Schwelle sofort (braucht keine
+   Vergleichsphase, Oura liefert schon die Abweichung von der Basislinie).
+   Puls: Normalband (Ø ± 1 SD der Vergleichsphase) und Schwelle Ø + 2 erst
+   ab BEWERTUNG_AB und nur mit Vergleichsphase. */
+function korridor(ph, tag) {
+  var k = { temp: { lines: [{ v: 0.3, lab: "+0,3 °C" }] }, hr: {} }, ref = refPhase(ph);
+  if (tag < BEWERTUNG_AB || !ref) return k;
+  var v = ref.ok.map(function (n) { return n.hr; }).filter(num);
+  var m = v.reduce(function (s, x) { return s + x; }, 0) / v.length;
+  var sd = Math.sqrt(v.reduce(function (s, x) { return s + (x - m) * (x - m); }, 0) / Math.max(1, v.length - 1));
+  k.hr = { band: { lo: m - sd, hi: m + sd }, lines: [{ v: m + 2 }], ref: ref, from: addDays(ref.von, 1), thr: m + 2 };
+  return k;
+}
 function bewertung(ph, tag, rate) {
   if (tag < BEWERTUNG_AB) {
     return '<div class="ou-cmp">Bewertung nach der Regel vom 25.11. ab ' + dm(BEWERTUNG_AB) + BEWERTUNG_AB.slice(0, 4) + ' – bis dahin nur beschreibend.</div>';
   }
-  var cur = ph[ph.length - 1], ref = null;
-  for (var i = ph.length - 2; i >= 0; i--) { if (ph[i].ok.length >= MIN_N && ph[i].goal !== cur.goal) { ref = ph[i]; break; } }
+  var cur = ph[ph.length - 1], ref = refPhase(ph);
   var txt;
   if (cur.ok.length < MIN_N) txt = "Noch nicht bewertbar: aktuelle Phase hat " + cur.ok.length + " von " + MIN_N + " gewerteten Nächten.";
   else if (!ref) txt = "Noch nicht bewertbar: keine frühere Zielphase mit mindestens " + MIN_N + " gewerteten Nächten zum Vergleich.";
@@ -226,18 +256,21 @@ function card(ou) {
   ns.forEach(function (n) { if (!n.ok) raus[n.why] = (raus[n.why] || 0) + 1; });
   var rausH = Object.keys(raus).map(function (k) { return k + " " + raus[k]; }).join(" · ");
   var rate = typeof window.tlGewichtRate === "function" ? window.tlGewichtRate() : null;
+  var kor = korridor(ph, today());
 
   return '<div class="wt-card">'
     + '<div class="wt-hd"><button type="button" class="wt-lbl wt-fold" onclick="frCard()">Frühindikator <span>▾</span></button><div class="wt-k">'
     + '<span class="wt-kv">' + kv + '</span>'
     + '<div class="wt-sub">Ø Nachtpuls ' + (cur.goal ? kc(cur.goal) : "?") + ' kcal · ' + cur.ok.length + (cur.ok.length === 1 ? ' Nacht' : ' Nächte') + '</div></div></div>'
     + '<div class="dhint" style="margin:6px 0 0">Ø Nachtpuls (Schläge/min) – Nacht nach der Zufuhr, Hintergrund = Kalorienziel</div>'
-    + chart(ns, ph, "hr", HR)
+    + chart(ns, ph, "hr", Object.assign({ extra: kor.hr }, HR))
     + '<div class="dhint" style="margin:4px 0 0">Temperaturabweichung (°C, Oura-Basislinie)</div>'
-    + chart(ns, ph, "temp", TP)
+    + chart(ns, ph, "temp", Object.assign({ extra: kor.temp }, TP))
     + '<div class="wt-leg"><span><i style="background:' + C_PT + '"></i>gewertet</span>'
     + '<span><i style="background:var(--surface);box-shadow:inset 0 0 0 1.5px ' + C_PT + '"></i>nicht gewertet</span>'
-    + '<span><i style="background:' + C_AVG + '"></i>Ø 7 Nächte</span></div>'
+    + '<span><i style="background:' + C_AVG + '"></i>Ø 7 Nächte</span>'
+    + (kor.hr.band ? '<span><i style="background:var(--fc-a18)"></i>Normal ' + kc(kor.hr.ref.goal) + '</span>' : '')
+    + '<span><i style="background:var(--bad-2)"></i>Schwelle' + (kor.hr.thr ? ' (Puls ' + f1(kor.hr.thr) + ')' : '') + '</span></div>'
     + '<div class="ou-cmp">' + rowsH + (rausH ? '<div style="margin-top:8px">Nicht gewertet: ' + rausH + '</div>' : '') + '</div>'
     + bewertung(ph, today(), rate)
     + '</div>';
@@ -248,5 +281,5 @@ window.frCard = function () {
   try { localStorage.setItem("tlui-werte", JSON.stringify(s)); } catch (e) {}
   if (window.tlOura && window.tlOura.render) window.tlOura.render();
 };
-window.tlFrueh = { card: card, nights: nights, phases: phases, bewertung: bewertung };
+window.tlFrueh = { card: card, nights: nights, phases: phases, bewertung: bewertung, korridor: korridor };
 })();
