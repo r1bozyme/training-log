@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-<!-- App-Icon (25.11.2026): Hantel mit drei Punkten für Training, Ernährung, Körper -->
+<!-- App-Icon (25.11.2026): Hantel mit drei Punkten für Training, Ernährung, Körper. Neue Dateinamen (gt-…), weil Chrome Icons nur bei geänderter Adresse neu lädt -->
 <circle cx="256" cy="256" r="254" fill="#1A1A1A"/>
 <g transform="translate(35.8 35.8) scale(0.86)"><rect x="87.8" y="190.2" width="36.6" height="87.8" rx="11.0" fill="#F1EFE8"/><rect x="131.7" y="139.0" width="43.9" height="190.2" rx="14.6" fill="#F1EFE8"/><rect x="336.5" y="139.0" width="43.9" height="190.2" rx="14.6" fill="#F1EFE8"/><rect x="387.7" y="190.2" width="36.6" height="87.8" rx="11.0" fill="#F1EFE8"/><rect x="175.5" y="219.4" width="160.9" height="29.3" rx="11.0" fill="#F1EFE8"/><circle cx="175.5" cy="424.2" r="27.4" fill="#F0997B"/><circle cx="256.0" cy="424.2" r="27.4" fill="#97C459"/><circle cx="336.5" cy="424.2" r="27.4" fill="#85B7EB"/></g>
 </svg>
