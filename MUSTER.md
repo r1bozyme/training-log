@@ -276,6 +276,23 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
   (Tempo-Coach: Einzählen, Phasen-Töne, Klicks, Abschluss).
 - **Code:** `progress.js` (Pausentimer), `tempo.js` (Tempo-Coach)
 
+### Text weiterschicken über das Teilen-Menü
+- **Problem:** Ein Ergebnis aus der App (z. B. Ankunftszeit) soll schnell
+  per Messenger raus, ohne Abtippen.
+- **Lösung:** `navigator.share({ text })` öffnet in der installierten PWA
+  das Android-Teilen-Menü (WhatsApp, Signal …). Ablehnen/Abbrechen wirft –
+  mit `.catch(function(){})` schlucken. Rückfall ohne `share`:
+  `navigator.clipboard.writeText` plus kurzer Hinweis.
+- **Code:** `heimkehr.js` (`teilen`)
+
+### Dauern aus Speicher-Zeitstempeln lernen
+- Wenn die id eines Eintrags `Date.now()` beim Speichern ist, liefert der
+  Abstand zweier Speichervorgänge am selben Tag die Dauer des späteren
+  Schritts – ohne Stoppuhr. Lücken über einer Grenze (hier 30 min) sind
+  Unterbrechungen und fallen raus; Median statt Mittelwert. Nur ids
+  verwenden, die auf den Eintragstag fallen (Importe haben künstliche ids).
+- **Code:** `heimkehr.js` (`dauern`, `zeitOk`)
+
 ### Datum in Ortszeit
 - „Heute“ wird aus der Ortszeit gebildet, nicht über `toISOString()` (UTC).
   Sonst wechselt der Tag in Deutschland erst um 1 bzw. 2 Uhr.
