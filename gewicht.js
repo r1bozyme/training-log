@@ -91,6 +91,8 @@ function phase(all) {
 
 /* Von wForecast (index.html) abgefragt: Startpunkt des Trichters */
 window.wFcBase = function () { return ph && typeof ph.base === "number" ? ph.base : null; };
+/* frueh.js (26.11.): Wochenrate seit Zielwechsel für die Frühindikator-Bewertung */
+window.tlGewichtRate = function () { return ph && typeof ph.rate === "number" ? ph.rate : null; };
 
 function build() {
   var slot = document.getElementById("d-weightsec");

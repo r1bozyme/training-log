@@ -35,6 +35,9 @@
    SCHRITTE (18.11.): Karten und Tabelle zeigen erst ab OURA_START
    (05.11.2026) – davor lagen Handy-Schritte aus Google Health in tl-d.
 
+   FRÜHINDIKATOR (26.11.): Karte unter den Oura-Karten kommt aus frueh.js
+   (window.tlFrueh.card, liest temp/hrAvg direkt aus data.days).
+
    Keys: tl-oura (letzter Stand von data.json, Cache für Offline-Start).
    ═══════════════════════════════════════════════════ */
 (function () {
@@ -393,6 +396,8 @@ function render() {
 
   if (show) {
     var cards = METR.map(function (m) { return cardHtml(m, src, train); }).join("");
+    /* Frühindikator (frueh.js, 26.11.): eigene Karte aus data.days (temp/hrAvg) */
+    if (isLive() && window.tlFrueh) { try { cards += window.tlFrueh.card(data.days); } catch (e) { setTimeout(function () { throw e; }); } }   // Fehler → diag.js
     if (cards) {
       h += (window.tlWerte ? '<div class="wt-range">' + window.tlWerte.rangeRow() + '</div>' : "") + cards;
     }
@@ -412,7 +417,7 @@ window.ouCard = function (f) {
   lsSet("tlui-werte", JSON.stringify(s));
   render();
 };
-window.tlOura = { active: active, live: isLive, refresh: refresh };
+window.tlOura = { active: active, live: isLive, refresh: refresh, render: render };
 
 /* ─── Init ─────────────────────────────────────── */
 /* Legt die Ansicht "health" (Körper → Tracker) an; umgeschaltet wird sie
