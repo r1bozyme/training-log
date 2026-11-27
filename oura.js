@@ -41,6 +41,9 @@
    FRÜHINDIKATOR (26.11.): Karte unter den Oura-Karten kommt aus frueh.js
    (window.tlFrueh.card, liest temp/hrAvg direkt aus data.days).
 
+   ABWEICHUNGEN (27.11.): Karte „Alles auf einen Blick“ über den Oura-Karten
+   kommt aus abw.js (window.tlAbw.card, Zustand ou.abw in "tlui-werte").
+
    Keys: tl-oura (letzter Stand von data.json, Cache für Offline-Start).
    ═══════════════════════════════════════════════════ */
 (function () {
@@ -399,6 +402,8 @@ function render() {
 
   if (show) {
     var cards = METR.map(function (m) { return cardHtml(m, src, train); }).join("");
+    /* Abweichungsstreifen (abw.js, 27.11.): alle Werte auf einen Blick, ganz oben */
+    if (isLive() && window.tlAbw) { try { cards = window.tlAbw.card(data.days, OURA_START) + cards; } catch (e) { setTimeout(function () { throw e; }); } }
     /* Frühindikator (frueh.js, 26.11.): eigene Karte aus data.days (temp/hrAvg) */
     if (isLive() && window.tlFrueh) { try { cards += window.tlFrueh.card(data.days); } catch (e) { setTimeout(function () { throw e; }); } }   // Fehler → diag.js
     if (cards) {
