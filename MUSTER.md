@@ -321,6 +321,15 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
   am SVG, die Gesten hängen per Delegation am Dokument.
 - **Code:** `scrub.js` · Commit 53ff4d8
 
+### Ereignis-Marker in allen Graphen
+- Manuell markierte Tage (z. B. „Letzte Nacht: Alkohol“) erscheinen in jedem
+  Verlauf als gestrichelte Linie mit Symbol, Reisetage als blasses Band.
+- Kein Graph muss dafür etwas tun außer dem Tag `d` in seinen
+  `data-scrub`-Punkten: Aus den Punkten wird die Zeitachse linear bestimmt,
+  ein MutationObserver ergänzt neu gezeichnete SVGs einmal (`data-ev`).
+  Eigene Darstellung möglich mit `data-noev`.
+- **Code:** `ereignis.js`
+
 ### Geglättete Verläufe und Kennzahl je Kontext
 - Verlaufslinien als monotone kubische Kurve (Fritsch–Carlson): weich,
   aber ohne Überschwingen über echte Werte; ab 8 Punkten zusätzlich EMA.

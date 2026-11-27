@@ -126,7 +126,7 @@ function graph(o) {
     var parts = o.series.map(function (s, si) {
       return lines[si][i] === null ? null : (s.name ? s.name + " " : "") + f1(lines[si][i]);
     }).filter(Boolean);
-    pts.push({ x: x(i), y: ys, c: o.series.map(function (s) { return s.color; }), v: parts.join(" · "), t: dm(d) + d.slice(0, 4) });
+    pts.push({ x: x(i), y: ys, c: o.series.map(function (s) { return s.color; }), v: parts.join(" · "), t: dm(d) + d.slice(0, 4), d: d });
   });
   var attr = typeof window.scrubAttr === "function" && pts.length ? window.scrubAttr(pts) : "";
 

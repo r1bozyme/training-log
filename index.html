@@ -899,7 +899,7 @@ function parseKg(g) {
 
 // Datenpunkte für scrub.js (Gedrückthalten zeigt Datum und Wert)
 function scrubAttr(pts) {
-  const j = JSON.stringify(pts.map(p => ({ x: +(+p.x).toFixed(1), y: p.y.map(v => v === null ? null : +(+v).toFixed(1)), c: p.c, v: p.v, t: p.t })));
+  const j = JSON.stringify(pts.map(p => ({ x: +(+p.x).toFixed(1), y: p.y.map(v => v === null ? null : +(+v).toFixed(1)), c: p.c, v: p.v, t: p.t, d: p.d })));
   return ` data-scrub="${j.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")}"`;
 }
 
@@ -1236,7 +1236,7 @@ function weightChart(pts) {
 
   const scrub = scrubAttr(pts.map(p => ({
     x: X(p.day), y: [Y(p.kg), Y(p.trend)], c: ["var(--ch-lbl-2)", "var(--text)"],
-    v: fmtNum(p.kg, 1) + " kg", t: fmtDate(p.date) + " · Trend " + fmtNum(p.trend, 1)
+    v: fmtNum(p.kg, 1) + " kg", t: fmtDate(p.date) + " · Trend " + fmtNum(p.trend, 1), d: p.date
   })));
 
   return `<svg class="wsvg" viewBox="0 0 ${W} ${H}"${scrub}>

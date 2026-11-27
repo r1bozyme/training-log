@@ -15,6 +15,8 @@
        c    – Farbe je Markierung (optional)
        v    – Hauptzeile (fett), z. B. "73,4 kg"
        t    – Nebenzeile, z. B. "28.10.2026 · Trend 73,0"
+       d    – Kalendertag JJJJ-MM-TT (optional, 27.11.): Ereignis-Marker
+              (ereignis.js) und Ereignis in der Nebenzeile
    scrubAttr(pts) in index.html baut das Attribut. Neue Graphen brauchen
    nur das Attribut – die Gesten hängen per Delegation am Dokument.
    ═══════════════════════════════════════════════════ */
@@ -130,8 +132,11 @@
     });
 
     st.tip.firstChild.textContent = p.v || "";
-    st.tip.lastChild.textContent = p.t || "";
-    st.tip.lastChild.style.display = p.t ? "" : "none";
+    /* Ereignis der Nacht (ereignis.js) an die Nebenzeile hängen */
+    var ev = p.d && window.tlEv ? window.tlEv.at(p.d) : null;
+    var tt = (p.t || "") + (ev && (p.t || "").indexOf(ev.l) < 0 ? (p.t ? " · " : "") + ev.i + " " + ev.l : "");
+    st.tip.lastChild.textContent = tt;
+    st.tip.lastChild.style.display = tt ? "" : "none";
 
     // Tooltip über dem Punkt zentrieren, aber im Elternteil halten
     var tw = st.tip.offsetWidth, pw = par.clientWidth;

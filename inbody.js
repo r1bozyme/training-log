@@ -334,7 +334,7 @@ function ibLinie(list, key, titel, einheit, farbe, von, bis) {
       return '<circle cx="' + x(m.date).toFixed(1) + '" cy="' + y(m[key]).toFixed(1) + '" r="3.5" fill="' + (ok ? farbe : "var(--surface)") + '" stroke="' + farbe + '" stroke-width="1.5"/>';
     }).join("");
   var scrub = typeof window.scrubAttr === "function" ? window.scrubAttr(list.map(function (m) {
-    return { x: x(m.date), y: [y(m[key])], c: [farbe], v: titel + " " + f1(m[key]) + " " + einheit, t: dmy(m.date) + (m.bed === "ok" ? " · Bedingungen ✓" : "") };
+    return { x: x(m.date), y: [y(m[key])], c: [farbe], v: titel + " " + f1(m[key]) + " " + einheit, t: dmy(m.date) + (m.bed === "ok" ? " · Bedingungen ✓" : ""), d: m.date };
   })) : "";
   return '<div class="ib-vt">' + titel + ' <span>' + einheit + '</span></div><svg class="wt-chart" style="margin-top:2px" viewBox="0 0 ' + W + ' ' + H + '"' + scrub + '>' + s + '</svg>';
 }

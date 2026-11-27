@@ -275,7 +275,7 @@ function chart(m, vals, isT, end, start) {
     pts.push({
       x: x(k), y: [raw[k] === null ? null : y(raw[k]), avg[k] === null ? null : y(avg[k])], c: [C_PT, C_AVG],
       v: (raw[k] === null ? "–" : fmtVal(m.f, raw[k]) + (m.unit || "")) + (avg[k] === null ? "" : " · Ø " + fmtAvg(m, avg[k])),
-      t: shortD(d) + d.slice(0, 4) + (raw[k] === null ? "" : " · " + tag(m, isT(d)))
+      t: shortD(d) + d.slice(0, 4) + (raw[k] === null ? "" : " · " + tag(m, isT(d))), d: d
     });
   });
   var attr = typeof window.scrubAttr === "function" && pts.length ? window.scrubAttr(pts) : "";

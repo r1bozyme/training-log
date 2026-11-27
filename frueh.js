@@ -173,7 +173,7 @@ function chart(ns, ph, key, opt) {
          + (q.ok ? ' fill="' + C_PT + '" stroke="' + C_PT + '"' : ' fill="var(--surface)" stroke="' + C_PT + '"') + ' stroke-width="1.3"/>';
     pts.push({ x: cx, y: [cy, li === null ? null : y(li)], c: [C_PT, C_AVG],
       v: opt.fmt(q[key]) + (li === null ? "" : " · Ø " + opt.fmt(li)),
-      t: "Nacht auf " + dm(q.w) + " · " + (q.kcal ? kc(q.kcal) + " kcal" : "–") + (q.ok ? (q.abends ? " · Training abends" : "") : " · " + q.why) });
+      t: "Nacht auf " + dm(q.w) + " · " + (q.kcal ? kc(q.kcal) + " kcal" : "–") + (q.ok ? (q.abends ? " · Training abends" : "") : " · " + q.why), d: q.w });
   });
   svg += '<text x="' + X0 + '" y="114"' + font + '>' + dm(start) + '</text>'
        + '<text x="' + X1 + '" y="114" text-anchor="end"' + font + '>' + dm(end) + '</text>';
