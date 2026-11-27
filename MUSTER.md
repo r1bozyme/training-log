@@ -319,6 +319,9 @@ Zuletzt aktualisiert: 21.11.2026 (Nachtmodus, aus dem Finanz-Cockpit, in trainin
 - Nach etwa 0,2 s Halten zeigen Graphen Datum und Wert, seitliches Wischen
   fährt den Verlauf ab. Neue Graphen brauchen nur das Attribut `data-scrub`
   am SVG, die Gesten hängen per Delegation am Dokument.
+- Gekoppelt (27.11.): Tragen die Punkte den Kalendertag `d`, zeigen beim
+  Abtasten alle anderen sichtbaren Graphen derselben Ansicht denselben Tag
+  (Linie, Punkte, Wert ohne Nebenzeile). Ein Finger statt Panel für Panel.
 - **Code:** `scrub.js` · Commit 53ff4d8
 
 ### Ereignis-Marker in allen Graphen

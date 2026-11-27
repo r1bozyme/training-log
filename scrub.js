@@ -17,6 +17,10 @@
        t    – Nebenzeile, z. B. "28.10.2026 · Trend 73,0"
        d    – Kalendertag JJJJ-MM-TT (optional, 27.11.): Ereignis-Marker
               (ereignis.js) und Ereignis in der Nebenzeile
+   GEKOPPELT (27.11.): Beim Abtasten zeigen alle anderen sichtbaren Graphen
+   derselben Ansicht denselben Kalendertag (Feld d) mit Linie, Punkten und
+   Wert – ein Finger statt Panel für Panel. Graphen ohne d bleiben allein.
+
    scrubAttr(pts) in index.html baut das Attribut. Neue Graphen brauchen
    nur das Attribut – die Gesten hängen per Delegation am Dokument.
    ═══════════════════════════════════════════════════ */
@@ -67,12 +71,10 @@
     st = { svg: svg, pts: pts, idx: -1, active: false, timer: null, x0: x, y0: y };
   }
 
-  function aktivieren() {
-    if (!st) return;
-    st.active = true;
-    var svg = st.svg, par = svg.parentNode;
+  /* Overlay (Linie, Punkte, Tooltip) für ein SVG anlegen */
+  function overlay(svg) {
+    var par = svg.parentNode;
     if (getComputedStyle(par).position === "static") par.style.position = "relative";
-
     var ov = document.createElement("div");
     ov.className = "scrub-ov";
     var line = document.createElement("div");
@@ -84,10 +86,89 @@
     tip.appendChild(document.createElement("span"));
     ov.appendChild(tip);
     par.appendChild(ov);
+    return { svg: svg, ov: ov, line: line, tip: tip, dots: [], idx: -1 };
+  }
 
-    st.ov = ov; st.line = line; st.tip = tip; st.dots = [];
+  /* Gekoppelte Graphen (27.11.): alle anderen sichtbaren Graphen derselben
+     Ansicht, deren Punkte den Tag d tragen. Sie zeigen beim Abtasten
+     denselben Kalendertag – Linie, Punkte und den Wert, ohne Nebenzeile. */
+  function partner(svg) {
+    var view = svg.closest(".view") || document, out = [];
+    var list = view.querySelectorAll("svg[data-scrub]");
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i];
+      if (o === svg) continue;
+      var r = o.getBoundingClientRect();
+      if (!r.height || r.bottom < 0 || r.top > window.innerHeight) continue;
+      var pts = lesen(o);
+      if (!pts) continue;
+      var by = {}, n = 0;
+      pts.forEach(function (p) { if (p.d) { by[p.d] = p; n++; } });
+      if (!n) continue;
+      var ov = overlay(o);
+      ov.by = by;
+      ov.ov.style.display = "none";
+      out.push(ov);
+    }
+    return out;
+  }
+
+  function aktivieren() {
+    if (!st) return;
+    st.active = true;
+    var o = overlay(st.svg);
+    st.ov = o.ov; st.line = o.line; st.tip = o.tip; st.dots = o.dots;
+    st.peers = [];
+    try { st.peers = partner(st.svg); } catch (e) { setTimeout(function () { throw e; }); }
     try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
     zeigen(st.x0);
+  }
+
+  /* Overlay deckungsgleich über das SVG legen und Punkt p zeigen */
+  function setze(o, p, g, voll) {
+    var par = o.svg.parentNode, pr = par.getBoundingClientRect();
+    var oL = g.r.left - pr.left - par.clientLeft, oT = g.r.top - pr.top - par.clientTop;
+    o.ov.style.left = oL + "px";
+    o.ov.style.top = oT + "px";
+    o.ov.style.width = g.r.width + "px";
+    o.ov.style.height = g.r.height + "px";
+
+    var px = (p.x - g.vx) * g.sx + g.ox;
+    o.line.style.left = px + "px";
+
+    var ys = Array.isArray(p.y) ? p.y : [p.y];
+    var cs = p.c || [];
+    while (o.dots.length < ys.length) {
+      var dt = document.createElement("div");
+      dt.className = "scrub-dt";
+      o.ov.appendChild(dt);
+      o.dots.push(dt);
+    }
+    o.dots.forEach(function (dt, k) {
+      if (k >= ys.length || ys[k] === null || ys[k] === undefined) { dt.style.display = "none"; return; }
+      dt.style.display = "";
+      dt.style.left = px + "px";
+      dt.style.top = ((ys[k] - g.vy) * g.sy + g.oy) + "px";
+      dt.style.background = cs[k] || "var(--text)";
+    });
+
+    o.tip.firstChild.textContent = p.v || "";
+    var tt = "";
+    if (voll) {
+      /* Ereignis der Nacht (ereignis.js) an die Nebenzeile hängen */
+      var ev = p.d && window.tlEv ? window.tlEv.at(p.d) : null;
+      tt = (p.t || "") + (ev && (p.t || "").indexOf(ev.l) < 0 ? (p.t ? " · " : "") + ev.i + " " + ev.l : "");
+    }
+    o.tip.lastChild.textContent = tt;
+    o.tip.lastChild.style.display = tt ? "" : "none";
+    o.tip.style.display = p.v || tt ? "" : "none";
+
+    // Tooltip über dem Punkt zentrieren, aber im Elternteil halten
+    var tw = o.tip.offsetWidth, pw = par.clientWidth;
+    var left = px - tw / 2;
+    left = Math.max(left, -oL + 4);
+    left = Math.min(left, pw - oL - tw - 4);
+    o.tip.style.left = left + "px";
   }
 
   function zeigen(clientX) {
@@ -100,56 +181,24 @@
       var d = Math.abs(st.pts[i].x - vx);
       if (d < bd) { bd = d; best = i; }
     }
-
-    // Overlay deckungsgleich über das SVG legen (Elternteil kann neu gelayoutet sein)
-    var par = st.svg.parentNode, pr = par.getBoundingClientRect();
-    var oL = g.r.left - pr.left - par.clientLeft, oT = g.r.top - pr.top - par.clientTop;
-    st.ov.style.left = oL + "px";
-    st.ov.style.top = oT + "px";
-    st.ov.style.width = g.r.width + "px";
-    st.ov.style.height = g.r.height + "px";
-
     if (best === st.idx) return;
     st.idx = best;
     var p = st.pts[best];
-    var px = (p.x - g.vx) * g.sx + g.ox;
-    st.line.style.left = px + "px";
+    setze(st, p, g, true);
 
-    var ys = Array.isArray(p.y) ? p.y : [p.y];
-    var cs = p.c || [];
-    while (st.dots.length < ys.length) {
-      var dt = document.createElement("div");
-      dt.className = "scrub-dt";
-      st.ov.appendChild(dt);
-      st.dots.push(dt);
-    }
-    st.dots.forEach(function (dt, k) {
-      if (k >= ys.length || ys[k] === null || ys[k] === undefined) { dt.style.display = "none"; return; }
-      dt.style.display = "";
-      dt.style.left = px + "px";
-      dt.style.top = ((ys[k] - g.vy) * g.sy + g.oy) + "px";
-      dt.style.background = cs[k] || "var(--text)";
+    (st.peers || []).forEach(function (o) {
+      var q = p.d ? o.by[p.d] : null;
+      if (!q) { o.ov.style.display = "none"; return; }
+      o.ov.style.display = "";
+      setze(o, q, geom(o.svg), false);
     });
-
-    st.tip.firstChild.textContent = p.v || "";
-    /* Ereignis der Nacht (ereignis.js) an die Nebenzeile hängen */
-    var ev = p.d && window.tlEv ? window.tlEv.at(p.d) : null;
-    var tt = (p.t || "") + (ev && (p.t || "").indexOf(ev.l) < 0 ? (p.t ? " · " : "") + ev.i + " " + ev.l : "");
-    st.tip.lastChild.textContent = tt;
-    st.tip.lastChild.style.display = tt ? "" : "none";
-
-    // Tooltip über dem Punkt zentrieren, aber im Elternteil halten
-    var tw = st.tip.offsetWidth, pw = par.clientWidth;
-    var left = px - tw / 2;
-    left = Math.max(left, -oL + 4);
-    left = Math.min(left, pw - oL - tw - 4);
-    st.tip.style.left = left + "px";
   }
 
   function ende() {
     if (!st) return;
     clearTimeout(st.timer);
     if (st.ov && st.ov.parentNode) st.ov.parentNode.removeChild(st.ov);
+    (st.peers || []).forEach(function (o) { if (o.ov.parentNode) o.ov.parentNode.removeChild(o.ov); });
     st = null;
   }
 
