@@ -144,10 +144,11 @@ function prognose() {
   var D = dauern(frueher.slice(-TAGE));
 
   var getan = {};
-  /* Abgelöste Übungen (plan.js ersetzt:[…]) gelten mit ihrem Ersatz als erledigt */
+  /* Abgelöste Übungen (plan.js ersetzt:[…]) gelten mit ihrem Ersatz als erledigt,
+     Alternativen (alternativ:[…], 28.11.) gegenseitig */
   var abgeloest = {};
   if (typeof PLAN !== "undefined") Object.keys(PLAN).forEach(function (k) {
-    if (Array.isArray(PLAN[k])) PLAN[k].forEach(function (x) { if (x && x.ersetzt) abgeloest[x.name] = x.ersetzt; });
+    if (Array.isArray(PLAN[k])) PLAN[k].forEach(function (x) { if (x && (x.ersetzt || x.alternativ)) abgeloest[x.name] = (x.ersetzt || []).concat(x.alternativ || []); });
   });
   (heutig ? heutig.L : []).forEach(function (e) {
     getan[e.uebung] = true;

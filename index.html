@@ -866,7 +866,7 @@ function buildPlan() {
       const pause = PAUSE[ex.typ] || PAUSE.isolation;
       return `<div class="pcard" id="${id}" onclick="togCard('${id}')">
         <div class="pch">
-          <div class="pcn">${ex.name}${ex.optional ? ' <span class="popt">optional</span>' : ""}</div>
+          <div class="pcn">${ex.name}${ex.optional ? ' <span class="popt">optional</span>' : ""}${ex.alternativ ? ' <span class="popt">Alternative</span>' : ""}</div>
           <div class="pcm">${ex.saetze}×${ex.repzone}</div>
           <span class="pcc">▸</span>
         </div>
